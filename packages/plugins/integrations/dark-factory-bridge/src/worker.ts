@@ -7,12 +7,15 @@ import {
   RUNTIME_OBSERVATION_SOURCE,
 } from "./runtime-contract.js";
 import {
+  createMockCallbackReceipt,
   createMockRehydrateRequest,
   getMockJournalCursor,
+  getMockJournalReplayEntries,
   getMockProviderHealth,
   getMockRunAttemptMetadata,
   getMockRuntimeProjection,
   getProviderRuntimeMode,
+  replayMockJournal,
 } from "./mock-runtime-adapter.js";
 
 export { PROJECTION_DISCLAIMER } from "./runtime-contract.js";
@@ -55,6 +58,30 @@ function buildSummary(issueId: string): ProjectionSummary {
     runtimeImpact: getProviderRuntimeMode(providerHealth),
     runAttemptMetadata: getMockRunAttemptMetadata(issueId),
   };
+}
+
+function projectionBoundary() {
+  return {
+    source: DARK_FACTORY_PROJECTION_SOURCE,
+    authoritative: PROJECTION_AUTHORITATIVE,
+    truthSource: DARK_FACTORY_TRUTH_SOURCE,
+  } as const;
+}
+
+function normalizeEnvironmentConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const { mode: _mode, ...rest } = config;
+  return {
+    mode: "mock",
+    ...rest,
+  };
+}
+
+function mockIssueIdForRun(runId: string): string {
+  return runId.trim().length > 0 ? runId.trim() : "dark-factory-mock-run";
+}
+
+function mockLeaseId(runId: string): string {
+  return `df-lease-${runId.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
 }
 
 function stringField(value: unknown): string | null {
@@ -179,6 +206,108 @@ const plugin = definePlugin({
         truthSource: DARK_FACTORY_TRUTH_SOURCE,
         authoritative: PROJECTION_AUTHORITATIVE,
         observationSource: RUNTIME_OBSERVATION_SOURCE,
+      },
+    };
+  },
+
+  async onEnvironmentValidateConfig(params) {
+    if (params.config.mode !== "mock") {
+      return {
+        ok: false,
+        errors: ["Only mock mode is supported in this version"],
+      };
+    }
+
+    return {
+      ok: true,
+      normalizedConfig: normalizeEnvironmentConfig(params.config),
+    };
+  },
+
+  async onEnvironmentProbe(params) {
+    const issueId = mockIssueIdForRun(params.environmentId);
+    const providerHealth = getMockProviderHealth(issueId);
+
+    return {
+      ok: true,
+      summary: "Dark Factory mock environment ready",
+      metadata: {
+        ...projectionBoundary(),
+        observationSource: RUNTIME_OBSERVATION_SOURCE,
+        driverKey: params.driverKey,
+        environmentId: params.environmentId,
+        runtimeMode: "mock",
+        providerHealth,
+        runtimeImpact: getProviderRuntimeMode(providerHealth),
+        terminalStateAdvanced: false,
+      },
+    };
+  },
+
+  async onEnvironmentAcquireLease(params) {
+    const runId = mockIssueIdForRun(params.runId);
+    const projection = getMockRuntimeProjection(runId);
+    const cursor = getMockJournalCursor(runId);
+    const providerHealth = getMockProviderHealth(runId);
+
+    return {
+      providerLeaseId: mockLeaseId(runId),
+      metadata: {
+        ...projectionBoundary(),
+        driverKey: params.driverKey,
+        environmentId: params.environmentId,
+        runId,
+        runtimeMode: "mock",
+        projection,
+        journalCursor: cursor,
+        providerHealth,
+        runtimeImpact: getProviderRuntimeMode(providerHealth),
+        terminalStateAdvanced: false,
+      },
+      expiresAt: null,
+    };
+  },
+
+  async onEnvironmentExecute(params) {
+    const runId = stringField(params.lease.metadata?.runId) ?? stringField(params.lease.providerLeaseId)?.replace(/^df-lease-/, "") ?? mockIssueIdForRun(params.environmentId);
+    const projection = getMockRuntimeProjection(runId);
+    const runAttemptMetadata = getMockRunAttemptMetadata(runId);
+    const cursor = getMockJournalCursor(runId);
+    const providerHealth = getMockProviderHealth(runId);
+    const replay = replayMockJournal(runId, getMockJournalReplayEntries(runId));
+    const receipt = createMockCallbackReceipt({
+      issueId: runId,
+      runId: projection.runId,
+      requestKind: "callback",
+      idempotencyKey: `${projection.runId}:${params.command}:${(params.args ?? []).join(":")}`,
+    });
+    const summary = {
+      ...projectionBoundary(),
+      runtimeMode: "mock",
+      runId,
+      projectionStatus: projection.projectionStatus,
+      journalCursor: cursor.journalCursor,
+      receiptId: receipt.receiptId,
+      terminalStateAdvanced: false,
+    };
+
+    return {
+      exitCode: 0,
+      timedOut: false,
+      stdout: JSON.stringify(summary),
+      stderr: "",
+      metadata: {
+        ...projectionBoundary(),
+        projection,
+        cursor,
+        receipt,
+        replay,
+        runtimeMode: "mock",
+        providerHealth,
+        runtimeImpact: getProviderRuntimeMode(providerHealth),
+        runAttemptMetadata,
+        terminalStateAdvanced: false,
+        disclaimer: PROJECTION_DISCLAIMER,
       },
     };
   }

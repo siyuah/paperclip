@@ -13,6 +13,7 @@ const manifest: PaperclipPluginManifestV1 = {
     "database.namespace.migrate",
     "database.namespace.read",
     "database.namespace.write",
+    "environment.drivers.register",
     "issues.read",
     "ui.dashboardWidget.register",
     "ui.detailTab.register",
@@ -27,6 +28,35 @@ const manifest: PaperclipPluginManifestV1 = {
     migrationsDir: "migrations",
     coreReadTables: ["issues"]
   },
+  environmentDrivers: [
+    {
+      driverKey: "dark-factory-mock",
+      kind: "environment_driver",
+      displayName: "Dark Factory Mock",
+      description: "mock-only Dark Factory environment driver. Projection is non-authoritative; Dark Factory Journal remains truth source.",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          mode: {
+            type: "string",
+            enum: ["mock"],
+            default: "mock"
+          },
+          endpoint: {
+            type: "string",
+            description: "Optional Dark Factory endpoint placeholder ignored by mock-only mode."
+          },
+          projectionMode: {
+            type: "string",
+            enum: ["deterministic"],
+            default: "deterministic"
+          }
+        },
+        required: ["mode"]
+      }
+    }
+  ],
   apiRoutes: [
     {
       routeKey: "projection",
