@@ -2,10 +2,20 @@ import { definePlugin, runWorker, type PluginApiRequestInput } from "@paperclipa
 import {
   DARK_FACTORY_PROJECTION_SOURCE,
   DARK_FACTORY_TRUTH_SOURCE,
+  DARK_FACTORY_PROTOCOL_RELEASE_TAG,
   PROJECTION_AUTHORITATIVE,
   PROJECTION_DISCLAIMER,
   RUNTIME_OBSERVATION_SOURCE,
 } from "./runtime-contract.js";
+import {
+  acquireHttpLease,
+  buildHttpProjectionSummary,
+  executeHttpEnvironment,
+  mapHttpError,
+  normalizeHttpEnvironmentConfig,
+  probeHttpEnvironment,
+  resumeHttpLease,
+} from "./http-runtime-adapter.js";
 import {
   createMockCallbackReceipt,
   createMockRehydrateRequest,
@@ -69,6 +79,9 @@ function projectionBoundary() {
 }
 
 function normalizeEnvironmentConfig(config: Record<string, unknown>): Record<string, unknown> {
+  if (config.mode === "http") {
+    return normalizeHttpEnvironmentConfig(config);
+  }
   const { mode: _mode, ...rest } = config;
   return {
     mode: "mock",
@@ -106,10 +119,17 @@ function idempotencyKeyFrom(input: PluginApiRequestInput, body: Record<string, u
   return stringField(body?.idempotencyKey) ?? stringField(input.headers?.["idempotency-key"]) ?? stringField(input.headers?.["Idempotency-Key"]);
 }
 
+function isHttpMode(config: Record<string, unknown>): boolean {
+  return config.mode === "http";
+}
+
 const plugin = definePlugin({
   async setup(ctx) {
     ctx.data.register("projection-summary", async (params) => {
       const issueId = stringField(params.issueId) ?? "dashboard-overview";
+      if (isHttpMode(params)) {
+        return buildHttpProjectionSummary(issueId, params);
+      }
       return buildSummary(issueId);
     });
 
@@ -207,17 +227,32 @@ const plugin = definePlugin({
   async onHealth() {
     return {
       status: "ok",
-      message: "Dark Factory deterministic mock runtime adapter is running in projection-only mode",
+      message: "Dark Factory bridge runtime adapter is running in projection-only mode",
       details: {
         source: DARK_FACTORY_PROJECTION_SOURCE,
         truthSource: DARK_FACTORY_TRUTH_SOURCE,
         authoritative: PROJECTION_AUTHORITATIVE,
         observationSource: RUNTIME_OBSERVATION_SOURCE,
+        protocolReleaseTag: DARK_FACTORY_PROTOCOL_RELEASE_TAG,
       },
     };
   },
 
   async onEnvironmentValidateConfig(params) {
+    if (params.config.mode === "http") {
+      try {
+        return {
+          ok: true,
+          normalizedConfig: normalizeEnvironmentConfig(params.config),
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          errors: [(error as Error).message],
+        };
+      }
+    }
+
     if (params.config.mode !== "mock") {
       return {
         ok: false,
@@ -232,6 +267,10 @@ const plugin = definePlugin({
   },
 
   async onEnvironmentProbe(params) {
+    if (isHttpMode(params.config)) {
+      return probeHttpEnvironment(params);
+    }
+
     const issueId = mockIssueIdForRun(params.environmentId);
     const providerHealth = getMockProviderHealth(issueId);
 
@@ -252,6 +291,10 @@ const plugin = definePlugin({
   },
 
   async onEnvironmentAcquireLease(params) {
+    if (isHttpMode(params.config)) {
+      return acquireHttpLease(params);
+    }
+
     const runId = mockIssueIdForRun(params.runId);
     const projection = getMockRuntimeProjection(runId);
     const cursor = getMockJournalCursor(runId);
@@ -276,6 +319,10 @@ const plugin = definePlugin({
   },
 
   async onEnvironmentResumeLease(params) {
+    if (isHttpMode(params.config)) {
+      return resumeHttpLease(params);
+    }
+
     const runId = mockRunIdFromLease(params.providerLeaseId, params.leaseMetadata);
     const projection = getMockRuntimeProjection(runId);
     const cursor = getMockJournalCursor(runId);
@@ -301,16 +348,38 @@ const plugin = definePlugin({
   },
 
   async onEnvironmentReleaseLease(_params) {
-    // Mock lease release is intentionally a no-op: no external service is
-    // contacted and Dark Factory terminal state remains Journal-owned.
+    // Lease release is intentionally a no-op for both mock and HTTP mode:
+    // Dark Factory terminal state remains Journal-owned.
   },
 
   async onEnvironmentDestroyLease(_params) {
-    // Mock lease destroy is intentionally a no-op: no external service is
-    // contacted and no terminal state is advanced.
+    // Lease destroy is intentionally a no-op for both mock and HTTP mode:
+    // no Paperclip terminal state is advanced.
   },
 
   async onEnvironmentExecute(params) {
+    if (isHttpMode(params.config)) {
+      try {
+        return await executeHttpEnvironment(params);
+      } catch (error) {
+        const mapped = mapHttpError(error);
+        return {
+          exitCode: null,
+          timedOut: mapped.code === "dark_factory_http_timeout",
+          stdout: "",
+          stderr: mapped.message,
+          metadata: {
+            ...projectionBoundary(),
+            runtimeMode: "http",
+            terminalStateAdvanced: false,
+            errorCode: mapped.code,
+            errorStatus: mapped.status,
+            errorDetails: mapped.details,
+          },
+        };
+      }
+    }
+
     const runId = stringField(params.lease.metadata?.runId) ?? stringField(params.lease.providerLeaseId)?.replace(/^df-lease-/, "") ?? mockIssueIdForRun(params.environmentId);
     const projection = getMockRuntimeProjection(runId);
     const runAttemptMetadata = getMockRunAttemptMetadata(runId);

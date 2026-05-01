@@ -1,6 +1,7 @@
 export const DARK_FACTORY_PROJECTION_SOURCE = "dark-factory-projection" as const;
 export const DARK_FACTORY_TRUTH_SOURCE = "dark-factory-journal" as const;
 export const RUNTIME_OBSERVATION_SOURCE = "runtime_observation" as const;
+export const DARK_FACTORY_PROTOCOL_RELEASE_TAG = "v3.0-agent-control-r1" as const;
 export const PROJECTION_AUTHORITATIVE = false as const;
 export const PROJECTION_DISCLAIMER = "Projection only — Dark Factory Journal remains truth source" as const;
 

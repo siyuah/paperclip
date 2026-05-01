@@ -43,16 +43,16 @@ describe("Dark Factory environment lifecycle hooks", () => {
       expect.objectContaining({
         driverKey: "dark-factory-mock",
         kind: "environment_driver",
-        displayName: "Dark Factory Mock",
-        description: expect.stringContaining("mock-only"),
+        displayName: "Dark Factory Bridge",
+        description: expect.stringContaining("HTTP mode"),
         configSchema: expect.objectContaining({
           type: "object",
           properties: expect.objectContaining({
             endpoint: expect.objectContaining({
-              description: expect.stringContaining("mock-only"),
+              description: expect.stringContaining("HTTP endpoint"),
             }),
             mode: expect.objectContaining({
-              enum: ["mock"],
+              enum: ["mock", "http"],
             }),
           }),
         }),
@@ -81,6 +81,32 @@ describe("Dark Factory environment lifecycle hooks", () => {
     expect(rejected).toEqual({
       ok: false,
       errors: ["Only mock mode is supported in this version"],
+    });
+  });
+
+  it("validates HTTP mode config without external connectivity", async () => {
+    const ok = await plugin.definition.onEnvironmentValidateConfig?.({
+      driverKey: "dark-factory-mock",
+      config: { mode: "http", endpoint: "http://127.0.0.1:9701", timeoutMs: 2500 },
+    });
+    const rejected = await plugin.definition.onEnvironmentValidateConfig?.({
+      driverKey: "dark-factory-mock",
+      config: { mode: "http" },
+    });
+
+    expect(ok).toMatchObject({
+      ok: true,
+      normalizedConfig: {
+        mode: "http",
+        endpoint: "http://127.0.0.1:9701",
+        timeoutMs: 2500,
+        requestedBy: "paperclip-dark-factory-bridge",
+        workloadClass: "code",
+      },
+    });
+    expect(rejected).toEqual({
+      ok: false,
+      errors: ["endpoint is required for http mode"],
     });
   });
 

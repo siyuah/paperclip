@@ -5,7 +5,7 @@ const manifest: PaperclipPluginManifestV1 = {
   apiVersion: 1,
   version: "0.1.0",
   displayName: "Dark Factory Bridge Projection Example",
-  description: "Mock bridge plugin that displays Dark Factory projection, cursor, provider health, and rehydrate receipts without becoming an authoritative execution record.",
+  description: "Bridge plugin that displays Dark Factory projection, cursor, provider health, and rehydrate receipts without becoming an authoritative execution record.",
   author: "Paperclip",
   categories: ["automation", "ui"],
   capabilities: [
@@ -32,25 +32,41 @@ const manifest: PaperclipPluginManifestV1 = {
     {
       driverKey: "dark-factory-mock",
       kind: "environment_driver",
-      displayName: "Dark Factory Mock",
-      description: "mock-only Dark Factory environment driver. Projection is non-authoritative; Dark Factory Journal remains truth source.",
+      displayName: "Dark Factory Bridge",
+      description: "Dark Factory environment driver with deterministic mock mode and local HTTP mode. Projection is non-authoritative; Dark Factory Journal remains truth source.",
       configSchema: {
         type: "object",
         additionalProperties: false,
         properties: {
           mode: {
             type: "string",
-            enum: ["mock"],
+            enum: ["mock", "http"],
             default: "mock"
           },
           endpoint: {
             type: "string",
-            description: "Optional Dark Factory endpoint placeholder ignored by mock-only mode."
+            description: "Dark Factory HTTP endpoint for http mode, for example http://127.0.0.1:9701."
           },
           projectionMode: {
             type: "string",
             enum: ["deterministic"],
             default: "deterministic"
+          },
+          timeoutMs: {
+            type: "number",
+            default: 10000
+          },
+          requestedBy: {
+            type: "string",
+            default: "paperclip-dark-factory-bridge"
+          },
+          workloadClass: {
+            type: "string",
+            enum: ["chat", "code", "reasoning", "vision", "memory_maintenance", "repair", "operator_adjudication"],
+            default: "code"
+          },
+          routePolicyRef: {
+            type: "string"
           }
         },
         required: ["mode"]
