@@ -1,6 +1,6 @@
-# Paperclip Dark Factory Bridge Plugin POC
+# Paperclip Dark Factory Bridge Plugin
 
-Mock Paperclip plugin example for displaying Dark Factory bridge/projection state.
+Mock Paperclip integration plugin for displaying Dark Factory bridge/projection state.
 
 This package is intentionally projection-only:
 
@@ -12,7 +12,7 @@ This package is intentionally projection-only:
 
 ## Deterministic mock runtime adapter skeleton
 
-This example includes a deterministic mock runtime adapter skeleton for product-main validation. It is projection-only and never connects to a real Dark Factory service. The runtime contract exports stable constants for `dark-factory-projection`, `dark-factory-journal`, and `runtime_observation`, plus mock projection, provider health, run-attempt, journal cursor, and rehydrate receipt shapes.
+This integration includes a deterministic mock runtime adapter skeleton for product-main validation. It is projection-only and never connects to a real Dark Factory service. The runtime contract exports stable constants for `dark-factory-projection`, `dark-factory-journal`, and `runtime_observation`, plus mock projection, provider health, run-attempt, journal cursor, and rehydrate receipt shapes.
 
 Boundary rules:
 

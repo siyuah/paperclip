@@ -1,9 +1,16 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DARK_FACTORY_PROJECTION_SOURCE,
   DARK_FACTORY_TRUTH_SOURCE,
   PROJECTION_AUTHORITATIVE,
+  PROJECTION_DISCLAIMER,
   RUNTIME_OBSERVATION_SOURCE,
+  type BreakerState,
+  type FailureClass,
+  type ProjectionBoundary,
+  type ProjectionStatus,
+  type ProviderHealthState,
   parseRuntimeContractSnapshot,
 } from "../src/runtime-contract.js";
 import {
@@ -20,6 +27,93 @@ import {
   replayMockJournal,
   compareOrAdvanceCursor,
 } from "../src/mock-runtime-adapter.js";
+
+const CORE_ENUMS_PATH = "/home/siyuah/workspace/123/paperclip_darkfactory_v3_0_core_enums.yaml";
+
+const RUNTIME_PROJECTION_STATUS_VALUES = ["current", "degraded", "blocked", "needs_approval", "stale"] as const satisfies readonly ProjectionStatus[];
+const RUNTIME_FAILURE_CLASS_VALUES = ["none", "transient_provider", "provider_unavailable", "quota_exceeded", "runtime_blocked"] as const satisfies readonly FailureClass[];
+const RUNTIME_BREAKER_STATE_VALUES = ["closed", "open", "half_open"] as const satisfies readonly BreakerState[];
+const RUNTIME_PROVIDER_HEALTH_STATE_VALUES = ["available", "degraded", "blocked", "fallback"] as const satisfies readonly ProviderHealthState[];
+
+type AssertNever<T extends never> = T;
+type ProjectionStatusRuntimeValue = (typeof RUNTIME_PROJECTION_STATUS_VALUES)[number];
+type FailureClassRuntimeValue = (typeof RUNTIME_FAILURE_CLASS_VALUES)[number];
+type BreakerStateRuntimeValue = (typeof RUNTIME_BREAKER_STATE_VALUES)[number];
+type ProviderHealthStateRuntimeValue = (typeof RUNTIME_PROVIDER_HEALTH_STATE_VALUES)[number];
+
+type _ProjectionStatusCoversRuntimeValues = AssertNever<Exclude<ProjectionStatus, ProjectionStatusRuntimeValue>>;
+type _ProjectionStatusRuntimeValuesAreTyped = AssertNever<Exclude<ProjectionStatusRuntimeValue, ProjectionStatus>>;
+type _FailureClassCoversRuntimeValues = AssertNever<Exclude<FailureClass, FailureClassRuntimeValue>>;
+type _FailureClassRuntimeValuesAreTyped = AssertNever<Exclude<FailureClassRuntimeValue, FailureClass>>;
+type _BreakerStateCoversRuntimeValues = AssertNever<Exclude<BreakerState, BreakerStateRuntimeValue>>;
+type _BreakerStateRuntimeValuesAreTyped = AssertNever<Exclude<BreakerStateRuntimeValue, BreakerState>>;
+type _ProviderHealthStateCoversRuntimeValues = AssertNever<Exclude<ProviderHealthState, ProviderHealthStateRuntimeValue>>;
+type _ProviderHealthStateRuntimeValuesAreTyped = AssertNever<Exclude<ProviderHealthStateRuntimeValue, ProviderHealthState>>;
+
+function parseScalarYamlValue(rawValue: string): string {
+  const value = rawValue.trim();
+  if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+function parseCoreEnumsYaml(yaml: string): Record<string, string[]> {
+  const enums: Record<string, string[]> = {};
+  let inEnums = false;
+  let currentEnum: string | null = null;
+
+  for (const line of yaml.split(/\r?\n/)) {
+    if (/^enums:\s*$/.test(line)) {
+      inEnums = true;
+      continue;
+    }
+    if (!inEnums) continue;
+
+    const enumMatch = /^  ([A-Za-z0-9_]+):\s*$/.exec(line);
+    if (enumMatch) {
+      currentEnum = enumMatch[1];
+      enums[currentEnum] = [];
+      continue;
+    }
+
+    const valueMatch = /^    -\s+(.+?)\s*$/.exec(line);
+    if (currentEnum && valueMatch) {
+      enums[currentEnum].push(parseScalarYamlValue(valueMatch[1]));
+    }
+  }
+
+  return enums;
+}
+
+const v3CoreEnums = parseCoreEnumsYaml(readFileSync(CORE_ENUMS_PATH, "utf8"));
+
+function expectProjectionBoundary(value: ProjectionBoundary): void {
+  expect(value).toMatchObject({
+    source: DARK_FACTORY_PROJECTION_SOURCE,
+    authoritative: PROJECTION_AUTHORITATIVE,
+    truthSource: DARK_FACTORY_TRUTH_SOURCE,
+  });
+}
+
+function collectTerminalStateAdvancedValues(value: unknown, values: unknown[] = []): unknown[] {
+  if (!value || typeof value !== "object") return values;
+
+  if ("terminalStateAdvanced" in value) {
+    values.push((value as { terminalStateAdvanced: unknown }).terminalStateAdvanced);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectTerminalStateAdvancedValues(item, values);
+    return values;
+  }
+
+  for (const nestedValue of Object.values(value)) {
+    collectTerminalStateAdvancedValues(nestedValue, values);
+  }
+
+  return values;
+}
 
 describe("Dark Factory deterministic mock runtime adapter", () => {
   it("exports a stable runtime contract snapshot", () => {
@@ -275,5 +369,104 @@ describe("Dark Factory deterministic mock runtime adapter", () => {
         stableReceipt: true,
       },
     });
+  });
+});
+
+describe("runtime contract V3 parity guard", () => {
+  it("keeps ProjectionStatus stable as runtime-level type (not yet in V3 binding enums)", () => {
+    // ProjectionStatus is defined in runtime-contract.ts for non-authoritative
+    // projection cache state. It is not yet part of V3.0 core_enums.yaml binding
+    // contract. When V3.1 formalizes projection status, update this test to use
+    // the V3 enum source.
+    expect(v3CoreEnums).not.toHaveProperty("projectionStatus");
+    expect([...RUNTIME_PROJECTION_STATUS_VALUES]).toEqual(["current", "degraded", "blocked", "needs_approval", "stale"]);
+  });
+
+  it("keeps FailureClass stable as runtime-level type (not yet in V3 binding enums)", () => {
+    // FailureClass is defined in runtime-contract.ts for bridge retry/fallback
+    // policy. V3.0 has providerFaultClass, but that binding enum has different
+    // values and is not the same contract as this runtime-level type.
+    // When V3.1 formalizes bridge failure class, update this test to use the
+    // V3 enum source.
+    expect(v3CoreEnums).not.toHaveProperty("failureClass");
+    expect(v3CoreEnums.providerFaultClass).not.toEqual([...RUNTIME_FAILURE_CLASS_VALUES]);
+    expect([...RUNTIME_FAILURE_CLASS_VALUES]).toEqual(["none", "transient_provider", "provider_unavailable", "quota_exceeded", "runtime_blocked"]);
+  });
+
+  it("keeps BreakerState stable as runtime-level type (not yet in V3 binding enums)", () => {
+    // BreakerState is defined in runtime-contract.ts for Phoenix Runtime
+    // capabilities. It is not yet part of V3.0 core_enums.yaml binding contract.
+    // When V3.1 formalizes circuit breaker state, update this test to use the
+    // V3 enum source.
+    expect(v3CoreEnums).not.toHaveProperty("breakerState");
+    expect(v3CoreEnums).not.toHaveProperty("circuitBreakerState");
+    expect([...RUNTIME_BREAKER_STATE_VALUES]).toEqual(["closed", "open", "half_open"]);
+  });
+
+  it("keeps ProviderHealthState stable as runtime-level type (not yet in V3 binding enums)", () => {
+    // ProviderHealthState is defined in runtime-contract.ts for bridge-local
+    // provider projection. V3.0 capsuleHealth describes capsule preflight health,
+    // not provider runtime availability. When V3.1 formalizes provider health,
+    // update this test to use the V3 enum source.
+    expect(v3CoreEnums).not.toHaveProperty("providerHealthState");
+    expect(v3CoreEnums).not.toHaveProperty("providerState");
+    expect(v3CoreEnums.capsuleHealth).not.toEqual([...RUNTIME_PROVIDER_HEALTH_STATE_VALUES]);
+    expect([...RUNTIME_PROVIDER_HEALTH_STATE_VALUES]).toEqual(["available", "degraded", "blocked", "fallback"]);
+  });
+
+  it("keeps Dark Factory projection boundary constants stable", () => {
+    expect(DARK_FACTORY_PROJECTION_SOURCE).toBe("dark-factory-projection");
+    expect(DARK_FACTORY_TRUTH_SOURCE).toBe("dark-factory-journal");
+    expect(PROJECTION_AUTHORITATIVE).toBe(false);
+    expect(RUNTIME_OBSERVATION_SOURCE).toBe("runtime_observation");
+    expect(PROJECTION_DISCLAIMER).toContain("Journal remains truth source");
+  });
+
+  it("returns ProjectionBoundary source, authoritative, and truthSource on mock contract objects", () => {
+    const issueId = "issue-v3-parity-guard";
+    const journalEntries = getMockJournalReplayEntries(issueId);
+    const replay = replayMockJournal(issueId, journalEntries);
+    const advancedCursor = compareOrAdvanceCursor(replay.cursor, {
+      ...replay.cursor,
+      lastSequenceNo: replay.cursor.lastSequenceNo + 1,
+      journalCursor: `${replay.cursor.journalCursor}+guard`,
+    });
+
+    const boundaryResults = [
+      getMockJournalCursor(issueId),
+      getMockProviderHealth(issueId),
+      getMockRuntimeProjection(issueId),
+      getMockRunAttemptMetadata(issueId),
+      createMockRehydrateRequest(issueId, { reason: "v3 guard", idempotencyKey: "v3-guard" }),
+      createMockCallbackReceipt({ issueId, runId: replay.runId, requestKind: "callback", idempotencyKey: "v3-guard" }),
+      replay,
+      reconcileMockProjection(issueId, journalEntries),
+      advancedCursor,
+    ] satisfies ProjectionBoundary[];
+
+    for (const result of boundaryResults) {
+      expectProjectionBoundary(result);
+    }
+  });
+
+  it("never advances terminal state from mock runtime return values", () => {
+    const issueId = "issue-v3-terminal-guard";
+    const journalEntries = getMockJournalReplayEntries(issueId);
+    const replay = replayMockJournal(issueId, journalEntries);
+    const providerHealth = getMockProviderHealth(issueId);
+    const terminalValues = [
+      getMockJournalCursor(issueId),
+      providerHealth,
+      getProviderRuntimeMode(providerHealth),
+      getMockRuntimeProjection(issueId),
+      getMockRunAttemptMetadata(issueId),
+      createMockRehydrateRequest(issueId, { reason: "v3 terminal guard", idempotencyKey: "v3-terminal-guard" }),
+      createMockCallbackReceipt({ issueId, runId: replay.runId, requestKind: "callback", idempotencyKey: "v3-terminal-guard" }),
+      replay,
+      reconcileMockProjection(issueId, journalEntries),
+    ].flatMap((result) => collectTerminalStateAdvancedValues(result));
+
+    expect(terminalValues.length).toBeGreaterThan(0);
+    expect(terminalValues).toEqual(terminalValues.map(() => false));
   });
 });

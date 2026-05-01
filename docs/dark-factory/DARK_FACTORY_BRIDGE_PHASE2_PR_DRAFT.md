@@ -6,7 +6,7 @@ Branch: dark-factory-product-main
 
 Summary
 
-This PR productizes the Paperclip Dark Factory bridge example plugin and strengthens its Phase 2 projection semantics.
+This PR productizes the Paperclip Dark Factory bridge integration plugin and strengthens its Phase 2 projection semantics.
 
 The plugin remains projection-only:
 
@@ -17,25 +17,25 @@ The plugin remains projection-only:
 
 Changed files
 
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/src/manifest.ts
+- packages/plugins/integrations/dark-factory-bridge/src/manifest.ts
   - Registers the plugin manifest, routes, UI extension points, data/actions, and capabilities.
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/src/worker.ts
+- packages/plugins/integrations/dark-factory-bridge/src/worker.ts
   - Implements mock/read-only projection, journal cursor, provider health, and rehydrate request handlers.
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/src/ui/index.tsx
+- packages/plugins/integrations/dark-factory-bridge/src/ui/index.tsx
   - Adds dashboard/detail UI for projection status, journal cursor, callback receipt, provider health, and degraded/stale/blocked states.
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/migrations/001_dark_factory_projection.sql
+- packages/plugins/integrations/dark-factory-bridge/migrations/001_dark_factory_projection.sql
   - Creates plugin namespace projection/cache/cursor/receipt storage only.
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/tests/plugin.spec.ts
+- packages/plugins/integrations/dark-factory-bridge/tests/plugin.spec.ts
   - Covers manifest parsing, projection truth-source markers, cursor semantics, stale/degraded states, rehydrate receipt semantics, and provider/model role boundaries.
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/.gitignore
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/esbuild.config.mjs
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/package.json
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/rollup.config.mjs
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/tsconfig.json
-- packages/plugins/examples/paperclip-dark-factory-bridge-plugin/vitest.config.ts
+- packages/plugins/integrations/dark-factory-bridge/.gitignore
+- packages/plugins/integrations/dark-factory-bridge/esbuild.config.mjs
+- packages/plugins/integrations/dark-factory-bridge/package.json
+- packages/plugins/integrations/dark-factory-bridge/rollup.config.mjs
+- packages/plugins/integrations/dark-factory-bridge/tsconfig.json
+- packages/plugins/integrations/dark-factory-bridge/vitest.config.ts
   - Add the plugin package to the workspace build/test flow.
 - pnpm-lock.yaml
-  - Locks workspace dependency metadata for the example plugin package.
+  - Locks workspace dependency metadata for the integration plugin package.
 
 Safety boundaries
 
@@ -56,18 +56,18 @@ Run locally:
 
 - git diff --check origin/master...HEAD
 - pnpm --filter @paperclipai/plugin-sdk build
-- pnpm --filter @paperclipai/plugin-dark-factory-bridge-example typecheck
-- pnpm --filter @paperclipai/plugin-dark-factory-bridge-example test
-- pnpm --filter @paperclipai/plugin-dark-factory-bridge-example build
+- pnpm --filter @paperclipai/plugin-dark-factory-bridge typecheck
+- pnpm --filter @paperclipai/plugin-dark-factory-bridge test
+- pnpm --filter @paperclipai/plugin-dark-factory-bridge build
 - pnpm run typecheck
 
 Latest local results after whitespace cleanup:
 
 - git diff --check origin/master...HEAD: passed
 - pnpm --filter @paperclipai/plugin-sdk build: passed
-- pnpm --filter @paperclipai/plugin-dark-factory-bridge-example typecheck: passed
-- pnpm --filter @paperclipai/plugin-dark-factory-bridge-example test: passed; 7 tests passed
-- pnpm --filter @paperclipai/plugin-dark-factory-bridge-example build: passed
+- pnpm --filter @paperclipai/plugin-dark-factory-bridge typecheck: passed
+- pnpm --filter @paperclipai/plugin-dark-factory-bridge test: passed; 7 tests passed
+- pnpm --filter @paperclipai/plugin-dark-factory-bridge build: passed
 - pnpm run typecheck: passed
 
 Secret / credential review

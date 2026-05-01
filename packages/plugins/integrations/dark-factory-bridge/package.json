@@ -1,5 +1,5 @@
 {
-  "name": "@paperclipai/plugin-dark-factory-bridge-example",
+  "name": "@paperclipai/plugin-dark-factory-bridge",
   "version": "0.1.0",
   "type": "module",
   "private": true,
