@@ -17,6 +17,25 @@ function expectProjectionBoundary(value: Record<string, unknown> | undefined): v
   });
 }
 
+function collectTerminalStateAdvancedValues(value: unknown, values: unknown[] = []): unknown[] {
+  if (!value || typeof value !== "object") return values;
+
+  if ("terminalStateAdvanced" in value) {
+    values.push((value as { terminalStateAdvanced: unknown }).terminalStateAdvanced);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectTerminalStateAdvancedValues(item, values);
+    return values;
+  }
+
+  for (const nestedValue of Object.values(value)) {
+    collectTerminalStateAdvancedValues(nestedValue, values);
+  }
+
+  return values;
+}
+
 describe("Dark Factory environment lifecycle hooks", () => {
   it("declares a mock environment driver in the manifest", () => {
     expect(manifest.capabilities).toContain("environment.drivers.register");
@@ -158,5 +177,132 @@ describe("Dark Factory environment lifecycle hooks", () => {
       runtimeMode: "mock",
       terminalStateAdvanced: false,
     });
+  });
+
+  it("resumes a deterministic mock lease with projection boundary metadata", async () => {
+    const lease = await plugin.definition.onEnvironmentAcquireLease?.({
+      ...driverParams,
+      runId: "df-run-environment-step-5",
+    });
+    expect(lease?.providerLeaseId).toBe("df-lease-df-run-environment-step-5");
+
+    const input = {
+      ...driverParams,
+      providerLeaseId: lease!.providerLeaseId!,
+      leaseMetadata: lease!.metadata,
+    };
+    const first = await plugin.definition.onEnvironmentResumeLease?.(input);
+    const second = await plugin.definition.onEnvironmentResumeLease?.(input);
+
+    expect(second).toEqual(first);
+    expect(first).toMatchObject({
+      providerLeaseId: lease!.providerLeaseId,
+      expiresAt: null,
+      metadata: {
+        runId: "df-run-environment-step-5",
+        runtimeMode: "mock",
+        resumedLease: true,
+        terminalStateAdvanced: false,
+        journalCursor: expect.objectContaining({
+          authoritative: false,
+          journalCursor: expect.stringMatching(/^dark-factory:\/\/journal\//),
+        }),
+        providerHealth: expect.objectContaining({
+          authoritative: false,
+        }),
+      },
+    });
+    expectProjectionBoundary(first?.metadata);
+  });
+
+  it("releases a mock lease without mutating projection or cursor state", async () => {
+    const lease = await plugin.definition.onEnvironmentAcquireLease?.({
+      ...driverParams,
+      runId: "df-run-environment-release",
+    });
+    const before = await plugin.definition.onEnvironmentExecute?.({
+      ...driverParams,
+      lease: lease!,
+      command: "dark-factory-mock-execute",
+      args: ["before-release"],
+    });
+
+    await expect(plugin.definition.onEnvironmentReleaseLease?.({
+      ...driverParams,
+      providerLeaseId: lease!.providerLeaseId,
+      leaseMetadata: lease!.metadata,
+    })).resolves.toBeUndefined();
+
+    const after = await plugin.definition.onEnvironmentExecute?.({
+      ...driverParams,
+      lease: lease!,
+      command: "dark-factory-mock-execute",
+      args: ["before-release"],
+    });
+
+    expect(after?.metadata?.projection).toEqual(before?.metadata?.projection);
+    expect(after?.metadata?.cursor).toEqual(before?.metadata?.cursor);
+    expect(collectTerminalStateAdvancedValues(after).every((value) => value === false)).toBe(true);
+  });
+
+  it("destroys a mock lease without advancing terminal state", async () => {
+    const lease = await plugin.definition.onEnvironmentAcquireLease?.({
+      ...driverParams,
+      runId: "df-run-environment-destroy",
+    });
+
+    await expect(plugin.definition.onEnvironmentDestroyLease?.({
+      ...driverParams,
+      providerLeaseId: lease!.providerLeaseId,
+      leaseMetadata: lease!.metadata,
+    })).resolves.toBeUndefined();
+
+    const resumed = await plugin.definition.onEnvironmentResumeLease?.({
+      ...driverParams,
+      providerLeaseId: lease!.providerLeaseId!,
+      leaseMetadata: lease!.metadata,
+    });
+
+    expect(resumed?.metadata).toMatchObject({
+      authoritative: false,
+      terminalStateAdvanced: false,
+    });
+    expect(collectTerminalStateAdvancedValues(resumed).every((value) => value === false)).toBe(true);
+  });
+
+  it("runs the full mock lifecycle without claiming authority or terminal state", async () => {
+    const validation = await plugin.definition.onEnvironmentValidateConfig?.({
+      driverKey: driverParams.driverKey,
+      config: driverParams.config,
+    });
+    const probe = await plugin.definition.onEnvironmentProbe?.(driverParams);
+    const lease = await plugin.definition.onEnvironmentAcquireLease?.({
+      ...driverParams,
+      runId: "df-run-environment-smoke",
+    });
+    const execution = await plugin.definition.onEnvironmentExecute?.({
+      ...driverParams,
+      lease: lease!,
+      command: "dark-factory-mock-execute",
+      args: ["smoke"],
+    });
+
+    await expect(plugin.definition.onEnvironmentReleaseLease?.({
+      ...driverParams,
+      providerLeaseId: lease!.providerLeaseId,
+      leaseMetadata: lease!.metadata,
+    })).resolves.toBeUndefined();
+
+    expect(validation).toMatchObject({ ok: true });
+    expect(probe).toMatchObject({ ok: true });
+    expect(lease).toMatchObject({ providerLeaseId: "df-lease-df-run-environment-smoke" });
+    expect(execution).toMatchObject({ exitCode: 0, timedOut: false });
+
+    for (const value of [probe?.metadata, lease?.metadata, execution?.metadata]) {
+      expectProjectionBoundary(value);
+      expect(value?.terminalStateAdvanced).toBe(false);
+    }
+    expect(execution?.metadata?.disclaimer).toContain("Journal remains truth source");
+    expect(collectTerminalStateAdvancedValues([probe, lease, execution]).every((value) => value === false)).toBe(true);
   });
 });

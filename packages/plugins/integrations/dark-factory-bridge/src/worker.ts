@@ -80,6 +80,13 @@ function mockIssueIdForRun(runId: string): string {
   return runId.trim().length > 0 ? runId.trim() : "dark-factory-mock-run";
 }
 
+function mockRunIdFromLease(providerLeaseId: string | null | undefined, leaseMetadata?: Record<string, unknown>): string {
+  const metadataRunId = stringField(leaseMetadata?.runId);
+  if (metadataRunId) return metadataRunId;
+  const leaseRunId = stringField(providerLeaseId)?.replace(/^df-lease-/, "");
+  return mockIssueIdForRun(leaseRunId ?? "dark-factory-mock-run");
+}
+
 function mockLeaseId(runId: string): string {
   return `df-lease-${runId.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
 }
@@ -266,6 +273,41 @@ const plugin = definePlugin({
       },
       expiresAt: null,
     };
+  },
+
+  async onEnvironmentResumeLease(params) {
+    const runId = mockRunIdFromLease(params.providerLeaseId, params.leaseMetadata);
+    const projection = getMockRuntimeProjection(runId);
+    const cursor = getMockJournalCursor(runId);
+    const providerHealth = getMockProviderHealth(runId);
+
+    return {
+      providerLeaseId: params.providerLeaseId,
+      metadata: {
+        ...projectionBoundary(),
+        driverKey: params.driverKey,
+        environmentId: params.environmentId,
+        runId,
+        runtimeMode: "mock",
+        resumedLease: true,
+        projection,
+        journalCursor: cursor,
+        providerHealth,
+        runtimeImpact: getProviderRuntimeMode(providerHealth),
+        terminalStateAdvanced: false,
+      },
+      expiresAt: null,
+    };
+  },
+
+  async onEnvironmentReleaseLease(_params) {
+    // Mock lease release is intentionally a no-op: no external service is
+    // contacted and Dark Factory terminal state remains Journal-owned.
+  },
+
+  async onEnvironmentDestroyLease(_params) {
+    // Mock lease destroy is intentionally a no-op: no external service is
+    // contacted and no terminal state is advanced.
   },
 
   async onEnvironmentExecute(params) {
