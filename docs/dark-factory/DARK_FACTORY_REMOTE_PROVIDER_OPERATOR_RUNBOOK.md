@@ -318,6 +318,19 @@ Direct top-level params override nested host context fields. This lets test
 harnesses and future host adapters override one field without rebuilding the
 entire context envelope.
 
+The bridge also ships deterministic host observation fixtures for local replay.
+These fixtures are not a storage layer and do not contact a provider. They
+produce host-style active context envelopes for:
+
+- `healthy`
+- `warning_latency`
+- `blocked_failures`
+- `stale_readiness`
+
+Each fixture can be replayed through the active context builder and readiness
+report to verify UI states, preflight behavior, breaker behavior, cursor lag,
+and readiness transitions before wiring real host-collected observations.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

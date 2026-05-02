@@ -774,6 +774,62 @@ Validation after hardening batch 16:
 - `pnpm test` passed: 12 files passed, 1 gated file skipped, 103 tests passed,
   1 skipped.
 
+## Hardening Batch 17
+
+Remote provider alpha hardening batch 17 added deterministic host observation
+fixtures and replay helpers.
+
+### Host Observation Fixtures
+
+Added `src/remote-provider-host-observation-fixtures.ts`.
+
+The module provides deterministic host-style active context envelopes for:
+
+- `healthy`
+- `warning_latency`
+- `blocked_failures`
+- `stale_readiness`
+
+Each fixture includes:
+
+- host context id
+- checked/evaluated timestamps
+- environment config with secret reference only
+- expected Journal sequence number
+- sampled remote observations
+- previous breaker evidence
+- previous readiness evidence
+- alert thresholds
+- circuit breaker policy
+
+### Replay Helper
+
+`replayHostObservationFixture` feeds a fixture through
+`buildRemoteProviderActiveContext` and returns the resulting active context plus
+replay metadata. Direct overrides can be supplied for targeted harness cases.
+
+This is still in-process simulation. It does not contact a real provider, does
+not persist state, does not read resolved credential values into plugin data,
+and does not authorize execution.
+
+### Tests
+
+Added `tests/remote-provider-host-observation-fixtures.spec.ts` covering:
+
+- deterministic fixture creation
+- healthy readiness replay
+- warning latency replay
+- blocked failure replay and open breaker behavior
+- stale readiness/cursor lag transition
+- direct replay override precedence
+
+Validation after hardening batch 17:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 13 files passed, 1 gated file skipped, 109 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
