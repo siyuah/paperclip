@@ -110,6 +110,31 @@ terminal state.
 Paperclip terminal state remains unchanged for all failures. The operator should
 inspect Dark Factory Journal and provider logs before retrying or escalating.
 
+## Observability Snapshot
+
+The bridge now includes a pure in-process observability helper for remote alpha
+operations. It consumes local observation events and produces:
+
+- request, success, failure, retry, and retryable-failure counts
+- average and max request latency
+- failure-class counts
+- latest error code
+- latest journal cursor and sequence number
+- optional cursor lag against an expected Journal sequence
+- alert candidates for high error rate, high latency, and cursor lag
+
+The helper does not contact a provider, does not store secrets, and does not
+advance terminal state. It is a deterministic foundation for later UI panels,
+metrics exporters, or alert rules.
+
+Recommended alpha thresholds:
+
+| Signal | Suggested warning threshold | Operator action |
+| --- | --- | --- |
+| error rate | 50% over the sampled window | inspect provider health and Journal before retrying |
+| max latency | 5000ms | check provider/network latency and retry pressure |
+| cursor lag | 5 Journal sequence numbers | reconcile Journal cursor before trusting projection freshness |
+
 ## Boundaries
 
 - Dark Factory Journal remains truth source.
@@ -125,7 +150,8 @@ inspect Dark Factory Journal and provider logs before retrying or escalating.
 
 1. Replace the alpha `env:` resolver with a Paperclip host secret resolver when
    the SDK exposes one.
-2. Add metrics for request latency, retry count, failure class, and cursor lag.
-3. Add alerting for remote provider unavailability and repeated execution
-   failures.
+2. Wire the in-process observability snapshot into an operator-facing UI or
+   metrics exporter.
+3. Add host alert rules for remote provider unavailability and repeated
+   execution failures.
 4. Implement a real circuit breaker before broad production traffic.

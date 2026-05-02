@@ -217,6 +217,51 @@ Validation after hardening batch 3:
 - `pnpm build` passed.
 - `pnpm test` passed: 8 files passed, 1 gated file skipped, 73 passed, 1 skipped.
 
+## Hardening Batch 4
+
+Remote provider alpha hardening batch 4 added an in-process observability helper
+for metrics and alert candidate generation.
+
+### Metrics Snapshot
+
+Added `src/remote-provider-observability.ts`.
+
+The helper consumes deterministic remote provider observation events and builds a
+non-authoritative metrics snapshot:
+
+- request count
+- success and failure counts
+- retry and retryable-failure counts
+- average and max latency
+- failure-class counts
+- latest error code
+- latest Journal cursor and sequence number
+- optional cursor lag
+
+All snapshot output includes:
+
+- `source: "dark-factory-projection"`
+- `truthSource: "dark-factory-journal"`
+- `authoritative: false`
+- `observationSource: "runtime_observation"`
+- `terminalStateAdvanced: false`
+
+### Alert Candidates
+
+The helper also derives alert candidates for:
+
+- high remote provider error rate
+- high remote provider latency
+- high Journal cursor lag
+
+These are local candidates only. They do not contact a provider, do not write a
+database, and do not advance Paperclip terminal state.
+
+Validation after hardening batch 4:
+
+- `pnpm typecheck` passed.
+- targeted observability tests passed: 1 file, 5 tests.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -243,8 +288,8 @@ tests before untrusted or multi-tenant production exposure.
 
 1. Replace the alpha `env:` resolver with a Paperclip host secret resolver once
    the host exposes that resolution hook.
-2. Add metrics and alerting for remote request latency, error rate, retry count,
-   stale projection rate, and journal cursor lag.
+2. Wire the in-process observability snapshot into an operator-facing UI or
+   metrics exporter.
 3. Design the real circuit breaker state machine before allowing provider
    outages to influence operator-facing health beyond projection metadata.
 4. Add operator-facing UI affordances for remote credential diagnostic codes.
