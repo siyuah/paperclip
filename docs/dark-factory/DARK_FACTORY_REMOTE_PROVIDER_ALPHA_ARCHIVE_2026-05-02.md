@@ -1154,3 +1154,44 @@ Validation after hardening batch 23:
 
 - targeted `remote-provider-evidence-store-contract.spec.ts` passed: 4 tests.
 - `pnpm typecheck` passed.
+
+## Hardening Batch 24
+
+Remote provider alpha hardening batch 24 added a contract-only SQL shape for
+future previous evidence persistence.
+
+### Previous Evidence Storage SQL Contract
+
+Added
+`packages/plugins/integrations/dark-factory-bridge/docs/remote-provider-previous-evidence-storage-contract.sql`.
+
+The file defines the future table shape for
+`dark_factory_bridge_poc.remote_provider_previous_evidence`, including:
+
+- storage key
+- readiness status and next safe hook
+- readiness receipt id and digest
+- breaker state and cooldown evidence
+- sampled observation and alert counts
+- projection boundary fields
+- explicit non-authorization and terminal-state constraints
+- deterministic lookup indexes
+
+### Migration Guard
+
+Added `tests/remote-provider-previous-evidence-storage-contract.spec.ts`.
+
+The guard verifies that:
+
+- the SQL contract lives under `docs/`, not `migrations/`
+- the active `001_dark_factory_projection.sql` migration is unchanged
+- no credential storage columns are introduced
+- `authoritative`, `does_authorize_remote_execution`, and
+  `terminal_state_advanced` are locked false
+- lookup indexes exist for storage key, issue/environment, and receipt digest
+
+Validation after hardening batch 24:
+
+- targeted `remote-provider-previous-evidence-storage-contract.spec.ts`
+  passed: 4 tests.
+- `pnpm typecheck` passed.

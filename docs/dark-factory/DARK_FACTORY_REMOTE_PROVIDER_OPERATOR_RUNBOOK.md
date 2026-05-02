@@ -347,6 +347,12 @@ future active context as `previousBreaker` and `previousReadiness`, but it does
 not itself write plugin DB rows, store resolved credential values, authorize
 remote execution, or advance terminal state.
 
+The future SQL shape is documented in the contract-only file
+`packages/plugins/integrations/dark-factory-bridge/docs/remote-provider-previous-evidence-storage-contract.sql`.
+This file is intentionally outside `migrations/`; it is not applied by the
+plugin host. Guard tests lock the table shape, lookup indexes, and constraints
+before any persistence implementation is approved.
+
 The bridge also ships deterministic host observation fixtures for local replay.
 These fixtures are not a storage layer and do not contact a provider. They
 produce host-style active context envelopes for:
