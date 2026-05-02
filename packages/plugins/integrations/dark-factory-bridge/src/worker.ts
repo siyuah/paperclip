@@ -41,6 +41,9 @@ import {
   buildRemoteProviderHostContextBridge,
 } from "./remote-provider-host-context-bridge.js";
 import {
+  adaptRemoteProviderHostContext,
+} from "./remote-provider-host-context-adapter.js";
+import {
   buildUiSmokePreview,
   uiSmokePreviewScenario,
 } from "./remote-provider-ui-smoke-preview.js";
@@ -177,6 +180,10 @@ const plugin = definePlugin({
 
     ctx.data.register("remote-provider-host-context-bridge", async (params) => {
       return buildRemoteProviderHostContextBridge(params);
+    });
+
+    ctx.data.register("remote-provider-host-context-adapter", async (params) => {
+      return adaptRemoteProviderHostContext(params);
     });
 
     ctx.data.register("remote-provider-ui-smoke-preview", async (params) => {

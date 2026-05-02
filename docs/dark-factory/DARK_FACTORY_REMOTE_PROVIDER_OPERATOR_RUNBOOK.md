@@ -318,6 +318,17 @@ Direct top-level params override nested host context fields. This lets test
 harnesses and future host adapters override one field without rebuilding the
 entire context envelope.
 
+When Paperclip host settings and runtime context arrive separately, use the
+`remote-provider-host-context-adapter` data surface first. It accepts
+settings-style input (`hostSettingsContext`, `settingsContext`, or
+`environmentSettingsContext`) and runtime-style input (`hostRuntimeContext`,
+`runtimeContext`, or `environmentRuntimeContext`) and emits a single
+`activeContext` envelope suitable for `remote-provider-host-context-bridge`.
+
+The adapter is compatibility glue only. It does not call environment lifecycle
+hooks, does not contact a provider, does not resolve or expose credential
+values, and does not authorize remote execution.
+
 The bridge also exposes the assembled host/runtime context through the plugin
 data key `remote-provider-host-context-bridge`. This data surface returns:
 

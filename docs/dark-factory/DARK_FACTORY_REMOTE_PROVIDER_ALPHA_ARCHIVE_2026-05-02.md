@@ -1195,3 +1195,43 @@ Validation after hardening batch 24:
 - targeted `remote-provider-previous-evidence-storage-contract.spec.ts`
   passed: 4 tests.
 - `pnpm typecheck` passed.
+
+## Hardening Batch 25
+
+Remote provider alpha hardening batch 25 added a host settings/runtime context
+adapter for future Paperclip host integration.
+
+### Host Context Adapter
+
+Added `src/remote-provider-host-context-adapter.ts` and the plugin data key
+`remote-provider-host-context-adapter`.
+
+The adapter accepts settings-style envelopes:
+
+- `hostSettingsContext`
+- `settingsContext`
+- `environmentSettingsContext`
+
+It also accepts runtime-style envelopes:
+
+- `hostRuntimeContext`
+- `runtimeContext`
+- `environmentRuntimeContext`
+
+It emits one normalized `activeContext` envelope that can be fed into
+`remote-provider-host-context-bridge`.
+
+### Compatibility Coverage
+
+Tests verify:
+
+- combined settings/runtime envelopes map to active context input
+- adapted context feeds into host context bridge and readiness
+- settings-only context still drives credential diagnostics preview
+- plugin data access returns the adapter result without contacting a provider
+- resolved credential values are not exposed
+
+Validation after hardening batch 25:
+
+- targeted `remote-provider-host-context-adapter.spec.ts` passed: 4 tests.
+- `pnpm typecheck` passed.
