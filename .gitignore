@@ -37,6 +37,7 @@ server/src/**/*.d.ts.map
 tmp/
 feedback-export-*
 diagnostics/
+output/
 
 # Editor / tool temp files
 *.tmp

@@ -379,6 +379,29 @@ renders the boundary fields that must remain visible before full UI alpha:
 This harness is suitable for Playwright or manual browser checks. It remains a
 local preview artifact and does not connect to a provider.
 
+For repeatable headless browser validation, run the CDP-based smoke runner:
+
+```bash
+cd /home/siyuah/workspace/paperclip_upstream/packages/plugins/integrations/dark-factory-bridge
+pnpm smoke:ui:browser
+```
+
+The runner:
+
+- generates `output/playwright/dark-factory-ui-smoke/index.html`
+- locates Chromium from `DARK_FACTORY_UI_SMOKE_CHROMIUM`, Playwright's local
+  browser cache, or common system browser names
+- opens the generated page through Chrome DevTools Protocol
+- switches through `healthy`, `warning_latency`, `blocked_failures`, and
+  `stale_readiness`
+- asserts preview status, truth source, non-authoritative output, terminal
+  state preservation, next safe hook, breaker state, and Journal truth badge
+- writes `smoke-result.json` and per-scenario screenshots under the output
+  directory
+
+Use `--no-screenshots` for a faster assertion-only pass, or `--out DIR` to send
+scratch output outside the repository.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

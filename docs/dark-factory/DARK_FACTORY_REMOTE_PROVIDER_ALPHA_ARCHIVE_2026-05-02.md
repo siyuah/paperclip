@@ -1031,3 +1031,49 @@ tests before untrusted or multi-tenant production exposure.
    `remote-provider-readiness` when host settings/runtime context is available.
 8. Rerun live browser-level internal UI smoke once Chrome/Chromium is available
    in the operator environment.
+
+## Hardening Batch 21
+
+Remote provider alpha hardening batch 21 made the browser-level UI smoke
+validation repeatable in the operator environment.
+
+### CDP Browser Smoke Runner
+
+Added `scripts/run-ui-smoke-preview-browser.mjs` and the package script
+`pnpm smoke:ui:browser`.
+
+The runner:
+
+- generates the standalone HTML UI smoke preview harness
+- finds Chromium via `DARK_FACTORY_UI_SMOKE_CHROMIUM`, Playwright's browser
+  cache, or common system binary names
+- drives Chromium directly through Chrome DevTools Protocol, avoiding a
+  Playwright package/runtime dependency
+- switches through `healthy`, `warning_latency`, `blocked_failures`, and
+  `stale_readiness`
+- asserts preview status, next safe hook, breaker state, Journal truth source,
+  `authoritative: false`, and `terminalStateAdvanced: false`
+- writes `smoke-result.json` and optional screenshots under
+  `output/playwright/dark-factory-ui-smoke/`
+
+### Live Browser Result
+
+The local WSL environment had a usable Chromium executable at
+`/home/siyuah/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome`.
+
+`pnpm smoke:ui:browser -- --no-screenshots` passed for all four scenarios:
+
+| Scenario | Preview status | Next safe hook | Breaker |
+| --- | --- | --- | --- |
+| `healthy` | `ready` | `onEnvironmentExecute` | `closed` |
+| `warning_latency` | `needs_attention` | `onEnvironmentProbe` | `closed` |
+| `blocked_failures` | `blocked` | `onEnvironmentProbe` | `open` |
+| `stale_readiness` | `needs_attention` | `onEnvironmentProbe` | `closed` |
+
+Validation after hardening batch 21:
+
+- `pnpm smoke:ui:browser -- --no-screenshots` passed.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 16 files passed, 1 gated file skipped, 120 tests passed,
+  1 skipped.

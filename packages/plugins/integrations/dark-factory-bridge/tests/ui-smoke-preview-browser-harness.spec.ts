@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   buildUiSmokePreviewBrowserHarness,
 } from "../src/ui-smoke-preview-browser-harness.js";
@@ -33,5 +35,19 @@ describe("UI smoke preview browser harness", () => {
     expect(first).not.toMatch(/api[_-]?key["']?\s*[:=]\s*["'][^"']+/i);
     expect(first).not.toContain("password");
     expect(first).not.toContain("connection_string");
+  });
+
+  it("ships a repeatable live browser smoke runner that uses local Chromium/CDP", () => {
+    const script = readFileSync(
+      resolve(process.cwd(), "scripts/run-ui-smoke-preview-browser.mjs"),
+      "utf8",
+    );
+
+    expect(script).toContain("DARK_FACTORY_UI_SMOKE_CHROMIUM");
+    expect(script).toContain("DevToolsActivePort");
+    expect(script).toContain("Page.captureScreenshot");
+    expect(script).toContain("smoke-result.json");
+    expect(script).toContain("dark-factory-journal");
+    expect(script).not.toContain("ui-smoke-preview-placeholder-not-a-secret");
   });
 });
