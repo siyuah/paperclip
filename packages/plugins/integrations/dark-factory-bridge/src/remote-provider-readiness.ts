@@ -34,6 +34,12 @@ export type RemoteCredentialDiagnosticsForReadiness = ProjectionBoundary & {
 };
 
 export type RemoteProviderReadinessStatus = "ready" | "needs_attention" | "blocked";
+export type RemoteProviderNextSafeHook =
+  | "onEnvironmentValidateConfig"
+  | "onEnvironmentProbe"
+  | "onEnvironmentAcquireLease"
+  | "onEnvironmentExecute"
+  | "none";
 
 export type RemoteProviderReadinessSignal = ProjectionBoundary & {
   observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
@@ -46,6 +52,18 @@ export type RemoteProviderReadinessSignal = ProjectionBoundary & {
   terminalStateAdvanced: false;
 };
 
+export type RemoteProviderReadinessChecklistItem = ProjectionBoundary & {
+  observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
+  runtimeMode: "remote";
+  category: "credentials" | "observability" | "breaker" | "journal_boundary";
+  status: "pass" | "warn" | "fail";
+  code: string;
+  label: string;
+  message: string;
+  requiredBefore: RemoteProviderNextSafeHook;
+  terminalStateAdvanced: false;
+};
+
 export type RemoteProviderReadinessReport = ProjectionBoundary & {
   observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
   runtimeMode: "remote";
@@ -54,11 +72,13 @@ export type RemoteProviderReadinessReport = ProjectionBoundary & {
   ready: boolean;
   summary: string;
   recommendedAction: string;
+  nextSafeHook: RemoteProviderNextSafeHook;
   credentialOk: boolean;
   breakerState: BreakerState;
   sampledObservationCount: number;
   alertCount: number;
   signals: RemoteProviderReadinessSignal[];
+  readinessChecklist: RemoteProviderReadinessChecklistItem[];
   terminalStateAdvanced: false;
 };
 
@@ -81,6 +101,8 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
   const hasCritical = signals.some((signal) => signal.severity === "critical");
   const hasWarning = signals.some((signal) => signal.severity === "warning");
   const readinessStatus: RemoteProviderReadinessStatus = hasCritical ? "blocked" : hasWarning ? "needs_attention" : "ready";
+  const readinessChecklist = buildReadinessChecklist(input, signals);
+  const nextSafeHook = nextSafeHookFor(readinessStatus, signals);
 
   return {
     ...projectionBoundary(),
@@ -91,13 +113,59 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
     ready: readinessStatus === "ready",
     summary: summaryFor(readinessStatus),
     recommendedAction: recommendedActionFor(readinessStatus),
+    nextSafeHook,
     credentialOk: input.credentialDiagnostics.ok,
     breakerState: input.breakerEvaluation.breakerState,
     sampledObservationCount: input.sampledObservationCount,
     alertCount: input.alertCandidates.length,
     signals,
+    readinessChecklist,
     terminalStateAdvanced: false,
   };
+}
+
+function buildReadinessChecklist(
+  input: RemoteProviderReadinessInput,
+  signals: RemoteProviderReadinessSignal[],
+): RemoteProviderReadinessChecklistItem[] {
+  return [
+    checklistItem({
+      category: "credentials",
+      status: credentialChecklistStatus(input.credentialDiagnostics, signals),
+      code: "dark_factory_remote_readiness_credentials",
+      label: "Remote credentials",
+      message: input.credentialDiagnostics.ok
+        ? "Remote credential diagnostics are ready"
+        : "Remote credential diagnostics require operator attention",
+      requiredBefore: "onEnvironmentProbe",
+    }),
+    checklistItem({
+      category: "observability",
+      status: observabilityChecklistStatus(input.alertCandidates, input.sampledObservationCount),
+      code: "dark_factory_remote_readiness_observability",
+      label: "Remote observations",
+      message: input.sampledObservationCount > 0
+        ? "Remote provider observations are available for readiness evaluation"
+        : "No remote provider observations have been sampled yet",
+      requiredBefore: "onEnvironmentAcquireLease",
+    }),
+    checklistItem({
+      category: "breaker",
+      status: breakerChecklistStatus(input.breakerEvaluation.breakerState),
+      code: "dark_factory_remote_readiness_breaker",
+      label: "Circuit breaker",
+      message: `Remote provider circuit breaker is ${input.breakerEvaluation.breakerState}`,
+      requiredBefore: "onEnvironmentExecute",
+    }),
+    checklistItem({
+      category: "journal_boundary",
+      status: "pass",
+      code: "dark_factory_remote_readiness_journal_boundary",
+      label: "Journal boundary",
+      message: "Dark Factory Journal remains truth source and Paperclip terminal state is unchanged",
+      requiredBefore: "onEnvironmentExecute",
+    }),
+  ];
 }
 
 function credentialSignals(diagnostics: RemoteCredentialDiagnosticsForReadiness): RemoteProviderReadinessSignal[] {
@@ -215,6 +283,44 @@ function recommendedActionFor(status: RemoteProviderReadinessStatus): string {
   return "resolve_blocking_signals_before_remote_provider_attempt";
 }
 
+function nextSafeHookFor(
+  status: RemoteProviderReadinessStatus,
+  signals: RemoteProviderReadinessSignal[],
+): RemoteProviderNextSafeHook {
+  if (status === "ready") return "onEnvironmentExecute";
+  if (signals.some((signal) => signal.category === "credentials" && signal.severity === "critical")) {
+    return "onEnvironmentValidateConfig";
+  }
+  if (signals.some((signal) => signal.category === "breaker" && signal.severity === "critical")) {
+    return "onEnvironmentProbe";
+  }
+  if (status === "needs_attention") return "onEnvironmentProbe";
+  return "none";
+}
+
+function credentialChecklistStatus(
+  diagnostics: RemoteCredentialDiagnosticsForReadiness,
+  signals: RemoteProviderReadinessSignal[],
+): RemoteProviderReadinessChecklistItem["status"] {
+  if (diagnostics.ok) return "pass";
+  return signals.some((signal) => signal.category === "credentials" && signal.severity === "critical") ? "fail" : "warn";
+}
+
+function observabilityChecklistStatus(
+  alerts: RemoteProviderAlertCandidate[],
+  sampledObservationCount: number,
+): RemoteProviderReadinessChecklistItem["status"] {
+  if (alerts.some((alert) => alert.severity === "critical")) return "fail";
+  if (alerts.length > 0 || sampledObservationCount === 0) return "warn";
+  return "pass";
+}
+
+function breakerChecklistStatus(breakerState: BreakerState): RemoteProviderReadinessChecklistItem["status"] {
+  if (breakerState === "open") return "fail";
+  if (breakerState === "half_open") return "warn";
+  return "pass";
+}
+
 function normalizeIsoTimestamp(value: string): string {
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? new Date(0).toISOString() : new Date(parsed).toISOString();
@@ -236,6 +342,28 @@ function signal(params: {
     code: params.code,
     message: params.message,
     remediation: params.remediation,
+    terminalStateAdvanced: false,
+  };
+}
+
+function checklistItem(params: {
+  category: RemoteProviderReadinessChecklistItem["category"];
+  status: RemoteProviderReadinessChecklistItem["status"];
+  code: string;
+  label: string;
+  message: string;
+  requiredBefore: RemoteProviderNextSafeHook;
+}): RemoteProviderReadinessChecklistItem {
+  return {
+    ...projectionBoundary(),
+    observationSource: RUNTIME_OBSERVATION_SOURCE,
+    runtimeMode: "remote",
+    category: params.category,
+    status: params.status,
+    code: params.code,
+    label: params.label,
+    message: params.message,
+    requiredBefore: params.requiredBefore,
     terminalStateAdvanced: false,
   };
 }

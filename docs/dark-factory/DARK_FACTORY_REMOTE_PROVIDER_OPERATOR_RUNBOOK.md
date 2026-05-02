@@ -227,6 +227,24 @@ The readiness report is advisory only. It does not persist breaker state, does
 not change execution-path behavior, does not contact a provider, and does not
 advance Paperclip terminal state.
 
+The report also includes an operator checklist:
+
+| Checklist item | Pass condition | Required before |
+| --- | --- | --- |
+| Remote credentials | credential diagnostics are ready | `onEnvironmentProbe` |
+| Remote observations | sampled observations exist and no observability readiness alert is active | `onEnvironmentAcquireLease` |
+| Circuit breaker | breaker is closed | `onEnvironmentExecute` |
+| Journal boundary | Journal remains truth source and Paperclip terminal state is unchanged | `onEnvironmentExecute` |
+
+`nextSafeHook` is derived from the checklist and readiness signals. It is a
+human-facing recommendation only:
+
+| Readiness state | Typical `nextSafeHook` |
+| --- | --- |
+| missing or invalid credentials | `onEnvironmentValidateConfig` |
+| warning-only state | `onEnvironmentProbe` |
+| ready state | `onEnvironmentExecute` |
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

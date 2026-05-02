@@ -193,6 +193,7 @@ type RemoteProviderReadiness = {
   ready: boolean;
   summary: string;
   recommendedAction: string;
+  nextSafeHook: string;
   credentialOk: boolean;
   breakerState: string;
   sampledObservationCount: number;
@@ -204,6 +205,15 @@ type RemoteProviderReadiness = {
     code: string;
     message: string;
     remediation: string[];
+    terminalStateAdvanced: false;
+  }>;
+  readinessChecklist: Array<{
+    category: string;
+    status: string;
+    code: string;
+    label: string;
+    message: string;
+    requiredBefore: string;
     terminalStateAdvanced: false;
   }>;
 };
@@ -409,7 +419,17 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
       <div style={rowStyle}><span>Sampled observations</span><strong>{data.sampledObservationCount}</strong></div>
       <div style={rowStyle}><span>Alert count</span><strong>{data.alertCount}</strong></div>
       <div style={rowStyle}><span>Recommended action</span><code>{data.recommendedAction}</code></div>
+      <div style={rowStyle}><span>Next safe hook</span><code>{data.nextSafeHook}</code></div>
       <div style={rowStyle}><span>Checked at</span><code>{data.checkedAt}</code></div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {data.readinessChecklist.map((item) => (
+          <div key={item.code} role="status" style={item.status === "fail" ? errorStyle : item.status === "warn" ? noticeStyle : undefined}>
+            <div>{item.label}: {item.status}</div>
+            <div>{item.message}</div>
+            <div>Required before <code>{item.requiredBefore}</code></div>
+          </div>
+        ))}
+      </div>
       <div style={{ display: "grid", gap: 6 }}>
         {data.signals.map((signal) => (
           <div key={`${signal.category}:${signal.code}`} role="status" style={signal.severity === "critical" ? errorStyle : signal.severity === "warning" ? noticeStyle : undefined}>

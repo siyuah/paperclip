@@ -118,6 +118,7 @@ type RemoteProviderReadinessBody = {
   ready: boolean;
   summary: string;
   recommendedAction: string;
+  nextSafeHook: string;
   credentialOk: boolean;
   breakerState: string;
   sampledObservationCount: number;
@@ -129,6 +130,15 @@ type RemoteProviderReadinessBody = {
     code: string;
     message: string;
     remediation: string[];
+    terminalStateAdvanced: boolean;
+  }>;
+  readinessChecklist: Array<{
+    category: string;
+    status: string;
+    code: string;
+    label: string;
+    message: string;
+    requiredBefore: string;
     terminalStateAdvanced: boolean;
   }>;
 };
@@ -809,6 +819,7 @@ describe("Dark Factory bridge projection plugin", () => {
       checkedAt: "2026-05-02T12:00:00.000Z",
       readinessStatus: "blocked",
       ready: false,
+      nextSafeHook: "onEnvironmentValidateConfig",
       credentialOk: false,
       breakerState: "open",
       sampledObservationCount: 2,
@@ -824,6 +835,20 @@ describe("Dark Factory bridge projection plugin", () => {
           category: "breaker",
           severity: "critical",
           code: "dark_factory_remote_breaker_open",
+          terminalStateAdvanced: false,
+        }),
+      ]),
+      readinessChecklist: expect.arrayContaining([
+        expect.objectContaining({
+          category: "credentials",
+          status: "fail",
+          requiredBefore: "onEnvironmentProbe",
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          category: "breaker",
+          status: "fail",
+          requiredBefore: "onEnvironmentExecute",
           terminalStateAdvanced: false,
         }),
       ]),
@@ -869,11 +894,24 @@ describe("Dark Factory bridge projection plugin", () => {
       runtimeMode: "remote",
       readinessStatus: "ready",
       ready: true,
+      nextSafeHook: "onEnvironmentExecute",
       credentialOk: true,
       breakerState: "closed",
       sampledObservationCount: 1,
       alertCount: 0,
       terminalStateAdvanced: false,
+      readinessChecklist: expect.arrayContaining([
+        expect.objectContaining({
+          category: "credentials",
+          status: "pass",
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          category: "journal_boundary",
+          status: "pass",
+          terminalStateAdvanced: false,
+        }),
+      ]),
     });
     expect(result.signals.every((signal) => signal.terminalStateAdvanced === false)).toBe(true);
     expect(JSON.stringify(result)).not.toContain("plugin-spec-resolved-key");

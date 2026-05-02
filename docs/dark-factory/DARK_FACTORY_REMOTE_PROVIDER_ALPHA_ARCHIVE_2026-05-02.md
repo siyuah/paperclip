@@ -505,6 +505,48 @@ Validation after hardening batch 10:
 - `pnpm test` passed: 11 files passed, 1 gated file skipped, 96 tests passed,
   1 skipped.
 
+## Hardening Batch 11
+
+Remote provider alpha hardening batch 11 added an operator checklist and next
+safe hook recommendation to the readiness report.
+
+### Readiness Checklist
+
+The readiness report now includes `readinessChecklist` entries for:
+
+- remote credentials
+- sampled remote observations
+- circuit breaker state
+- Journal boundary compliance
+
+Each checklist item includes:
+
+- `pass`, `warn`, or `fail`
+- a human-readable label and message
+- the lifecycle hook it must be satisfied before
+- `authoritative: false`
+- `terminalStateAdvanced: false`
+
+### Next Safe Hook
+
+The report now includes `nextSafeHook`, an advisory field that tells operators
+the furthest lifecycle hook that is safe to attempt under current readiness
+signals:
+
+- missing or invalid credentials -> `onEnvironmentValidateConfig`
+- warning-only state -> `onEnvironmentProbe`
+- ready state -> `onEnvironmentExecute`
+
+This remains advisory only. It does not invoke hooks, block execution, persist
+state, contact a provider, or change Paperclip terminal state.
+
+Validation after hardening batch 11:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 11 files passed, 1 gated file skipped, 96 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.

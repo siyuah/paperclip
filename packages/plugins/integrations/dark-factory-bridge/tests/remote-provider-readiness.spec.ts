@@ -72,12 +72,19 @@ describe("remote provider readiness", () => {
       checkedAt: "2026-05-02T12:00:00.000Z",
       readinessStatus: "ready",
       ready: true,
+      nextSafeHook: "onEnvironmentExecute",
       credentialOk: true,
       breakerState: "closed",
       sampledObservationCount: 2,
       alertCount: 0,
       terminalStateAdvanced: false,
     });
+    expect(report.readinessChecklist).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "dark_factory_remote_readiness_credentials", status: "pass" }),
+      expect.objectContaining({ code: "dark_factory_remote_readiness_observability", status: "pass" }),
+      expect.objectContaining({ code: "dark_factory_remote_readiness_breaker", status: "pass" }),
+      expect.objectContaining({ code: "dark_factory_remote_readiness_journal_boundary", status: "pass" }),
+    ]));
     expect(report.signals.every((signal) => signal.terminalStateAdvanced === false)).toBe(true);
   });
 
@@ -100,6 +107,7 @@ describe("remote provider readiness", () => {
       checkedAt: "1970-01-01T00:00:00.000Z",
       readinessStatus: "needs_attention",
       ready: false,
+      nextSafeHook: "onEnvironmentProbe",
       credentialOk: false,
       breakerState: "closed",
       sampledObservationCount: 0,
@@ -116,6 +124,11 @@ describe("remote provider readiness", () => {
         severity: "info",
         code: "dark_factory_remote_no_sampled_observations",
       }),
+    ]));
+    expect(report.readinessChecklist).toEqual(expect.arrayContaining([
+      expect.objectContaining({ category: "credentials", status: "warn", requiredBefore: "onEnvironmentProbe" }),
+      expect.objectContaining({ category: "observability", status: "warn", requiredBefore: "onEnvironmentAcquireLease" }),
+      expect.objectContaining({ category: "journal_boundary", status: "pass", requiredBefore: "onEnvironmentExecute" }),
     ]));
   });
 
@@ -143,6 +156,7 @@ describe("remote provider readiness", () => {
     expect(report).toMatchObject({
       readinessStatus: "blocked",
       ready: false,
+      nextSafeHook: "onEnvironmentValidateConfig",
       credentialOk: false,
       breakerState: "open",
       alertCount: 1,
@@ -159,6 +173,11 @@ describe("remote provider readiness", () => {
         severity: "critical",
         code: "dark_factory_remote_breaker_open",
       }),
+    ]));
+    expect(report.readinessChecklist).toEqual(expect.arrayContaining([
+      expect.objectContaining({ category: "credentials", status: "fail" }),
+      expect.objectContaining({ category: "breaker", status: "fail" }),
+      expect.objectContaining({ category: "journal_boundary", status: "pass" }),
     ]));
   });
 
