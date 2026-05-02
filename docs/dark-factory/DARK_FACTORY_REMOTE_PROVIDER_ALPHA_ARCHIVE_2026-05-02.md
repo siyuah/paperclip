@@ -1235,3 +1235,54 @@ Validation after hardening batch 25:
 
 - targeted `remote-provider-host-context-adapter.spec.ts` passed: 4 tests.
 - `pnpm typecheck` passed.
+
+## Hardening Batch 26
+
+Remote provider alpha hardening batch 26 added an advisory dry-run guard for
+the final step before operator-controlled remote provider attempts.
+
+### Dry-Run Guard
+
+Added `src/remote-provider-dry-run-guard.ts` and the plugin data key
+`remote-provider-dry-run-guard`.
+
+The guard composes:
+
+- host settings/runtime context adapter
+- host active context bridge
+- readiness report
+- matched preflight step
+- deterministic guard receipt
+
+It accepts a `targetHook` for the intended lifecycle boundary:
+
+- `onEnvironmentValidateConfig`
+- `onEnvironmentProbe`
+- `onEnvironmentAcquireLease`
+- `onEnvironmentExecute`
+
+The guard returns one advisory decision:
+
+- `allowed`
+- `review_required`
+- `blocked`
+
+### Boundary Semantics
+
+The guard is not an authorization mechanism and does not call a provider. It
+does not invoke lifecycle hooks, does not persist state, and does not advance
+Paperclip terminal state. Its receipt is metadata for operator notes or future
+plugin namespace DB storage, not a Dark Factory Journal truth event.
+
+All outputs preserve:
+
+- `authoritative: false`
+- `doesAuthorizeRemoteExecution: false`
+- `shouldContactRemoteProvider: false`
+- `terminalStateAdvanced: false`
+- Dark Factory Journal remains truth source
+
+Validation after hardening batch 26:
+
+- targeted `remote-provider-dry-run-guard.spec.ts` passed: 5 tests.
+- `pnpm typecheck` passed.

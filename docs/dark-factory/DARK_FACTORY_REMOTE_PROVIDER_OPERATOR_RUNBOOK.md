@@ -448,6 +448,51 @@ The runner:
 Use `--no-screenshots` for a faster assertion-only pass, or `--out DIR` to send
 scratch output outside the repository.
 
+## Remote Provider Dry-Run Guard
+
+The bridge exposes a pre-execution dry-run guard through the plugin data key
+`remote-provider-dry-run-guard`.
+
+The guard composes:
+
+- host settings/runtime context adapter
+- host active context bridge
+- credential diagnostics
+- observability snapshot
+- circuit breaker evaluation
+- readiness report and preflight plan
+
+Input can use the same host context envelope names as the adapter:
+
+- `hostSettingsContext`, `settingsContext`, or `environmentSettingsContext`
+- `hostRuntimeContext`, `runtimeContext`, or `environmentRuntimeContext`
+
+Set `targetHook` to one of:
+
+- `onEnvironmentValidateConfig`
+- `onEnvironmentProbe`
+- `onEnvironmentAcquireLease`
+- `onEnvironmentExecute`
+
+The guard returns:
+
+- `decision`: `allowed`, `review_required`, or `blocked`
+- matched readiness preflight step
+- blocking signal/checklist codes
+- deterministic `guardReceipt`
+- operator summary for UI or runbook notes
+
+The result is advisory only. It never contacts the remote provider, never
+invokes lifecycle hooks, never persists state, and never authorizes remote
+execution. `doesAuthorizeRemoteExecution` is always `false`, and
+`terminalStateAdvanced` is always `false`.
+
+Use this guard immediately before operator-controlled remote alpha attempts to
+confirm that the current host settings, sampled observations, previous breaker
+evidence, and readiness evidence agree on the next safe hook. The guard receipt
+is suitable for run notes or future plugin namespace DB metadata, but it is not
+a Dark Factory Journal truth event.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |
@@ -475,10 +520,12 @@ Recommended alpha thresholds:
    `remote-observability-snapshot` data key.
 3. Feed the active environment driver config into
    `remote-credential-diagnostics` when the host exposes settings context.
-4. Wire the circuit breaker evaluator into the remote execution path after host
+4. Feed `remote-provider-dry-run-guard` output into the operator UI as an
+   advisory pre-execution checklist.
+5. Wire the circuit breaker evaluator into the remote execution path after host
    persistence for breaker state is available.
-5. Feed sampled observations and previous breaker state into
+6. Feed sampled observations and previous breaker state into
    `remote-breaker-evaluation` from host settings/runtime context.
-6. Wire the snapshot into a metrics exporter and host alert rules for remote
+7. Wire the snapshot into a metrics exporter and host alert rules for remote
    provider unavailability and repeated
    execution failures.

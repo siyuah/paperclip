@@ -44,6 +44,9 @@ import {
   adaptRemoteProviderHostContext,
 } from "./remote-provider-host-context-adapter.js";
 import {
+  buildRemoteProviderDryRunGuard,
+} from "./remote-provider-dry-run-guard.js";
+import {
   buildUiSmokePreview,
   uiSmokePreviewScenario,
 } from "./remote-provider-ui-smoke-preview.js";
@@ -184,6 +187,10 @@ const plugin = definePlugin({
 
     ctx.data.register("remote-provider-host-context-adapter", async (params) => {
       return adaptRemoteProviderHostContext(params);
+    });
+
+    ctx.data.register("remote-provider-dry-run-guard", async (params) => {
+      return buildRemoteProviderDryRunGuard(params);
     });
 
     ctx.data.register("remote-provider-ui-smoke-preview", async (params) => {
