@@ -352,6 +352,18 @@ before full UI alpha. It does not contact a provider, does not persist state,
 does not expose resolved credential values, and does not authorize remote
 execution.
 
+The settings page renders the same preview through a scenario selector. Use it
+to smoke-check the internal UI before wiring real host-collected observations:
+
+1. open the Dark Factory Bridge settings page
+2. select a scenario
+3. verify preview status, next safe hook, breaker state, sampled observation
+   count, cursor lag, alert count, truth source, authoritative flag, and
+   terminal-state flag
+
+The selector is still a local preview surface. It is not an operator approval
+control and does not change lifecycle hook behavior.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

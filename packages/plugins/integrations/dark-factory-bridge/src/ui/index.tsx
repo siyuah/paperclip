@@ -246,6 +246,36 @@ type RemoteProviderReadiness = {
   };
 };
 
+type UiSmokePreviewScenario =
+  | "healthy"
+  | "warning_latency"
+  | "blocked_failures"
+  | "stale_readiness";
+
+type UiSmokePreview = {
+  source: "dark-factory-projection";
+  truthSource: "dark-factory-journal";
+  authoritative: false;
+  observationSource: "runtime_observation";
+  runtimeMode: "remote";
+  scenario: UiSmokePreviewScenario;
+  hostContextId: string;
+  previewStatus: "ready" | "needs_attention" | "blocked";
+  uiBadges: string[];
+  readiness: RemoteProviderReadiness;
+  observability: Pick<RemoteObservabilitySnapshot, "sampledObservationCount" | "snapshot" | "alerts" | "terminalStateAdvanced">;
+  credentialDiagnostics: RemoteCredentialDiagnostics;
+  breakerEvaluation: RemoteBreakerEvaluation;
+  terminalStateAdvanced: false;
+};
+
+const uiSmokePreviewScenarios: Array<{ value: UiSmokePreviewScenario; label: string }> = [
+  { value: "healthy", label: "Healthy" },
+  { value: "warning_latency", label: "Warning latency" },
+  { value: "blocked_failures", label: "Blocked failures" },
+  { value: "stale_readiness", label: "Stale readiness" },
+];
+
 const panelStyle = {
   display: "grid",
   gap: 10,
@@ -283,6 +313,14 @@ const buttonStyle = {
   padding: "6px 10px",
   font: "inherit",
   cursor: "pointer",
+} satisfies React.CSSProperties;
+
+const selectStyle = {
+  border: "1px solid #cbd5e1",
+  borderRadius: 6,
+  padding: "6px 8px",
+  font: "inherit",
+  background: "#fff",
 } satisfies React.CSSProperties;
 
 const errorStyle = {
@@ -499,6 +537,57 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
   );
 }
 
+function UiSmokePreviewRows({
+  data,
+  scenario,
+  onScenarioChange,
+}: {
+  data: UiSmokePreview;
+  scenario: UiSmokePreviewScenario;
+  onScenarioChange: (scenario: UiSmokePreviewScenario) => void;
+}) {
+  return (
+    <div style={{ display: "grid", gap: 8, borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
+      <div style={rowStyle}>
+        <strong>UI Smoke Preview</strong>
+        <label>
+          <span style={{ marginRight: 6 }}>Scenario</span>
+          <select
+            style={selectStyle}
+            value={scenario}
+            onChange={(event) => onScenarioChange(event.target.value as UiSmokePreviewScenario)}
+          >
+            {uiSmokePreviewScenarios.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div style={data.previewStatus === "blocked" ? errorStyle : data.previewStatus === "needs_attention" ? noticeStyle : undefined}>
+        {data.readiness.summary}
+      </div>
+      <div style={rowStyle}><span>Preview status</span><strong>{data.previewStatus}</strong></div>
+      <div style={rowStyle}><span>Host context</span><code>{data.hostContextId}</code></div>
+      <div style={rowStyle}><span>Readiness</span><strong>{data.readiness.readinessStatus}</strong></div>
+      <div style={rowStyle}><span>Next safe hook</span><code>{data.readiness.nextSafeHook}</code></div>
+      <div style={rowStyle}><span>Breaker state</span><strong>{data.breakerEvaluation.breakerState}</strong></div>
+      <div style={rowStyle}><span>Sampled observations</span><strong>{data.observability.sampledObservationCount}</strong></div>
+      <div style={rowStyle}><span>Max latency</span><strong>{data.observability.snapshot.maxLatencyMs}ms</strong></div>
+      <div style={rowStyle}><span>Cursor lag</span><strong>{data.observability.snapshot.cursorLag ?? "unknown"}</strong></div>
+      <div style={rowStyle}><span>Alerts</span><strong>{data.observability.alerts.length}</strong></div>
+      <div style={rowStyle}><span>Credential source</span><code>{data.credentialDiagnostics.credentialSource ?? "none"}</code></div>
+      <div style={rowStyle}><span>Truth source</span><code>{data.truthSource}</code></div>
+      <div style={rowStyle}><span>Authoritative</span><strong>{data.authoritative ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {data.uiBadges.map((badge) => (
+          <span key={badge} style={badgeStyle}>{badge}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function DashboardWidget({ context }: PluginWidgetProps) {
   const { data, loading, error } = usePluginData<ProjectionSummary>("projection-summary", {
     companyId: context.companyId,
@@ -565,8 +654,17 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
 }
 
 export function SettingsPage({ context }: PluginSettingsPageProps) {
+  const [uiSmokePreviewScenario, setUiSmokePreviewScenario] = useState<UiSmokePreviewScenario>("healthy");
   const { data, loading, error } = usePluginData<ProjectionSummary>("projection-summary", {
     companyId: context.companyId,
+  });
+  const {
+    data: uiSmokePreview,
+    loading: uiSmokePreviewLoading,
+    error: uiSmokePreviewError,
+  } = usePluginData<UiSmokePreview>("remote-provider-ui-smoke-preview", {
+    companyId: context.companyId,
+    scenario: uiSmokePreviewScenario,
   });
   const {
     data: remoteObservability,
@@ -608,6 +706,15 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
       <div>Mock projection mode. No real Dark Factory connection is configured, and no token or secret is stored.</div>
       <ProjectionRows data={data} />
       <ProviderHealthRows data={data} />
+      {uiSmokePreviewLoading ? <div>Loading UI smoke preview...</div> : null}
+      {uiSmokePreviewError ? <div style={errorStyle}>UI smoke preview error: {uiSmokePreviewError.message}</div> : null}
+      {uiSmokePreview ? (
+        <UiSmokePreviewRows
+          data={uiSmokePreview}
+          scenario={uiSmokePreviewScenario}
+          onScenarioChange={setUiSmokePreviewScenario}
+        />
+      ) : null}
       {remoteReadinessLoading ? <div>Loading remote provider readiness...</div> : null}
       {remoteReadinessError ? <div style={errorStyle}>Remote provider readiness error: {remoteReadinessError.message}</div> : null}
       {remoteReadiness ? <RemoteReadinessRows data={remoteReadiness} /> : null}

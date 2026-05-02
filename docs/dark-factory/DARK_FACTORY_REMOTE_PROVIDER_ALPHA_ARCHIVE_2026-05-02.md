@@ -889,6 +889,52 @@ Validation after hardening batch 18:
 - `pnpm test` passed: 14 files passed, 1 gated file skipped, 116 tests passed,
   1 skipped.
 
+## Hardening Batch 19
+
+Remote provider alpha hardening batch 19 wired the UI smoke preview harness into
+the actual bridge settings UI.
+
+### Settings Preview Panel
+
+Updated `src/ui/index.tsx` with a `UI Smoke Preview` panel on the settings page.
+The panel includes a scenario selector for:
+
+- `healthy`
+- `warning_latency`
+- `blocked_failures`
+- `stale_readiness`
+
+For the selected scenario, the panel renders:
+
+- preview status
+- host context id
+- readiness status and next safe hook
+- breaker state
+- sampled observation count
+- max latency and cursor lag
+- alert count
+- credential source
+- truth source
+- authoritative flag
+- terminal-state-advanced flag
+- stable UI badges
+
+The panel reads the existing `remote-provider-ui-smoke-preview` data key. It is
+still local preview only: no real provider call, no persistence, no execution
+approval, and no terminal state advancement.
+
+### Tests
+
+Added `tests/ui-smoke-preview-panel.spec.ts` to lock the settings page wiring to
+the preview data key, scenario selector, and boundary fields.
+
+Validation after hardening batch 19:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 15 files passed, 1 gated file skipped, 117 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -926,3 +972,4 @@ tests before untrusted or multi-tenant production exposure.
 6. Add host-managed secret resolver integration when the Plugin SDK exposes it.
 7. Feed host-collected observations and active config into
    `remote-provider-readiness` when host settings/runtime context is available.
+8. Run browser-level internal UI smoke with the settings-page preview panel.
