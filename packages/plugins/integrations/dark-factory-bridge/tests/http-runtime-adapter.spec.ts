@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DarkFactoryHttpClient, normalizeHttpEnvironmentConfig } from "../src/http-runtime-adapter.js";
+import { DarkFactoryHttpClient, classifyHttpFailure, normalizeHttpEnvironmentConfig } from "../src/http-runtime-adapter.js";
 
 const runView = {
   protocolReleaseTag: "v3.0-agent-control-r1",
@@ -96,5 +96,26 @@ describe("DarkFactoryHttpClient hardening", () => {
 
     const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
     expect(headers["x-api-key"]).toBeUndefined();
+  });
+
+  it.each([
+    [{ code: "unauthorized", status: 401 }, "runtime_blocked", false],
+    [{ code: "forbidden", status: 403 }, "runtime_blocked", false],
+    [{ code: "quota_exceeded", status: 429 }, "quota_exceeded", true],
+    [{ code: "provider_unavailable", status: 500 }, "transient_provider", true],
+    [{ code: "bad_gateway", status: 502 }, "transient_provider", true],
+    [{ code: "unavailable", status: 503 }, "transient_provider", true],
+    [{ code: "dark_factory_http_timeout", status: 504 }, "transient_provider", true],
+    [{ code: "dark_factory_invalid_json", status: 200 }, "provider_unavailable", true],
+  ] as const)("classifies remote provider error %o", (input, failureClass, retryable) => {
+    expect(classifyHttpFailure(input)).toMatchObject({
+      failureClass,
+      retryable,
+      runtimeImpact: {
+        paperclipTerminalState: "unchanged",
+        terminalStateAdvanced: false,
+        reason: input.code,
+      },
+    });
   });
 });

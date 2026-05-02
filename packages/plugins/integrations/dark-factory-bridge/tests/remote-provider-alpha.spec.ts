@@ -212,4 +212,57 @@ describe("Dark Factory remote provider alpha", () => {
     ].join("\n");
     expect(logText).not.toContain(apiKey);
   });
+
+  it("maps remote provider execution errors without advancing terminal state", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      const parsed = new URL(url);
+      if (parsed.pathname === `/api/external-runs/${runId}`) {
+        return jsonResponse({ errorCode: "quota_exceeded", message: "provider quota exceeded" }, 429);
+      }
+      return jsonResponse({ errorCode: "unexpected_route", message: parsed.pathname }, 500);
+    }));
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const execution = await plugin.definition.onEnvironmentExecute?.({
+      ...driverParams,
+      lease: {
+        providerLeaseId: `df-remote-lease-${runId}`,
+        expiresAt: null,
+        metadata: {
+          source: "dark-factory-projection",
+          authoritative: false,
+          truthSource: "dark-factory-journal",
+          runtimeMode: "remote",
+          runId,
+        },
+      },
+      command: "dark-factory-remote-observe",
+    });
+
+    expect(execution).toMatchObject({
+      exitCode: null,
+      timedOut: false,
+      stdout: "",
+      stderr: "provider quota exceeded",
+      metadata: {
+        source: "dark-factory-projection",
+        authoritative: false,
+        truthSource: "dark-factory-journal",
+        runtimeMode: "remote",
+        terminalStateAdvanced: false,
+        errorCode: "quota_exceeded",
+        errorStatus: 429,
+        failureClass: "quota_exceeded",
+        retryable: true,
+        runtimeImpact: {
+          paperclipTerminalState: "unchanged",
+          terminalStateAdvanced: false,
+          reason: "quota_exceeded",
+        },
+      },
+    });
+
+    const logText = vi.mocked(console.warn).mock.calls.map((call) => String(call[0])).join("\n");
+    expect(logText).not.toContain(apiKey);
+  });
 });

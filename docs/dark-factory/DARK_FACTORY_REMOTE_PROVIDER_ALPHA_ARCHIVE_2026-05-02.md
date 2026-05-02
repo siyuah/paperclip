@@ -86,6 +86,60 @@ Validation results:
 - `pnpm build` passed.
 - `pnpm test` passed: 8 files, 60 tests.
 
+## Hardening Batch 1
+
+Remote provider alpha hardening batch 1 added two safety rails before any
+operator-provided remote endpoint is used.
+
+### Error Mapping Fixtures
+
+The HTTP adapter now classifies remote provider failures into the runtime
+contract `FailureClass` union:
+
+| Provider condition | Failure class | Retryable |
+| --- | --- | --- |
+| 401 / 403 | `runtime_blocked` | false |
+| 429 / quota exceeded | `quota_exceeded` | true |
+| 500 / 502 / 503 / 504 | `transient_provider` | true |
+| timeout / unreachable | `transient_provider` | true |
+| invalid JSON | `provider_unavailable` | true |
+
+Execution failures now return non-authoritative metadata with:
+
+- `errorCode`
+- `errorStatus`
+- `failureClass`
+- `retryable`
+- `runtimeImpact`
+- `terminalStateAdvanced: false`
+
+### Gated Remote Integration Harness
+
+Added `tests/remote-gated-integration.spec.ts`.
+
+The test is skipped by default and only runs when all operator-controlled
+variables are provided:
+
+```bash
+DARK_FACTORY_REMOTE_INTEGRATION=1
+DARK_FACTORY_REMOTE_ENDPOINT=https://...
+DARK_FACTORY_REMOTE_API_KEY=...
+```
+
+This prevents CI and local development from accidentally contacting a real
+provider or reading credentials. When enabled, it runs:
+
+validate -> probe -> acquire -> execute -> resume -> release
+
+against the provided endpoint while preserving `authoritative: false` and
+`terminalStateAdvanced: false`.
+
+Validation after hardening batch 1:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 8 files passed, 1 gated file skipped, 69 passed, 1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -110,13 +164,11 @@ tests before untrusted or multi-tenant production exposure.
 
 ## Next Recommended Tasks
 
-1. Add gated remote integration tests that run only when an operator provides an
-   endpoint and host-resolved credential reference.
-2. Add provider error mapping fixtures for remote 401, 403, 429, 500, 502, 503,
-   timeout, and invalid JSON cases.
-3. Connect `apiKeySecretRef` to the host secret resolver once the Paperclip host
+1. Connect `apiKeySecretRef` to the host secret resolver once the Paperclip host
    exposes that resolution hook.
-4. Add metrics and alerting for remote request latency, error rate, retry count,
+2. Add metrics and alerting for remote request latency, error rate, retry count,
    stale projection rate, and journal cursor lag.
-5. Design the real circuit breaker state machine before allowing provider
+3. Design the real circuit breaker state machine before allowing provider
    outages to influence operator-facing health beyond projection metadata.
+4. Add remote integration documentation for the exact operator-controlled
+   environment variables and failure triage flow.

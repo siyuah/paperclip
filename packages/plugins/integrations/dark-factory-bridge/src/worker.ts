@@ -10,7 +10,9 @@ import {
 import {
   acquireHttpLease,
   buildHttpProjectionSummary,
+  classifyHttpFailure,
   executeHttpEnvironment,
+  httpRuntimeModeFromConfig,
   isDarkFactoryHttpRuntimeMode,
   mapHttpError,
   normalizeHttpEnvironmentConfig,
@@ -364,6 +366,8 @@ const plugin = definePlugin({
         return await executeHttpEnvironment(params);
       } catch (error) {
         const mapped = mapHttpError(error);
+        const failure = classifyHttpFailure(mapped);
+        const runtimeMode = httpRuntimeModeFromConfig(params.config);
         return {
           exitCode: null,
           timedOut: mapped.code === "dark_factory_http_timeout",
@@ -371,11 +375,14 @@ const plugin = definePlugin({
           stderr: mapped.message,
           metadata: {
             ...projectionBoundary(),
-            runtimeMode: "http",
+            runtimeMode,
             terminalStateAdvanced: false,
             errorCode: mapped.code,
             errorStatus: mapped.status,
             errorDetails: mapped.details,
+            failureClass: failure.failureClass,
+            retryable: failure.retryable,
+            runtimeImpact: failure.runtimeImpact,
           },
         };
       }

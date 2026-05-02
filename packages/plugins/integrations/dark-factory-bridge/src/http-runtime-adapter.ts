@@ -12,6 +12,8 @@ import {
   PROJECTION_AUTHORITATIVE,
   PROJECTION_DISCLAIMER,
   RUNTIME_OBSERVATION_SOURCE,
+  type FailureClass,
+  type ProviderRuntimeImpact,
 } from "./runtime-contract.js";
 
 type JsonObject = Record<string, unknown>;
@@ -470,12 +472,53 @@ export function mapHttpError(error: unknown): { code: string; message: string; s
   };
 }
 
+export function classifyHttpFailure(error: { code: string; status: number }): {
+  failureClass: FailureClass;
+  retryable: boolean;
+  runtimeImpact: ProviderRuntimeImpact;
+} {
+  const failureClass = failureClassForHttpError(error);
+  const retryable = failureClass === "transient_provider" || failureClass === "provider_unavailable" || failureClass === "quota_exceeded";
+  return {
+    failureClass,
+    retryable,
+    runtimeImpact: {
+      mode: failureClass === "runtime_blocked" ? "blocked" : "degraded",
+      severity: failureClass === "runtime_blocked" || failureClass === "provider_unavailable" ? "critical" : "warning",
+      operatorAction: operatorActionForFailureClass(failureClass),
+      paperclipTerminalState: "unchanged",
+      terminalStateAdvanced: false,
+      reason: error.code,
+    },
+  };
+}
+
 function projectionBoundary() {
   return {
     source: DARK_FACTORY_PROJECTION_SOURCE,
     authoritative: PROJECTION_AUTHORITATIVE,
     truthSource: DARK_FACTORY_TRUTH_SOURCE,
   } as const;
+}
+
+function failureClassForHttpError(error: { code: string; status: number }): FailureClass {
+  if (error.status === 429 || error.code === "quota_exceeded") return "quota_exceeded";
+  if (error.status === 401 || error.status === 403 || error.code === "runtime_blocked") return "runtime_blocked";
+  if (error.status === 408 || error.status === 500 || error.status === 502 || error.status === 503 || error.status === 504) {
+    return "transient_provider";
+  }
+  if (error.code === "dark_factory_http_unreachable" || error.code === "dark_factory_http_timeout") return "transient_provider";
+  if (error.code === "dark_factory_invalid_json") return "provider_unavailable";
+  if (error.status >= 500) return "transient_provider";
+  return "provider_unavailable";
+}
+
+function operatorActionForFailureClass(failureClass: FailureClass): ProviderRuntimeImpact["operatorAction"] {
+  if (failureClass === "runtime_blocked") return "pause_external_execution_and_reconcile_journal";
+  if (failureClass === "quota_exceeded") return "retry_or_wait_for_provider_recovery";
+  if (failureClass === "transient_provider") return "retry_or_wait_for_provider_recovery";
+  if (failureClass === "provider_unavailable") return "pause_external_execution_and_reconcile_journal";
+  return "monitor";
 }
 
 async function ensureRun(client: DarkFactoryHttpClient, runId: string, reason: string): Promise<RunView> {
