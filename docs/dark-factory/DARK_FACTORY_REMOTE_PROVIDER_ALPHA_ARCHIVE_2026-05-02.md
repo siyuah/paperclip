@@ -727,6 +727,53 @@ Validation after hardening batch 15:
 - `pnpm test` passed: 12 files passed, 1 gated file skipped, 101 tests passed,
   1 skipped.
 
+## Hardening Batch 16
+
+Remote provider alpha hardening batch 16 extended the active context ingestion
+layer to accept host-supplied active context envelopes.
+
+### Host Context Envelope
+
+`buildRemoteProviderActiveContext` now accepts nested context under any of:
+
+- `activeContext`
+- `hostActiveContext`
+- `remoteProviderActiveContext`
+
+The host envelope can provide:
+
+- environment config (`environmentConfig`, `activeEnvironmentConfig`, or
+  `config`)
+- sampled observations (`sampledObservations`, `remoteObservations`, or
+  `observations`)
+- previous breaker evidence (`breakerEvidence` or `previousBreaker`)
+- previous readiness evidence (`readinessEvidence` or `previousReadiness`)
+- alert thresholds
+- circuit breaker policy
+- `journal.expectedSequenceNo`
+
+Direct top-level params override nested host context fields. The active context
+output records whether host context was supplied and whether the input was
+`params`, `host_active_context`, or `merged`.
+
+### Tests
+
+Extended `tests/remote-provider-active-context.spec.ts` with coverage for:
+
+- host-supplied active context envelope normalization
+- nested environment config and observations
+- nested previous breaker/readiness evidence
+- nested alert thresholds and circuit breaker policy
+- direct top-level override precedence
+- resolved credential value redaction
+
+Validation after hardening batch 16:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 12 files passed, 1 gated file skipped, 103 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.

@@ -48,6 +48,8 @@ export type RemoteCredentialDiagnostics = RemoteCredentialDiagnosticsForReadines
 export type RemoteProviderActiveContext = ProjectionBoundary & {
   observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
   runtimeMode: "remote";
+  inputSource: "params" | "host_active_context" | "merged";
+  hostContextSupplied: boolean;
   checkedAt: string;
   evaluatedAt: string;
   expectedSequenceNo: number | null;
@@ -63,35 +65,38 @@ export type RemoteProviderActiveContext = ProjectionBoundary & {
 };
 
 export function buildRemoteProviderActiveContext(params: Record<string, unknown>): RemoteProviderActiveContext {
-  const observations = remoteObservationsFromParams(params);
-  const expectedSequenceNo = numberField(params.expectedSequenceNo);
+  const input = normalizeActiveContextParams(params);
+  const observations = remoteObservationsFromParams(input.params);
+  const expectedSequenceNo = numberField(input.params.expectedSequenceNo);
   const metricsSnapshot = buildRemoteProviderMetricsSnapshot(observations, {
     expectedSequenceNo,
   });
   const alertCandidates = buildRemoteProviderAlertCandidates(metricsSnapshot, {
-    errorRateWarningThreshold: numberField(params.errorRateWarningThreshold) ?? undefined,
-    latencyWarningThresholdMs: numberField(params.latencyWarningThresholdMs) ?? undefined,
-    cursorLagWarningThreshold: numberField(params.cursorLagWarningThreshold) ?? undefined,
+    errorRateWarningThreshold: numberField(input.params.errorRateWarningThreshold) ?? undefined,
+    latencyWarningThresholdMs: numberField(input.params.latencyWarningThresholdMs) ?? undefined,
+    cursorLagWarningThreshold: numberField(input.params.cursorLagWarningThreshold) ?? undefined,
   });
-  const evaluatedAt = stringField(params.evaluatedAt) ?? new Date(0).toISOString();
-  const checkedAt = stringField(params.checkedAt) ?? evaluatedAt;
+  const evaluatedAt = stringField(input.params.evaluatedAt) ?? new Date(0).toISOString();
+  const checkedAt = stringField(input.params.checkedAt) ?? evaluatedAt;
   const breakerEvaluation = evaluateRemoteCircuitBreaker({
-    previous: previousBreakerFromParams(params),
+    previous: previousBreakerFromParams(input.params),
     observations,
     evaluatedAt,
     policy: {
-      failureThreshold: numberField(params.failureThreshold) ?? undefined,
-      cooldownMs: numberField(params.cooldownMs) ?? undefined,
-      halfOpenSuccessThreshold: numberField(params.halfOpenSuccessThreshold) ?? undefined,
+      failureThreshold: numberField(input.params.failureThreshold) ?? undefined,
+      cooldownMs: numberField(input.params.cooldownMs) ?? undefined,
+      halfOpenSuccessThreshold: numberField(input.params.halfOpenSuccessThreshold) ?? undefined,
     },
   });
-  const credentialDiagnostics = remoteCredentialDiagnosticsFromParams(params);
-  const previousReadiness = previousReadinessFromParams(params);
+  const credentialDiagnostics = remoteCredentialDiagnosticsFromParams(input.params);
+  const previousReadiness = previousReadinessFromParams(input.params);
 
   return {
     ...projectionBoundary(),
     observationSource: RUNTIME_OBSERVATION_SOURCE,
     runtimeMode: "remote",
+    inputSource: input.inputSource,
+    hostContextSupplied: input.hostContextSupplied,
     checkedAt,
     evaluatedAt,
     expectedSequenceNo,
@@ -113,6 +118,85 @@ export function buildRemoteProviderActiveContext(params: Record<string, unknown>
     },
     terminalStateAdvanced: false,
   };
+}
+
+function normalizeActiveContextParams(params: Record<string, unknown>): {
+  params: Record<string, unknown>;
+  inputSource: RemoteProviderActiveContext["inputSource"];
+  hostContextSupplied: boolean;
+} {
+  const hostContext = recordBody(params.activeContext)
+    ?? recordBody(params.hostActiveContext)
+    ?? recordBody(params.remoteProviderActiveContext);
+  if (!hostContext) {
+    return {
+      params,
+      inputSource: "params",
+      hostContextSupplied: false,
+    };
+  }
+
+  const hostParams = paramsFromHostActiveContext(hostContext);
+  const directParams = compactRecord(params);
+  return {
+    params: {
+      ...hostParams,
+      ...directParams,
+    },
+    inputSource: hasDirectActiveContextFields(params) ? "merged" : "host_active_context",
+    hostContextSupplied: true,
+  };
+}
+
+function paramsFromHostActiveContext(context: Record<string, unknown>): Record<string, unknown> {
+  const thresholds = recordBody(context.thresholds) ?? recordBody(context.alertThresholds);
+  const breakerPolicy = recordBody(context.breakerPolicy) ?? recordBody(context.circuitBreakerPolicy);
+  const journal = recordBody(context.journal);
+  return compactRecord({
+    checkedAt: context.checkedAt,
+    evaluatedAt: context.evaluatedAt,
+    expectedSequenceNo: context.expectedSequenceNo ?? journal?.expectedSequenceNo,
+    config: recordBody(context.config)
+      ?? recordBody(context.environmentConfig)
+      ?? recordBody(context.activeEnvironmentConfig),
+    observations: context.observations
+      ?? context.remoteObservations
+      ?? context.sampledObservations,
+    previousBreaker: context.previousBreaker
+      ?? context.breakerEvidence
+      ?? context.breakerState,
+    previousReadiness: context.previousReadiness
+      ?? context.readinessEvidence,
+    errorRateWarningThreshold: context.errorRateWarningThreshold ?? thresholds?.errorRateWarningThreshold,
+    latencyWarningThresholdMs: context.latencyWarningThresholdMs ?? thresholds?.latencyWarningThresholdMs,
+    cursorLagWarningThreshold: context.cursorLagWarningThreshold ?? thresholds?.cursorLagWarningThreshold,
+    failureThreshold: context.failureThreshold ?? breakerPolicy?.failureThreshold,
+    cooldownMs: context.cooldownMs ?? breakerPolicy?.cooldownMs,
+    halfOpenSuccessThreshold: context.halfOpenSuccessThreshold ?? breakerPolicy?.halfOpenSuccessThreshold,
+  });
+}
+
+function hasDirectActiveContextFields(params: Record<string, unknown>): boolean {
+  const directFieldNames = [
+    "checkedAt",
+    "evaluatedAt",
+    "expectedSequenceNo",
+    "config",
+    "observations",
+    "previousBreaker",
+    "previousReadiness",
+    "errorRateWarningThreshold",
+    "latencyWarningThresholdMs",
+    "cursorLagWarningThreshold",
+    "failureThreshold",
+    "cooldownMs",
+    "halfOpenSuccessThreshold",
+  ];
+  return directFieldNames.some((fieldName) => params[fieldName] !== undefined);
+}
+
+function compactRecord(record: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined));
 }
 
 function remoteObservationsFromParams(params: Record<string, unknown>): RemoteProviderObservation[] {

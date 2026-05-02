@@ -302,6 +302,22 @@ context boundary, but it does not persist state, does not resolve host-managed
 secrets, does not contact a provider, and does not expose resolved credential
 values in plugin data.
 
+Host/runtime callers may supply this context as `activeContext`,
+`hostActiveContext`, or `remoteProviderActiveContext`. The bridge maps supported
+nested fields into the same readiness input shape:
+
+- `environmentConfig` / `activeEnvironmentConfig` / `config`
+- `sampledObservations` / `remoteObservations` / `observations`
+- `breakerEvidence` / `previousBreaker`
+- `readinessEvidence` / `previousReadiness`
+- `alertThresholds`
+- `circuitBreakerPolicy`
+- `journal.expectedSequenceNo`
+
+Direct top-level params override nested host context fields. This lets test
+harnesses and future host adapters override one field without rebuilding the
+entire context envelope.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

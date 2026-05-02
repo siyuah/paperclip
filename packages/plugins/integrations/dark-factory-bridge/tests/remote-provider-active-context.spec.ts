@@ -54,6 +54,8 @@ describe("remote provider active context", () => {
       truthSource: "dark-factory-journal",
       observationSource: "runtime_observation",
       runtimeMode: "remote",
+      inputSource: "params",
+      hostContextSupplied: false,
       checkedAt: "2026-05-03T01:00:00.000Z",
       evaluatedAt: "2026-05-03T01:00:01.000Z",
       expectedSequenceNo: 8,
@@ -116,6 +118,163 @@ describe("remote provider active context", () => {
       },
     });
     expect(JSON.stringify(context)).not.toContain("context-spec-resolved-key");
+  });
+
+  it("normalizes host-supplied active context envelope into readiness inputs", () => {
+    vi.stubEnv("DARK_FACTORY_HOST_CONTEXT_CREDENTIAL", "host-context-resolved-key");
+    const context = buildRemoteProviderActiveContext({
+      activeContext: {
+        checkedAt: "2026-05-03T02:00:00.000Z",
+        evaluatedAt: "2026-05-03T02:00:01.000Z",
+        environmentConfig: {
+          mode: "remote",
+          endpoint: "https://dark-factory.example.test",
+          apiKeySecretRef: "env:DARK_FACTORY_HOST_CONTEXT_CREDENTIAL",
+        },
+        journal: {
+          expectedSequenceNo: 12,
+        },
+        sampledObservations: [
+          {
+            operation: "execute",
+            status: 200,
+            durationMs: 30,
+            attempt: 0,
+            retryable: false,
+            failureClass: "none",
+            journalCursor: "dark-factory://journal/host-context#12",
+            lastSequenceNo: 12,
+            terminalStateAdvanced: true,
+          },
+        ],
+        breakerEvidence: {
+          breakerState: "closed",
+          consecutiveFailures: 1,
+        },
+        readinessEvidence: {
+          readinessStatus: "needs_attention",
+          nextSafeHook: "onEnvironmentProbe",
+          receiptDigest: "11111111",
+        },
+        alertThresholds: {
+          errorRateWarningThreshold: 0.9,
+          latencyWarningThresholdMs: 1000,
+          cursorLagWarningThreshold: 2,
+        },
+        circuitBreakerPolicy: {
+          failureThreshold: 2,
+          cooldownMs: 10000,
+          halfOpenSuccessThreshold: 1,
+        },
+      },
+    });
+
+    expect(context).toMatchObject({
+      source: "dark-factory-projection",
+      authoritative: false,
+      truthSource: "dark-factory-journal",
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      inputSource: "host_active_context",
+      hostContextSupplied: true,
+      checkedAt: "2026-05-03T02:00:00.000Z",
+      evaluatedAt: "2026-05-03T02:00:01.000Z",
+      expectedSequenceNo: 12,
+      sampledObservationCount: 1,
+      credentialDiagnostics: {
+        ok: true,
+        credentialSource: "env",
+        checkedConfig: {
+          endpointPresent: true,
+          apiKeySecretRefPresent: true,
+          apiKeySecretRefScheme: "env",
+        },
+      },
+      metricsSnapshot: {
+        latestJournalCursor: "dark-factory://journal/host-context#12",
+        latestSequenceNo: 12,
+        cursorLag: 0,
+      },
+      previousReadiness: {
+        readinessStatus: "needs_attention",
+        nextSafeHook: "onEnvironmentProbe",
+        receiptDigest: "11111111",
+      },
+      terminalStateAdvanced: false,
+    });
+    expect(context.observations[0]?.terminalStateAdvanced).toBe(false);
+    expect(context.readinessInput.previousReadiness).toEqual(context.previousReadiness);
+    expect(JSON.stringify(context)).not.toContain("host-context-resolved-key");
+  });
+
+  it("lets direct params override host active context fields", () => {
+    const context = buildRemoteProviderActiveContext({
+      activeContext: {
+        checkedAt: "2026-05-03T02:10:00.000Z",
+        evaluatedAt: "2026-05-03T02:10:00.000Z",
+        environmentConfig: {
+          mode: "remote",
+          endpoint: "https://host.example.test",
+        },
+        sampledObservations: [
+          {
+            operation: "probe",
+            status: 200,
+            durationMs: 10,
+            attempt: 0,
+            retryable: false,
+            failureClass: "none",
+            lastSequenceNo: 1,
+          },
+        ],
+      },
+      checkedAt: "2026-05-03T02:11:00.000Z",
+      config: {
+        mode: "remote",
+        endpoint: "https://direct.example.test",
+      },
+      observations: [
+        {
+          operation: "execute",
+          status: 503,
+          durationMs: 20,
+          attempt: 1,
+          retryable: true,
+          failureClass: "transient_provider",
+          errorCode: "direct_failure",
+          lastSequenceNo: 2,
+        },
+      ],
+    });
+
+    expect(context).toMatchObject({
+      inputSource: "merged",
+      hostContextSupplied: true,
+      checkedAt: "2026-05-03T02:11:00.000Z",
+      evaluatedAt: "2026-05-03T02:10:00.000Z",
+      credentialDiagnostics: {
+        ok: false,
+        checkedConfig: {
+          endpointPresent: true,
+          apiKeySecretRefPresent: false,
+        },
+      },
+      metricsSnapshot: {
+        requestCount: 1,
+        failureCount: 1,
+        latestErrorCode: "direct_failure",
+        latestSequenceNo: 2,
+      },
+    });
+    expect(context.observations).toEqual([
+      expect.objectContaining({
+        operation: "execute",
+        status: 503,
+        attempt: 1,
+        failureClass: "transient_provider",
+        errorCode: "direct_failure",
+      }),
+    ]);
   });
 
   it("builds the same readiness report as manually supplied active context fields", () => {
