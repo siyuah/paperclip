@@ -364,6 +364,21 @@ to smoke-check the internal UI before wiring real host-collected observations:
 The selector is still a local preview surface. It is not an operator approval
 control and does not change lifecycle hook behavior.
 
+For browser-level smoke without a full Paperclip host, generate a standalone
+HTML harness from `buildUiSmokePreviewBrowserHarness`. The harness embeds the
+same deterministic preview envelopes, exposes the same scenario selector, and
+renders the boundary fields that must remain visible before full UI alpha:
+
+- truth source
+- authoritative flag
+- terminal-state-advanced flag
+- next safe hook
+- breaker state
+- cursor lag and alert count
+
+This harness is suitable for Playwright or manual browser checks. It remains a
+local preview artifact and does not connect to a provider.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

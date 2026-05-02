@@ -935,6 +935,63 @@ Validation after hardening batch 19:
 - `pnpm test` passed: 15 files passed, 1 gated file skipped, 117 tests passed,
   1 skipped.
 
+## Hardening Batch 20
+
+Remote provider alpha hardening batch 20 added a standalone browser smoke
+harness for the settings-page preview states.
+
+### Browser Harness
+
+Added `src/ui-smoke-preview-browser-harness.ts`.
+
+The harness generator builds a self-contained HTML page with:
+
+- the four deterministic UI smoke scenarios
+- scenario selector
+- preview status
+- readiness and next safe hook
+- breaker state
+- sampled observation count
+- max latency and cursor lag
+- alert count
+- credential source
+- truth source
+- authoritative flag
+- terminal-state-advanced flag
+- UI badges
+
+It uses the same `buildAllUiSmokePreviews()` data source as the settings panel.
+The generated HTML is intended for Playwright or manual browser checks before
+full UI alpha. It is still local preview only: no provider call, no persistence,
+no secret value exposure, no execution approval, and no terminal state
+advancement.
+
+### Tests
+
+Added `tests/ui-smoke-preview-browser-harness.spec.ts` covering:
+
+- standalone HTML generation
+- all four scenario payloads
+- required boundary fields
+- deterministic output
+- resolved credential value redaction
+
+Validation after hardening batch 20:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 16 files passed, 1 gated file skipped, 119 tests passed,
+  1 skipped.
+
+### Browser Execution Note
+
+A live Playwright CLI run was attempted against the generated HTML. The WSL
+environment did not have Google Chrome installed for the CLI default channel,
+and the CLI `install-browser chrome` attempt timed out. The generated browser
+harness and automated HTML/data tests are committed; a live browser pass should
+be rerun once a usable Chrome/Chromium executable is available to the operator
+environment.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -972,4 +1029,5 @@ tests before untrusted or multi-tenant production exposure.
 6. Add host-managed secret resolver integration when the Plugin SDK exposes it.
 7. Feed host-collected observations and active config into
    `remote-provider-readiness` when host settings/runtime context is available.
-8. Run browser-level internal UI smoke with the settings-page preview panel.
+8. Rerun live browser-level internal UI smoke once Chrome/Chromium is available
+   in the operator environment.
