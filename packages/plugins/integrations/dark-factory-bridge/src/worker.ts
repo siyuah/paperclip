@@ -18,6 +18,7 @@ import {
   normalizeHttpEnvironmentConfig,
   probeHttpEnvironment,
   resumeHttpLease,
+  validateHttpCredentialConfig,
 } from "./http-runtime-adapter.js";
 import {
   createMockCallbackReceipt,
@@ -244,9 +245,17 @@ const plugin = definePlugin({
   async onEnvironmentValidateConfig(params) {
     if (isDarkFactoryHttpRuntimeMode(params.config.mode)) {
       try {
+        const normalizedConfig = normalizeEnvironmentConfig(params.config);
+        const credentialValidation = validateHttpCredentialConfig(params.config);
+        if (!credentialValidation.ok) {
+          return {
+            ok: false,
+            errors: [credentialValidation.message],
+          };
+        }
         return {
           ok: true,
-          normalizedConfig: normalizeEnvironmentConfig(params.config),
+          normalizedConfig,
         };
       } catch (error) {
         return {

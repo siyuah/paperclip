@@ -40,6 +40,21 @@ normalized config but are not resolved by the plugin until Paperclip exposes a
 host secret resolver. This avoids inventing a private secret store inside the
 plugin.
 
+## Credential Diagnostics
+
+Remote mode validates credentials before contacting the provider.
+
+| Condition | Diagnostic code | Message |
+| --- | --- | --- |
+| No `apiKey` or `apiKeySecretRef` | `dark_factory_remote_credential_missing` | `apiKey or apiKeySecretRef is required for remote mode` |
+| Unsupported reference scheme | `dark_factory_remote_credential_ref_unsupported` | `apiKeySecretRef must use env:NAME or env://NAME in remote alpha` |
+| Supported env ref but variable is unset | `dark_factory_remote_credential_unresolved` | `apiKeySecretRef environment variable is not set: NAME` |
+
+`onEnvironmentValidateConfig` returns these as validation errors. If the host
+skips validation, probe and execute still fail locally before sending a provider
+request. Acquire/resume throw the same local error before creating or reading a
+remote run.
+
 ## Secret Handling
 
 - Prefer `apiKeySecretRef` over inline `apiKey`.
@@ -85,6 +100,7 @@ terminal state.
 
 | Symptom | Likely cause | Expected mapping |
 | --- | --- | --- |
+| local credential diagnostic | missing, unsupported, or unresolved credential | `runtime_blocked` for execution |
 | 401 / 403 | missing or invalid provider credential | `runtime_blocked` |
 | 429 | provider quota/rate limit | `quota_exceeded` |
 | 500 / 502 / 503 / 504 | transient provider failure | `transient_provider` |

@@ -93,13 +93,14 @@ describe("Dark Factory remote provider alpha", () => {
   });
 
   it("validates remote config and preserves secret references without connecting", async () => {
+    vi.stubEnv("DARK_FACTORY_REMOTE_ALPHA_TEST_API_KEY", "remote-alpha-env-key");
     const ok = await plugin.definition.onEnvironmentValidateConfig?.({
       driverKey: driverParams.driverKey,
       config: {
         mode: "remote",
         endpoint,
         timeoutMs: 2500,
-        apiKeySecretRef: "secret://dark-factory/remote-api-key",
+        apiKeySecretRef: "env:DARK_FACTORY_REMOTE_ALPHA_TEST_API_KEY",
       },
     });
     const rejected = await plugin.definition.onEnvironmentValidateConfig?.({
@@ -113,13 +114,98 @@ describe("Dark Factory remote provider alpha", () => {
         mode: "remote",
         endpoint,
         timeoutMs: 2500,
-        apiKeySecretRef: "secret://dark-factory/remote-api-key",
+        apiKeySecretRef: "env:DARK_FACTORY_REMOTE_ALPHA_TEST_API_KEY",
       },
     });
     expect(rejected).toEqual({
       ok: false,
       errors: ["endpoint is required for remote mode"],
     });
+  });
+
+  it("rejects remote credential misconfiguration before provider network calls", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const missing = await plugin.definition.onEnvironmentValidateConfig?.({
+      driverKey: driverParams.driverKey,
+      config: { mode: "remote", endpoint },
+    });
+    const unsupported = await plugin.definition.onEnvironmentValidateConfig?.({
+      driverKey: driverParams.driverKey,
+      config: { mode: "remote", endpoint, apiKeySecretRef: "secret://dark-factory/api-key" },
+    });
+    const unresolved = await plugin.definition.onEnvironmentValidateConfig?.({
+      driverKey: driverParams.driverKey,
+      config: { mode: "remote", endpoint, apiKeySecretRef: "env:DARK_FACTORY_REMOTE_ALPHA_MISSING_KEY" },
+    });
+
+    expect(missing).toEqual({
+      ok: false,
+      errors: ["apiKey or apiKeySecretRef is required for remote mode"],
+    });
+    expect(unsupported).toEqual({
+      ok: false,
+      errors: ["apiKeySecretRef must use env:NAME or env://NAME in remote alpha"],
+    });
+    expect(unresolved).toEqual({
+      ok: false,
+      errors: ["apiKeySecretRef environment variable is not set: DARK_FACTORY_REMOTE_ALPHA_MISSING_KEY"],
+    });
+
+    const probe = await plugin.definition.onEnvironmentProbe?.({
+      ...driverParams,
+      config: { mode: "remote", endpoint, apiKeySecretRef: "env:DARK_FACTORY_REMOTE_ALPHA_MISSING_KEY" },
+    });
+    expect(probe).toMatchObject({
+      ok: false,
+      summary: "Dark Factory remote environment unavailable",
+      diagnostics: [
+        {
+          code: "dark_factory_remote_credential_unresolved",
+        },
+      ],
+      metadata: {
+        runtimeMode: "remote",
+        terminalStateAdvanced: false,
+      },
+    });
+
+    await expect(plugin.definition.onEnvironmentAcquireLease?.({
+      ...driverParams,
+      config: { mode: "remote", endpoint, apiKeySecretRef: "env:DARK_FACTORY_REMOTE_ALPHA_MISSING_KEY" },
+      runId,
+    })).rejects.toThrow("apiKeySecretRef environment variable is not set: DARK_FACTORY_REMOTE_ALPHA_MISSING_KEY");
+
+    const lease = {
+      providerLeaseId: `df-remote-lease-${runId}`,
+      expiresAt: null,
+      metadata: {
+        source: "dark-factory-projection",
+        authoritative: false,
+        truthSource: "dark-factory-journal",
+        runtimeMode: "remote",
+        runId,
+      },
+    };
+    const execution = await plugin.definition.onEnvironmentExecute?.({
+      ...driverParams,
+      config: { mode: "remote", endpoint, apiKeySecretRef: "env:DARK_FACTORY_REMOTE_ALPHA_MISSING_KEY" },
+      lease,
+      command: "dark-factory-remote-observe",
+    });
+    expect(execution).toMatchObject({
+      exitCode: null,
+      stderr: "apiKeySecretRef environment variable is not set: DARK_FACTORY_REMOTE_ALPHA_MISSING_KEY",
+      metadata: {
+        runtimeMode: "remote",
+        errorCode: "dark_factory_remote_credential_unresolved",
+        failureClass: "runtime_blocked",
+        retryable: false,
+        terminalStateAdvanced: false,
+      },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("runs remote provider alpha lifecycle through the HTTP contract without terminal advancement", async () => {

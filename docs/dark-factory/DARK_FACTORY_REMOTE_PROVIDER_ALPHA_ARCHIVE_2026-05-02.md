@@ -190,6 +190,33 @@ Validation after hardening batch 2:
 - `pnpm build` passed.
 - `pnpm test` passed: 8 files passed, 1 gated file skipped, 71 passed, 1 skipped.
 
+## Hardening Batch 3
+
+Remote provider alpha hardening batch 3 added early credential diagnostics so
+operator configuration errors fail locally before any provider request is sent.
+
+### Credential Diagnostics
+
+Remote mode now reports:
+
+| Condition | Diagnostic code |
+| --- | --- |
+| Missing `apiKey` and `apiKeySecretRef` | `dark_factory_remote_credential_missing` |
+| Unsupported secret ref scheme | `dark_factory_remote_credential_ref_unsupported` |
+| Supported env ref but variable unset | `dark_factory_remote_credential_unresolved` |
+
+`onEnvironmentValidateConfig` returns these as validation errors. If the host
+skips validation, probe and execute still fail locally with non-authoritative
+metadata. Acquire/resume throw before remote run creation or lookup.
+
+No diagnostic includes a resolved secret value.
+
+Validation after hardening batch 3:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 8 files passed, 1 gated file skipped, 73 passed, 1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -220,5 +247,4 @@ tests before untrusted or multi-tenant production exposure.
    stale projection rate, and journal cursor lag.
 3. Design the real circuit breaker state machine before allowing provider
    outages to influence operator-facing health beyond projection metadata.
-4. Add operator-facing configuration validation for missing resolved environment
-   variables before remote probe/acquire/execute.
+4. Add operator-facing UI affordances for remote credential diagnostic codes.

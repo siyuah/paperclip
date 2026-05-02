@@ -39,6 +39,18 @@ type HttpRuntimeConfig = {
   retry: RetryConfig;
 };
 
+type CredentialValidationResult =
+  | {
+      ok: true;
+      credentialSource: "inline" | "env" | "none";
+    }
+  | {
+      ok: false;
+      code: string;
+      message: string;
+      details: JsonObject;
+    };
+
 type RunView = {
   protocolReleaseTag: typeof DARK_FACTORY_PROTOCOL_RELEASE_TAG;
   runId: string;
@@ -136,6 +148,43 @@ export function isDarkFactoryHttpRuntimeMode(value: unknown): value is DarkFacto
 
 export function httpRuntimeModeFromConfig(config: Record<string, unknown>): DarkFactoryHttpRuntimeMode {
   return config.mode === "remote" ? "remote" : "http";
+}
+
+export function validateHttpCredentialConfig(config: Record<string, unknown>): CredentialValidationResult {
+  if (httpRuntimeModeFromConfig(config) !== "remote") {
+    return { ok: true, credentialSource: stringField(config.apiKey) ? "inline" : "none" };
+  }
+  if (stringField(config.apiKey)) {
+    return { ok: true, credentialSource: "inline" };
+  }
+  const secretRef = stringField(config.apiKeySecretRef);
+  if (!secretRef) {
+    return {
+      ok: false,
+      code: "dark_factory_remote_credential_missing",
+      message: "apiKey or apiKeySecretRef is required for remote mode",
+      details: { mode: "remote" },
+    };
+  }
+  const envName = envNameFromSecretRef(secretRef);
+  if (!envName) {
+    return {
+      ok: false,
+      code: "dark_factory_remote_credential_ref_unsupported",
+      message: "apiKeySecretRef must use env:NAME or env://NAME in remote alpha",
+      details: { mode: "remote", apiKeySecretRef: secretRef },
+    };
+  }
+  const value = process.env[envName];
+  if (typeof value !== "string" || value.length === 0) {
+    return {
+      ok: false,
+      code: "dark_factory_remote_credential_unresolved",
+      message: `apiKeySecretRef environment variable is not set: ${envName}`,
+      details: { mode: "remote", envName },
+    };
+  }
+  return { ok: true, credentialSource: "env" };
 }
 
 export class DarkFactoryHttpClient {
@@ -314,6 +363,7 @@ export class DarkFactoryHttpError extends Error {
 }
 
 export function httpClientFromConfig(config: Record<string, unknown>): DarkFactoryHttpClient {
+  assertHttpCredentialConfig(config);
   return new DarkFactoryHttpClient(parseHttpRuntimeConfig(config));
 }
 
@@ -732,6 +782,13 @@ function journalCursorFallback(run: RunView): string {
 
 function sourceJournalRefFallback(runtimeMode: DarkFactoryHttpRuntimeMode): string {
   return runtimeMode === "remote" ? "dark-factory-remote" : "dark-factory-http";
+}
+
+function assertHttpCredentialConfig(config: Record<string, unknown>): void {
+  const validation = validateHttpCredentialConfig(config);
+  if (!validation.ok) {
+    throw new DarkFactoryHttpError(validation.code, validation.message, 401, validation.details);
+  }
 }
 
 function resolveApiKeySecretRef(secretRef: string | null): string | null {

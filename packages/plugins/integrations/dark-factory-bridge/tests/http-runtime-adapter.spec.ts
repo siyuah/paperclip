@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DarkFactoryHttpClient, classifyHttpFailure, httpClientFromConfig, normalizeHttpEnvironmentConfig } from "../src/http-runtime-adapter.js";
+import {
+  DarkFactoryHttpClient,
+  classifyHttpFailure,
+  httpClientFromConfig,
+  normalizeHttpEnvironmentConfig,
+  validateHttpCredentialConfig,
+} from "../src/http-runtime-adapter.js";
 
 const runView = {
   protocolReleaseTag: "v3.0-agent-control-r1",
@@ -141,29 +147,39 @@ describe("DarkFactoryHttpClient hardening", () => {
 
   it("ignores unsupported secret reference schemes", async () => {
     vi.stubEnv("DARK_FACTORY_TEST_API_KEY", "env-resolved-api-key");
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify(runView), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    vi.spyOn(console, "info").mockImplementation(() => undefined);
-
-    const client = new DarkFactoryHttpClient({
+    expect(validateHttpCredentialConfig({
       mode: "remote",
       endpoint: "https://127.0.0.1:9702",
-      timeoutMs: 1000,
-      requestedBy: "test",
-      workloadClass: "code",
       apiKeySecretRef: "secret://dark-factory/api-key",
-      retry: {
-        maxRetries: 0,
-        baseDelayMs: 1,
-        maxDelayMs: 1,
-        retryableStatuses: [503],
-      },
+    })).toMatchObject({
+      ok: false,
+      code: "dark_factory_remote_credential_ref_unsupported",
     });
-    await client.getExternalRun("run-retry-test");
+    expect(() => httpClientFromConfig({
+      mode: "remote",
+      endpoint: "https://127.0.0.1:9702",
+      apiKeySecretRef: "secret://dark-factory/api-key",
+    })).toThrow("apiKeySecretRef must use env:NAME or env://NAME in remote alpha");
+  });
 
-    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
-    expect(headers["x-api-key"]).toBeUndefined();
+  it("reports missing and unresolved remote credentials before network calls", () => {
+    vi.unstubAllEnvs();
+    expect(validateHttpCredentialConfig({
+      mode: "remote",
+      endpoint: "https://127.0.0.1:9702",
+    })).toMatchObject({
+      ok: false,
+      code: "dark_factory_remote_credential_missing",
+    });
+    expect(validateHttpCredentialConfig({
+      mode: "remote",
+      endpoint: "https://127.0.0.1:9702",
+      apiKeySecretRef: "env:DARK_FACTORY_MISSING_API_KEY",
+    })).toMatchObject({
+      ok: false,
+      code: "dark_factory_remote_credential_unresolved",
+      details: { envName: "DARK_FACTORY_MISSING_API_KEY" },
+    });
   });
 
   it.each([
