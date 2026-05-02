@@ -339,6 +339,46 @@ Validation after hardening batch 6:
 - `pnpm typecheck` passed.
 - targeted plugin tests passed: 1 file, 17 tests.
 
+## Hardening Batch 7
+
+Remote provider alpha hardening batch 7 added a deterministic circuit breaker
+state machine for sampled remote provider observations.
+
+### Circuit Breaker Evaluator
+
+Added `src/remote-provider-circuit-breaker.ts`.
+
+The evaluator supports:
+
+- `closed`
+- `open`
+- `half_open`
+
+It implements:
+
+- consecutive failure threshold -> `open`
+- cooldown expiry -> `half_open`
+- half-open success threshold -> `closed`
+- half-open failure -> `open`
+
+Default policy:
+
+- failure threshold: 3 consecutive failures
+- cooldown: 30000ms
+- half-open success threshold: 1 success
+
+The evaluator returns non-authoritative projection metadata with
+`breakerState`, `previousBreakerState`, `consecutiveFailures`,
+`cooldownUntil`, `openReason`, `lastFailureClass`, and `runtimeImpact`.
+
+It is pure and deterministic. It does not contact a provider, does not persist
+state, and does not advance Paperclip terminal state.
+
+Validation after hardening batch 7:
+
+- `pnpm typecheck` passed.
+- targeted circuit breaker tests passed: 1 file, 6 tests.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -369,7 +409,7 @@ tests before untrusted or multi-tenant production exposure.
    `remote-observability-snapshot` data key.
 3. Feed active environment driver config into `remote-credential-diagnostics`
    when the host exposes settings context.
-4. Design the real circuit breaker state machine before allowing provider
-   outages to influence operator-facing health beyond projection metadata.
+4. Persist and feed previous breaker state before wiring the evaluator into
+   remote execution decisions.
 5. Add operator-facing remediation hints for each remote credential diagnostic
    code.

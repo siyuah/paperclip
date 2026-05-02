@@ -160,6 +160,35 @@ Supported diagnostic codes:
 The UI never shows a resolved credential value. It only shows presence,
 reference scheme, and diagnostic metadata.
 
+## Circuit Breaker Evaluation
+
+The bridge includes a deterministic in-process circuit breaker evaluator for
+remote alpha observations.
+
+State transitions:
+
+| Current state | Input | Next state | Meaning |
+| --- | --- | --- | --- |
+| `closed` | success | `closed` | Provider remains available. |
+| `closed` | consecutive failures reach threshold | `open` | Provider is blocked locally. |
+| `open` | cooldown not expired | `open` | Continue blocking remote execution. |
+| `open` | cooldown expired | `half_open` | Allow a controlled probe/retry. |
+| `half_open` | success threshold met | `closed` | Provider recovered. |
+| `half_open` | failure | `open` | Provider failed recovery probe. |
+
+Default policy:
+
+| Setting | Default |
+| --- | --- |
+| failure threshold | 3 consecutive failures |
+| cooldown | 30000ms |
+| half-open success threshold | 1 success |
+
+The evaluator is pure and deterministic. It consumes sampled observations and
+returns non-authoritative projection metadata, including `breakerState`,
+`cooldownUntil`, `openReason`, and `runtimeImpact`. It does not contact a
+provider, does not persist state, and does not advance Paperclip terminal state.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |
@@ -187,7 +216,8 @@ Recommended alpha thresholds:
    `remote-observability-snapshot` data key.
 3. Feed the active environment driver config into
    `remote-credential-diagnostics` when the host exposes settings context.
-4. Wire the snapshot into a metrics exporter and host alert rules for remote
+4. Wire the circuit breaker evaluator into the remote execution path after host
+   persistence for breaker state is available.
+5. Wire the snapshot into a metrics exporter and host alert rules for remote
    provider unavailability and repeated
    execution failures.
-5. Implement a real circuit breaker before broad production traffic.
