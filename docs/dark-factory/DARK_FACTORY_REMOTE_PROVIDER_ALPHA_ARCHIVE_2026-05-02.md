@@ -299,6 +299,46 @@ Validation after hardening batch 5:
 - `pnpm typecheck` passed.
 - targeted tests passed: 2 files, 20 tests.
 
+## Hardening Batch 6
+
+Remote provider alpha hardening batch 6 exposed credential diagnostics through
+the plugin-hosted operator surface.
+
+### Plugin Data Surface
+
+Added a `remote-credential-diagnostics` plugin data entry in `worker.ts`.
+
+The data entry reports:
+
+- whether remote config was supplied
+- endpoint presence
+- inline key presence
+- secret reference presence
+- secret reference scheme (`none`, `env`, `env_url`, or `unsupported`)
+- credential readiness
+- diagnostic code and message
+
+It covers:
+
+- `dark_factory_remote_credential_config_not_supplied`
+- `dark_factory_remote_credential_missing`
+- `dark_factory_remote_credential_ref_unsupported`
+- `dark_factory_remote_credential_unresolved`
+- `dark_factory_remote_credential_ready`
+
+### Settings UI
+
+Updated `src/ui/index.tsx` so the settings page displays a remote credential
+diagnostics panel next to the observability snapshot.
+
+The panel shows only presence/scheme/diagnostic metadata. It never displays a
+resolved credential value.
+
+Validation after hardening batch 6:
+
+- `pnpm typecheck` passed.
+- targeted plugin tests passed: 1 file, 17 tests.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -327,6 +367,9 @@ tests before untrusted or multi-tenant production exposure.
    the host exposes that resolution hook.
 2. Feed real host-collected remote observations into the
    `remote-observability-snapshot` data key.
-3. Design the real circuit breaker state machine before allowing provider
+3. Feed active environment driver config into `remote-credential-diagnostics`
+   when the host exposes settings context.
+4. Design the real circuit breaker state machine before allowing provider
    outages to influence operator-facing health beyond projection metadata.
-4. Add operator-facing UI affordances for remote credential diagnostic codes.
+5. Add operator-facing remediation hints for each remote credential diagnostic
+   code.

@@ -131,6 +131,31 @@ type RemoteObservabilitySnapshot = {
   }>;
 };
 
+type RemoteCredentialDiagnostics = {
+  source: "dark-factory-projection";
+  truthSource: "dark-factory-journal";
+  authoritative: false;
+  observationSource: "runtime_observation";
+  runtimeMode: "remote";
+  ok: boolean;
+  credentialSource: string | null;
+  terminalStateAdvanced: false;
+  checkedConfig: {
+    configSupplied: boolean;
+    mode: "remote";
+    endpointPresent: boolean;
+    apiKeyPresent: boolean;
+    apiKeySecretRefPresent: boolean;
+    apiKeySecretRefScheme: string;
+  };
+  diagnostics: Array<{
+    severity: string;
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  }>;
+};
+
 const panelStyle = {
   display: "grid",
   gap: 10,
@@ -270,6 +295,29 @@ function RemoteObservabilityRows({ data }: { data: RemoteObservabilitySnapshot }
   );
 }
 
+function RemoteCredentialDiagnosticsRows({ data }: { data: RemoteCredentialDiagnostics }) {
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <strong>Remote Credential Diagnostics</strong>
+      <div style={rowStyle}><span>Status</span><strong>{data.ok ? "ready" : "needs attention"}</strong></div>
+      <div style={rowStyle}><span>Credential source</span><code>{data.credentialSource ?? "none"}</code></div>
+      <div style={rowStyle}><span>Config supplied</span><strong>{data.checkedConfig.configSupplied ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>Endpoint configured</span><strong>{data.checkedConfig.endpointPresent ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>Inline key configured</span><strong>{data.checkedConfig.apiKeyPresent ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>Secret ref configured</span><strong>{data.checkedConfig.apiKeySecretRefPresent ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>Secret ref scheme</span><code>{data.checkedConfig.apiKeySecretRefScheme}</code></div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {data.diagnostics.map((diagnostic) => (
+          <div key={diagnostic.code} role="status" style={diagnostic.severity === "error" ? errorStyle : noticeStyle}>
+            {diagnostic.code}: {diagnostic.message}
+          </div>
+        ))}
+      </div>
+      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+    </div>
+  );
+}
+
 export function DashboardWidget({ context }: PluginWidgetProps) {
   const { data, loading, error } = usePluginData<ProjectionSummary>("projection-summary", {
     companyId: context.companyId,
@@ -346,6 +394,13 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
   } = usePluginData<RemoteObservabilitySnapshot>("remote-observability-snapshot", {
     companyId: context.companyId,
   });
+  const {
+    data: remoteCredentialDiagnostics,
+    loading: remoteCredentialDiagnosticsLoading,
+    error: remoteCredentialDiagnosticsError,
+  } = usePluginData<RemoteCredentialDiagnostics>("remote-credential-diagnostics", {
+    companyId: context.companyId,
+  });
 
   if (loading) return <div>Loading Dark Factory bridge settings...</div>;
   if (error) return <div>Dark Factory bridge settings error: {error.message}</div>;
@@ -358,6 +413,9 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
       <div>Mock projection mode. No real Dark Factory connection is configured, and no token or secret is stored.</div>
       <ProjectionRows data={data} />
       <ProviderHealthRows data={data} />
+      {remoteCredentialDiagnosticsLoading ? <div>Loading remote credential diagnostics...</div> : null}
+      {remoteCredentialDiagnosticsError ? <div style={errorStyle}>Remote credential diagnostics error: {remoteCredentialDiagnosticsError.message}</div> : null}
+      {remoteCredentialDiagnostics ? <RemoteCredentialDiagnosticsRows data={remoteCredentialDiagnostics} /> : null}
       {remoteObservabilityLoading ? <div>Loading remote provider observability...</div> : null}
       {remoteObservabilityError ? <div style={errorStyle}>Remote observability error: {remoteObservabilityError.message}</div> : null}
       {remoteObservability ? <RemoteObservabilityRows data={remoteObservability} /> : null}

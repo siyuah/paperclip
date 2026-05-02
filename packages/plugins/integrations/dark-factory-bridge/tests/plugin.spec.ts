@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { pluginManifestV1Schema } from "@paperclipai/shared";
 import { createTestHarness } from "@paperclipai/plugin-sdk/testing";
 import manifest from "../src/manifest.js";
@@ -56,6 +56,31 @@ type RemoteObservabilityBody = {
   }>;
 };
 
+type RemoteCredentialDiagnosticsBody = {
+  source: string;
+  truthSource: string;
+  authoritative: boolean;
+  observationSource: string;
+  runtimeMode: string;
+  ok: boolean;
+  credentialSource: string | null;
+  terminalStateAdvanced: boolean;
+  checkedConfig: {
+    configSupplied: boolean;
+    mode: string;
+    endpointPresent: boolean;
+    apiKeyPresent: boolean;
+    apiKeySecretRefPresent: boolean;
+    apiKeySecretRefScheme: string;
+  };
+  diagnostics: Array<{
+    severity: string;
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  }>;
+};
+
 function apiInput(routeKey: string, issueId: string, companyId: string, method: "GET" | "POST" = "GET", body: unknown = null) {
   return {
     routeKey,
@@ -77,6 +102,10 @@ function apiInput(routeKey: string, issueId: string, companyId: string, method: 
 }
 
 describe("Dark Factory bridge projection plugin", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("declares projection-only bridge surfaces without Paperclip task mutation capabilities", () => {
     const parsed = pluginManifestV1Schema.parse(manifest);
 
@@ -575,6 +604,136 @@ describe("Dark Factory bridge projection plugin", () => {
       },
       alerts: [],
     });
+  });
+
+  it("returns remote credential diagnostics for missing, unsupported, and unresolved config", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    await plugin.definition.setup(harness.ctx);
+
+    const notSupplied = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", { companyId });
+    const missing = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
+      companyId,
+      config: { mode: "remote", endpoint: "https://dark-factory.example.test" },
+    });
+    const unsupported = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
+      companyId,
+      config: { mode: "remote", endpoint: "https://dark-factory.example.test", apiKeySecretRef: "secret://dark-factory/api-key" },
+    });
+    const unresolved = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
+      companyId,
+      config: { mode: "remote", endpoint: "https://dark-factory.example.test", apiKeySecretRef: "env:DARK_FACTORY_PLUGIN_SPEC_MISSING_KEY" },
+    });
+
+    expect(notSupplied).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      ok: false,
+      credentialSource: null,
+      terminalStateAdvanced: false,
+      checkedConfig: {
+        configSupplied: false,
+        endpointPresent: false,
+        apiKeyPresent: false,
+        apiKeySecretRefPresent: false,
+        apiKeySecretRefScheme: "none",
+      },
+      diagnostics: [
+        expect.objectContaining({
+          severity: "info",
+          code: "dark_factory_remote_credential_config_not_supplied",
+        }),
+      ],
+    });
+    expect(missing).toMatchObject({
+      ok: false,
+      checkedConfig: {
+        configSupplied: true,
+        endpointPresent: true,
+        apiKeyPresent: false,
+        apiKeySecretRefPresent: false,
+        apiKeySecretRefScheme: "none",
+      },
+      diagnostics: [
+        expect.objectContaining({
+          severity: "error",
+          code: "dark_factory_remote_credential_missing",
+        }),
+      ],
+    });
+    expect(unsupported).toMatchObject({
+      ok: false,
+      checkedConfig: {
+        apiKeySecretRefPresent: true,
+        apiKeySecretRefScheme: "unsupported",
+      },
+      diagnostics: [
+        expect.objectContaining({
+          code: "dark_factory_remote_credential_ref_unsupported",
+        }),
+      ],
+    });
+    expect(unresolved).toMatchObject({
+      ok: false,
+      checkedConfig: {
+        apiKeySecretRefPresent: true,
+        apiKeySecretRefScheme: "env",
+      },
+      diagnostics: [
+        expect.objectContaining({
+          code: "dark_factory_remote_credential_unresolved",
+          details: {
+            mode: "remote",
+            apiKeySecretRefScheme: "env",
+            envName: "DARK_FACTORY_PLUGIN_SPEC_MISSING_KEY",
+          },
+        }),
+      ],
+    });
+  });
+
+  it("reports ready remote credential diagnostics without returning resolved env values", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    vi.stubEnv("DARK_FACTORY_PLUGIN_SPEC_API_KEY", "plugin-spec-resolved-key");
+    await plugin.definition.setup(harness.ctx);
+
+    const result = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
+      companyId,
+      config: {
+        mode: "remote",
+        endpoint: "https://dark-factory.example.test",
+        apiKeySecretRef: "env:DARK_FACTORY_PLUGIN_SPEC_API_KEY",
+      },
+    });
+
+    expect(result).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      ok: true,
+      credentialSource: "env",
+      terminalStateAdvanced: false,
+      checkedConfig: {
+        configSupplied: true,
+        endpointPresent: true,
+        apiKeyPresent: false,
+        apiKeySecretRefPresent: true,
+        apiKeySecretRefScheme: "env",
+      },
+      diagnostics: [
+        expect.objectContaining({
+          severity: "info",
+          code: "dark_factory_remote_credential_ready",
+        }),
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain("plugin-spec-resolved-key");
   });
 
   it("request-rehydrate action returns a receipt and does not advance terminal success", async () => {

@@ -176,6 +176,97 @@ function remoteObservationsFromParams(params: Record<string, unknown>): RemotePr
   }));
 }
 
+function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) {
+  const config = recordBody(params.config);
+  if (!config) {
+    return {
+      ...projectionBoundary(),
+      observationSource: RUNTIME_OBSERVATION_SOURCE,
+      runtimeMode: "remote",
+      ok: false,
+      credentialSource: null,
+      checkedConfig: {
+        configSupplied: false,
+        mode: "remote",
+        endpointPresent: false,
+        apiKeyPresent: false,
+        apiKeySecretRefPresent: false,
+        apiKeySecretRefScheme: "none",
+      },
+      diagnostics: [
+        {
+          severity: "info",
+          code: "dark_factory_remote_credential_config_not_supplied",
+          message: "No remote credential config was supplied to the settings surface",
+          details: { mode: "remote" },
+        },
+      ],
+      terminalStateAdvanced: false,
+    };
+  }
+
+  const remoteConfig: Record<string, unknown> = { ...config, mode: "remote" };
+  const validation = validateHttpCredentialConfig(remoteConfig);
+  const apiKeySecretRef = stringField(remoteConfig.apiKeySecretRef);
+  const checkedConfig = {
+    configSupplied: true,
+    mode: "remote",
+    endpointPresent: stringField(remoteConfig.endpoint) !== null,
+    apiKeyPresent: stringField(remoteConfig.apiKey) !== null,
+    apiKeySecretRefPresent: apiKeySecretRef !== null,
+    apiKeySecretRefScheme: apiKeySecretRefScheme(apiKeySecretRef),
+  };
+
+  if (validation.ok) {
+    return {
+      ...projectionBoundary(),
+      observationSource: RUNTIME_OBSERVATION_SOURCE,
+      runtimeMode: "remote",
+      ok: true,
+      credentialSource: validation.credentialSource,
+      checkedConfig,
+      diagnostics: [
+        {
+          severity: "info",
+          code: "dark_factory_remote_credential_ready",
+          message: `Remote credential check passed using ${validation.credentialSource} credential`,
+          details: { credentialSource: validation.credentialSource },
+        },
+      ],
+      terminalStateAdvanced: false,
+    };
+  }
+
+  return {
+    ...projectionBoundary(),
+    observationSource: RUNTIME_OBSERVATION_SOURCE,
+    runtimeMode: "remote",
+    ok: false,
+    credentialSource: null,
+    checkedConfig,
+    diagnostics: [
+      {
+        severity: "error",
+        code: validation.code,
+        message: validation.message,
+        details: {
+          mode: "remote",
+          apiKeySecretRefScheme: checkedConfig.apiKeySecretRefScheme,
+          ...(stringField(validation.details.envName) ? { envName: stringField(validation.details.envName) } : {}),
+        },
+      },
+    ],
+    terminalStateAdvanced: false,
+  };
+}
+
+function apiKeySecretRefScheme(secretRef: string | null): "none" | "env" | "env_url" | "unsupported" {
+  if (!secretRef) return "none";
+  if (secretRef.startsWith("env://")) return "env_url";
+  if (secretRef.startsWith("env:")) return "env";
+  return "unsupported";
+}
+
 function idempotencyKeyFrom(input: PluginApiRequestInput, body: Record<string, unknown> | null): string | null {
   return stringField(body?.idempotencyKey) ?? stringField(input.headers?.["idempotency-key"]) ?? stringField(input.headers?.["Idempotency-Key"]);
 }
@@ -212,6 +303,10 @@ const plugin = definePlugin({
         }),
         terminalStateAdvanced: false,
       };
+    });
+
+    ctx.data.register("remote-credential-diagnostics", async (params) => {
+      return remoteCredentialDiagnosticsFromParams(params);
     });
 
     ctx.actions.register("request-rehydrate", async (params) => {

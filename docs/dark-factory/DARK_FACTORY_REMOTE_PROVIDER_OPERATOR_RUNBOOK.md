@@ -132,6 +132,34 @@ The bridge exposes this snapshot through the plugin data key
 failure-class counts, and alert candidates. When no sampled observations are
 available yet, the snapshot stays empty instead of inventing provider health.
 
+## Credential Diagnostics UI
+
+The bridge settings page also reads the plugin data key
+`remote-credential-diagnostics`.
+
+The diagnostics surface reports:
+
+- whether a remote config was supplied to the settings surface
+- whether an endpoint is present
+- whether an inline key is present
+- whether a secret reference is present
+- the secret reference scheme (`none`, `env`, `env_url`, or `unsupported`)
+- credential status (`ready` or `needs attention`)
+- diagnostic code and message
+
+Supported diagnostic codes:
+
+| Code | Meaning |
+| --- | --- |
+| `dark_factory_remote_credential_config_not_supplied` | Settings UI has no remote config sample yet. |
+| `dark_factory_remote_credential_missing` | Remote mode has no inline key or secret reference. |
+| `dark_factory_remote_credential_ref_unsupported` | Secret reference is not `env:NAME` or `env://NAME`. |
+| `dark_factory_remote_credential_unresolved` | Env reference is supported but the variable is unset. |
+| `dark_factory_remote_credential_ready` | Credential check passed. |
+
+The UI never shows a resolved credential value. It only shows presence,
+reference scheme, and diagnostic metadata.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |
@@ -157,7 +185,9 @@ Recommended alpha thresholds:
    the SDK exposes one.
 2. Feed real host-collected remote observations into the
    `remote-observability-snapshot` data key.
-3. Wire the snapshot into a metrics exporter and host alert rules for remote
+3. Feed the active environment driver config into
+   `remote-credential-diagnostics` when the host exposes settings context.
+4. Wire the snapshot into a metrics exporter and host alert rules for remote
    provider unavailability and repeated
    execution failures.
-4. Implement a real circuit breaker before broad production traffic.
+5. Implement a real circuit breaker before broad production traffic.
