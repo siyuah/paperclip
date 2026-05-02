@@ -198,9 +198,44 @@ function previousBreakerFromParams(params: Record<string, unknown>): Partial<Rem
   };
 }
 
+function credentialRemediation(code: string): string[] {
+  switch (code) {
+    case "dark_factory_remote_credential_config_not_supplied":
+      return [
+        "Open the environment driver settings and provide a remote config sample before validating credentials.",
+        "Treat this as an empty settings surface state, not a provider failure.",
+      ];
+    case "dark_factory_remote_credential_missing":
+      return [
+        "Set apiKeySecretRef to env:NAME or env://NAME for remote alpha.",
+        "Use inline apiKey only for controlled local testing.",
+      ];
+    case "dark_factory_remote_credential_ref_unsupported":
+      return [
+        "Replace the unsupported secret reference with env:NAME or env://NAME.",
+        "Wait for a host-managed secret resolver before using secret:// style references.",
+      ];
+    case "dark_factory_remote_credential_unresolved":
+      return [
+        "Create or export the referenced environment variable in the plugin host process.",
+        "Restart or reload the host after updating environment variables.",
+      ];
+    case "dark_factory_remote_credential_ready":
+      return [
+        "No credential remediation is needed.",
+        "Continue with probe or acquire only in an operator-controlled environment.",
+      ];
+    default:
+      return [
+        "Review the remote provider configuration and keep credential values outside plugin data surfaces.",
+      ];
+  }
+}
+
 function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) {
   const config = recordBody(params.config);
   if (!config) {
+    const code = "dark_factory_remote_credential_config_not_supplied";
     return {
       ...projectionBoundary(),
       observationSource: RUNTIME_OBSERVATION_SOURCE,
@@ -218,9 +253,10 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) 
       diagnostics: [
         {
           severity: "info",
-          code: "dark_factory_remote_credential_config_not_supplied",
+          code,
           message: "No remote credential config was supplied to the settings surface",
           details: { mode: "remote" },
+          remediation: credentialRemediation(code),
         },
       ],
       terminalStateAdvanced: false,
@@ -240,6 +276,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) 
   };
 
   if (validation.ok) {
+    const code = "dark_factory_remote_credential_ready";
     return {
       ...projectionBoundary(),
       observationSource: RUNTIME_OBSERVATION_SOURCE,
@@ -250,9 +287,10 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) 
       diagnostics: [
         {
           severity: "info",
-          code: "dark_factory_remote_credential_ready",
+          code,
           message: `Remote credential check passed using ${validation.credentialSource} credential`,
           details: { credentialSource: validation.credentialSource },
+          remediation: credentialRemediation(code),
         },
       ],
       terminalStateAdvanced: false,
@@ -276,6 +314,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) 
           apiKeySecretRefScheme: checkedConfig.apiKeySecretRefScheme,
           ...(stringField(validation.details.envName) ? { envName: stringField(validation.details.envName) } : {}),
         },
+        remediation: credentialRemediation(validation.code),
       },
     ],
     terminalStateAdvanced: false,

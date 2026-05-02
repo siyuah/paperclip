@@ -153,6 +153,7 @@ type RemoteCredentialDiagnostics = {
     code: string;
     message: string;
     details?: Record<string, unknown>;
+    remediation: string[];
   }>;
 };
 
@@ -334,7 +335,14 @@ function RemoteCredentialDiagnosticsRows({ data }: { data: RemoteCredentialDiagn
       <div style={{ display: "grid", gap: 6 }}>
         {data.diagnostics.map((diagnostic) => (
           <div key={diagnostic.code} role="status" style={diagnostic.severity === "error" ? errorStyle : noticeStyle}>
-            {diagnostic.code}: {diagnostic.message}
+            <div>{diagnostic.code}: {diagnostic.message}</div>
+            {diagnostic.remediation.length > 0 ? (
+              <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                {diagnostic.remediation.map((hint) => (
+                  <li key={hint}>{hint}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         ))}
       </div>

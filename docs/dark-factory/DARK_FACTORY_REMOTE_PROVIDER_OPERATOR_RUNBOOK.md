@@ -160,6 +160,16 @@ Supported diagnostic codes:
 The UI never shows a resolved credential value. It only shows presence,
 reference scheme, and diagnostic metadata.
 
+Remediation hints are returned with each diagnostic and rendered in settings:
+
+| Code | Remediation hints |
+| --- | --- |
+| `dark_factory_remote_credential_config_not_supplied` | Provide a remote config sample in environment driver settings; treat the state as an empty settings surface, not a provider failure. |
+| `dark_factory_remote_credential_missing` | Set `apiKeySecretRef` to `env:NAME` or `env://NAME`; use inline `apiKey` only for controlled local testing. |
+| `dark_factory_remote_credential_ref_unsupported` | Replace the unsupported reference with `env:NAME` or `env://NAME`; wait for a host-managed secret resolver before using `secret://` references. |
+| `dark_factory_remote_credential_unresolved` | Create or export the referenced environment variable in the plugin host process; restart or reload the host after updating it. |
+| `dark_factory_remote_credential_ready` | No credential remediation is needed; continue with probe or acquire only in an operator-controlled environment. |
+
 ## Circuit Breaker Evaluation
 
 The bridge includes a deterministic in-process circuit breaker evaluator for

@@ -421,6 +421,41 @@ Validation after hardening batch 8:
 - `pnpm typecheck` passed.
 - targeted tests passed: 2 files, 25 tests.
 
+## Hardening Batch 9
+
+Remote provider alpha hardening batch 9 added operator-facing remediation hints
+to remote credential diagnostics.
+
+### Credential Remediation Hints
+
+The `remote-credential-diagnostics` data surface now attaches structured
+`remediation` hints to every diagnostic entry:
+
+- config-not-supplied explains that the settings surface is empty and asks the
+  operator to provide a remote config sample.
+- missing credential recommends `apiKeySecretRef` with `env:NAME` or
+  `env://NAME` and limits inline `apiKey` to controlled local testing.
+- unsupported reference recommends replacing the reference with the alpha
+  `env:` forms and waiting for host-managed secret resolution before
+  `secret://` usage.
+- unresolved reference asks the operator to export the referenced environment
+  variable in the plugin host process and reload the host.
+- ready state confirms that no credential remediation is needed before
+  continuing in an operator-controlled environment.
+
+### Settings UI
+
+The settings page renders remediation hints directly under each credential
+diagnostic. The UI still displays only presence, scheme, code/message, and
+operator guidance. It never displays resolved credential values.
+
+Validation after hardening batch 9:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 10 files passed, 1 gated file skipped, 90 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -455,5 +490,4 @@ tests before untrusted or multi-tenant production exposure.
    remote execution decisions.
 5. Feed host-collected observations into `remote-breaker-evaluation` from the
    settings/runtime context.
-6. Add operator-facing remediation hints for each remote credential diagnostic
-   code.
+6. Add host-managed secret resolver integration when the Plugin SDK exposes it.

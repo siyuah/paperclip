@@ -78,6 +78,7 @@ type RemoteCredentialDiagnosticsBody = {
     code: string;
     message: string;
     details?: Record<string, unknown>;
+    remediation: string[];
   }>;
 };
 
@@ -771,6 +772,10 @@ describe("Dark Factory bridge projection plugin", () => {
         expect.objectContaining({
           severity: "info",
           code: "dark_factory_remote_credential_config_not_supplied",
+          remediation: expect.arrayContaining([
+            expect.stringContaining("remote config sample"),
+            expect.stringContaining("empty settings surface"),
+          ]),
         }),
       ],
     });
@@ -787,6 +792,10 @@ describe("Dark Factory bridge projection plugin", () => {
         expect.objectContaining({
           severity: "error",
           code: "dark_factory_remote_credential_missing",
+          remediation: expect.arrayContaining([
+            expect.stringContaining("apiKeySecretRef"),
+            expect.stringContaining("inline apiKey"),
+          ]),
         }),
       ],
     });
@@ -799,6 +808,10 @@ describe("Dark Factory bridge projection plugin", () => {
       diagnostics: [
         expect.objectContaining({
           code: "dark_factory_remote_credential_ref_unsupported",
+          remediation: expect.arrayContaining([
+            expect.stringContaining("env:NAME"),
+            expect.stringContaining("host-managed secret resolver"),
+          ]),
         }),
       ],
     });
@@ -816,6 +829,10 @@ describe("Dark Factory bridge projection plugin", () => {
             apiKeySecretRefScheme: "env",
             envName: "DARK_FACTORY_PLUGIN_SPEC_MISSING_KEY",
           },
+          remediation: expect.arrayContaining([
+            expect.stringContaining("referenced environment variable"),
+            expect.stringContaining("Restart or reload"),
+          ]),
         }),
       ],
     });
@@ -856,6 +873,10 @@ describe("Dark Factory bridge projection plugin", () => {
         expect.objectContaining({
           severity: "info",
           code: "dark_factory_remote_credential_ready",
+          remediation: expect.arrayContaining([
+            expect.stringContaining("No credential remediation"),
+            expect.stringContaining("operator-controlled environment"),
+          ]),
         }),
       ],
     });
