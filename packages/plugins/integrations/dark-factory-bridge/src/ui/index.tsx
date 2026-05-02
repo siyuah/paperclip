@@ -216,6 +216,15 @@ type RemoteProviderReadiness = {
     requiredBefore: string;
     terminalStateAdvanced: false;
   }>;
+  preflightPlan: Array<{
+    hook: string;
+    status: string;
+    code: string;
+    label: string;
+    message: string;
+    blockingCodes: string[];
+    terminalStateAdvanced: false;
+  }>;
   readinessReceipt: {
     receiptId: string;
     digest: string;
@@ -450,6 +459,18 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
       <div style={rowStyle}><span>Previous hook</span><code>{data.readinessTransition.previousNextSafeHook ?? "none"}</code></div>
       <div style={rowStyle}><span>Current hook</span><code>{data.readinessTransition.currentNextSafeHook}</code></div>
       <div style={rowStyle}><span>Receipt changed</span><strong>{data.readinessTransition.receiptChanged ? "yes" : "no"}</strong></div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {data.preflightPlan.map((step) => (
+          <div key={step.code} role="status" style={step.status === "blocked" ? errorStyle : step.status === "review_required" ? noticeStyle : undefined}>
+            <div>{step.label}: {step.status}</div>
+            <div><code>{step.hook}</code></div>
+            <div>{step.message}</div>
+            {step.blockingCodes.length > 0 ? (
+              <div>Blocking codes <code>{step.blockingCodes.join(", ")}</code></div>
+            ) : null}
+          </div>
+        ))}
+      </div>
       <div style={{ display: "grid", gap: 6 }}>
         {data.readinessChecklist.map((item) => (
           <div key={item.code} role="status" style={item.status === "fail" ? errorStyle : item.status === "warn" ? noticeStyle : undefined}>

@@ -272,6 +272,21 @@ also returns `readinessTransition`:
 Transitions are computed locally from supplied previous evidence. They do not
 persist state, do not prove remote health, and do not authorize execution.
 
+The report also includes a `preflightPlan` for operator review:
+
+| Step | Meaning |
+| --- | --- |
+| `onEnvironmentValidateConfig` | Always allowed as the local diagnostic starting point. |
+| `onEnvironmentProbe` | Allowed, review-required, or blocked according to credential and breaker signals. |
+| `onEnvironmentAcquireLease` | Allowed only when current readiness permits moving beyond probe. |
+| `onEnvironmentExecute` | Allowed only when the readiness state reaches the execute boundary. |
+
+Each preflight step includes a status (`allowed`, `review_required`, or
+`blocked`), a message, blocking signal/checklist codes, the projection boundary,
+and `terminalStateAdvanced: false`. The plan is advisory operator guidance. It
+does not call hooks, does not persist state, does not connect to a provider, and
+does not grant execution permission.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

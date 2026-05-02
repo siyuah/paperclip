@@ -108,6 +108,32 @@ describe("remote provider readiness", () => {
       expect.objectContaining({ code: "dark_factory_remote_readiness_breaker", status: "pass" }),
       expect.objectContaining({ code: "dark_factory_remote_readiness_journal_boundary", status: "pass" }),
     ]));
+    expect(report.preflightPlan).toEqual([
+      expect.objectContaining({
+        hook: "onEnvironmentValidateConfig",
+        status: "allowed",
+        blockingCodes: [],
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentProbe",
+        status: "allowed",
+        blockingCodes: [],
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentAcquireLease",
+        status: "allowed",
+        blockingCodes: [],
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentExecute",
+        status: "allowed",
+        blockingCodes: [],
+        terminalStateAdvanced: false,
+      }),
+    ]);
     expect(report.signals.every((signal) => signal.terminalStateAdvanced === false)).toBe(true);
   });
 
@@ -167,6 +193,41 @@ describe("remote provider readiness", () => {
       expect.objectContaining({ category: "observability", status: "warn", requiredBefore: "onEnvironmentAcquireLease" }),
       expect.objectContaining({ category: "journal_boundary", status: "pass", requiredBefore: "onEnvironmentExecute" }),
     ]));
+    expect(report.preflightPlan).toEqual([
+      expect.objectContaining({
+        hook: "onEnvironmentValidateConfig",
+        status: "allowed",
+        blockingCodes: [],
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentProbe",
+        status: "review_required",
+        blockingCodes: expect.arrayContaining([
+          "dark_factory_remote_credential_config_not_supplied",
+          "dark_factory_remote_readiness_credentials",
+        ]),
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentAcquireLease",
+        status: "blocked",
+        blockingCodes: expect.arrayContaining([
+          "dark_factory_remote_credential_config_not_supplied",
+          "dark_factory_remote_readiness_observability",
+        ]),
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentExecute",
+        status: "blocked",
+        blockingCodes: expect.arrayContaining([
+          "dark_factory_remote_credential_config_not_supplied",
+          "dark_factory_remote_readiness_observability",
+        ]),
+        terminalStateAdvanced: false,
+      }),
+    ]);
   });
 
   it("reports blocked for critical credential or breaker signals", () => {
@@ -239,6 +300,44 @@ describe("remote provider readiness", () => {
       expect.objectContaining({ category: "breaker", status: "fail" }),
       expect.objectContaining({ category: "journal_boundary", status: "pass" }),
     ]));
+    expect(report.preflightPlan).toEqual([
+      expect.objectContaining({
+        hook: "onEnvironmentValidateConfig",
+        status: "allowed",
+        blockingCodes: [],
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentProbe",
+        status: "blocked",
+        blockingCodes: expect.arrayContaining([
+          "dark_factory_remote_breaker_open",
+          "dark_factory_remote_credential_missing",
+          "dark_factory_remote_readiness_credentials",
+        ]),
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentAcquireLease",
+        status: "blocked",
+        blockingCodes: expect.arrayContaining([
+          "dark_factory_remote_breaker_open",
+          "dark_factory_remote_credential_missing",
+          "dark_factory_remote_readiness_credentials",
+        ]),
+        terminalStateAdvanced: false,
+      }),
+      expect.objectContaining({
+        hook: "onEnvironmentExecute",
+        status: "blocked",
+        blockingCodes: expect.arrayContaining([
+          "dark_factory_remote_breaker_open",
+          "dark_factory_remote_credential_missing",
+          "dark_factory_remote_readiness_breaker",
+        ]),
+        terminalStateAdvanced: false,
+      }),
+    ]);
   });
 
   it("is deterministic for the same readiness input", () => {
@@ -261,6 +360,8 @@ describe("remote provider readiness", () => {
     expect(first).toEqual(second);
     expect(first.readinessReceipt).toEqual(second.readinessReceipt);
     expect(first.readinessReceipt.doesAuthorizeRemoteExecution).toBe(false);
+    expect(first.preflightPlan).toEqual(second.preflightPlan);
+    expect(first.preflightPlan.every((step) => step.authoritative === false && step.terminalStateAdvanced === false)).toBe(true);
   });
 
   it("summarizes readiness transition from previous evidence", () => {

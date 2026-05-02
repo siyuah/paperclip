@@ -141,6 +141,20 @@ type RemoteProviderReadinessBody = {
     requiredBefore: string;
     terminalStateAdvanced: boolean;
   }>;
+  preflightPlan: Array<{
+    source: string;
+    truthSource: string;
+    authoritative: boolean;
+    observationSource: string;
+    runtimeMode: string;
+    hook: string;
+    status: string;
+    code: string;
+    label: string;
+    message: string;
+    blockingCodes: string[];
+    terminalStateAdvanced: boolean;
+  }>;
   readinessReceipt: {
     source: string;
     truthSource: string;
@@ -875,6 +889,31 @@ describe("Dark Factory bridge projection plugin", () => {
           terminalStateAdvanced: false,
         }),
       ]),
+      preflightPlan: expect.arrayContaining([
+        expect.objectContaining({
+          hook: "onEnvironmentValidateConfig",
+          status: "allowed",
+          blockingCodes: [],
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          hook: "onEnvironmentProbe",
+          status: "blocked",
+          blockingCodes: expect.arrayContaining([
+            "dark_factory_remote_credential_missing",
+            "dark_factory_remote_breaker_open",
+          ]),
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          hook: "onEnvironmentExecute",
+          status: "blocked",
+          blockingCodes: expect.arrayContaining([
+            "dark_factory_remote_readiness_breaker",
+          ]),
+          terminalStateAdvanced: false,
+        }),
+      ]),
       readinessReceipt: {
         source: "dark-factory-projection",
         truthSource: "dark-factory-journal",
@@ -958,6 +997,32 @@ describe("Dark Factory bridge projection plugin", () => {
           terminalStateAdvanced: false,
         }),
       ]),
+      preflightPlan: expect.arrayContaining([
+        expect.objectContaining({
+          hook: "onEnvironmentValidateConfig",
+          status: "allowed",
+          blockingCodes: [],
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          hook: "onEnvironmentProbe",
+          status: "allowed",
+          blockingCodes: [],
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          hook: "onEnvironmentAcquireLease",
+          status: "allowed",
+          blockingCodes: [],
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          hook: "onEnvironmentExecute",
+          status: "allowed",
+          blockingCodes: [],
+          terminalStateAdvanced: false,
+        }),
+      ]),
       readinessReceipt: {
         receiptId: expect.stringMatching(/^df-readiness-[0-9a-f]{8}$/),
         digest: expect.stringMatching(/^[0-9a-f]{8}$/),
@@ -1024,6 +1089,7 @@ describe("Dark Factory bridge projection plugin", () => {
       receiptChanged: true,
       terminalStateAdvanced: false,
     });
+    expect(result.preflightPlan.every((step) => step.authoritative === false && step.terminalStateAdvanced === false)).toBe(true);
     expect(JSON.stringify(result)).not.toContain("plugin-spec-resolved-key");
   });
 

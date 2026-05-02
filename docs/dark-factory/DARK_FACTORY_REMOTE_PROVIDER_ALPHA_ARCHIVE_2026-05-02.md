@@ -626,6 +626,53 @@ Validation after hardening batch 13:
 - `pnpm test` passed: 11 files passed, 1 gated file skipped, 98 tests passed,
   1 skipped.
 
+## Hardening Batch 14
+
+Remote provider alpha hardening batch 14 added an advisory operator preflight
+plan to the readiness report.
+
+### Preflight Plan
+
+The `remote-provider-readiness` data surface now returns `preflightPlan` entries
+for:
+
+- `onEnvironmentValidateConfig`
+- `onEnvironmentProbe`
+- `onEnvironmentAcquireLease`
+- `onEnvironmentExecute`
+
+Each entry includes:
+
+- lifecycle hook name
+- status: `allowed`, `review_required`, or `blocked`
+- stable step code and human label
+- message for the operator
+- blocking readiness signal/checklist codes
+- projection boundary
+- `terminalStateAdvanced: false`
+
+### Operator Meaning
+
+`onEnvironmentValidateConfig` remains the always-allowed diagnostic starting
+point. Later hooks are marked `allowed`, `review_required`, or `blocked`
+according to the current readiness status and next safe hook.
+
+The preflight plan is advisory only. It does not invoke hooks, persist state,
+contact a provider, gate the execution path, authorize remote execution, or
+advance Paperclip terminal state.
+
+### Settings UI
+
+The settings page now renders each preflight step with its hook, status,
+message, and blocking codes.
+
+Validation after hardening batch 14:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 11 files passed, 1 gated file skipped, 98 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.

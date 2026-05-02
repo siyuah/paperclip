@@ -64,6 +64,18 @@ export type RemoteProviderReadinessChecklistItem = ProjectionBoundary & {
   terminalStateAdvanced: false;
 };
 
+export type RemoteProviderPreflightStep = ProjectionBoundary & {
+  observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
+  runtimeMode: "remote";
+  hook: Exclude<RemoteProviderNextSafeHook, "none">;
+  status: "allowed" | "review_required" | "blocked";
+  code: string;
+  label: string;
+  message: string;
+  blockingCodes: string[];
+  terminalStateAdvanced: false;
+};
+
 export type RemoteProviderReadinessReceipt = ProjectionBoundary & {
   observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
   runtimeMode: "remote";
@@ -127,6 +139,7 @@ export type RemoteProviderReadinessReport = ProjectionBoundary & {
   alertCount: number;
   signals: RemoteProviderReadinessSignal[];
   readinessChecklist: RemoteProviderReadinessChecklistItem[];
+  preflightPlan: RemoteProviderPreflightStep[];
   readinessReceipt: RemoteProviderReadinessReceipt;
   readinessTransition: RemoteProviderReadinessTransition;
   terminalStateAdvanced: false;
@@ -154,6 +167,12 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
   const readinessStatus: RemoteProviderReadinessStatus = hasCritical ? "blocked" : hasWarning ? "needs_attention" : "ready";
   const readinessChecklist = buildReadinessChecklist(input, signals);
   const nextSafeHook = nextSafeHookFor(readinessStatus, signals);
+  const preflightPlan = buildPreflightPlan({
+    readinessStatus,
+    nextSafeHook,
+    signals,
+    readinessChecklist,
+  });
   const readinessReceipt = buildReadinessReceipt({
     checkedAt,
     readinessStatus,
@@ -187,8 +206,123 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
     alertCount: input.alertCandidates.length,
     signals,
     readinessChecklist,
+    preflightPlan,
     readinessReceipt,
     readinessTransition,
+    terminalStateAdvanced: false,
+  };
+}
+
+function buildPreflightPlan(input: {
+  readinessStatus: RemoteProviderReadinessStatus;
+  nextSafeHook: RemoteProviderNextSafeHook;
+  signals: RemoteProviderReadinessSignal[];
+  readinessChecklist: RemoteProviderReadinessChecklistItem[];
+}): RemoteProviderPreflightStep[] {
+  const stepDefinitions: Array<{
+    hook: RemoteProviderPreflightStep["hook"];
+    code: string;
+    label: string;
+  }> = [
+    {
+      hook: "onEnvironmentValidateConfig",
+      code: "dark_factory_remote_preflight_validate_config",
+      label: "Validate config",
+    },
+    {
+      hook: "onEnvironmentProbe",
+      code: "dark_factory_remote_preflight_probe",
+      label: "Probe provider",
+    },
+    {
+      hook: "onEnvironmentAcquireLease",
+      code: "dark_factory_remote_preflight_acquire_lease",
+      label: "Acquire lease",
+    },
+    {
+      hook: "onEnvironmentExecute",
+      code: "dark_factory_remote_preflight_execute",
+      label: "Execute",
+    },
+  ];
+
+  return stepDefinitions.map((definition) => {
+    const status = preflightStatusFor(definition.hook, input.readinessStatus, input.nextSafeHook);
+    return preflightStep({
+      ...definition,
+      status,
+      message: preflightMessageFor(definition.hook, status, input.readinessStatus, input.nextSafeHook),
+      blockingCodes: status === "allowed" ? [] : blockingCodesForPreflightStep(definition.hook, input.signals, input.readinessChecklist),
+    });
+  });
+}
+
+function preflightStatusFor(
+  hook: RemoteProviderPreflightStep["hook"],
+  readinessStatus: RemoteProviderReadinessStatus,
+  nextSafeHook: RemoteProviderNextSafeHook,
+): RemoteProviderPreflightStep["status"] {
+  if (hook === "onEnvironmentValidateConfig") return "allowed";
+  const currentScore = hookScore(hook);
+  const nextScore = hookScore(nextSafeHook);
+  if (nextScore === 0 || currentScore > nextScore) return "blocked";
+  if (readinessStatus === "ready" || currentScore < nextScore) return "allowed";
+  return "review_required";
+}
+
+function preflightMessageFor(
+  hook: RemoteProviderPreflightStep["hook"],
+  status: RemoteProviderPreflightStep["status"],
+  readinessStatus: RemoteProviderReadinessStatus,
+  nextSafeHook: RemoteProviderNextSafeHook,
+): string {
+  if (hook === "onEnvironmentValidateConfig") {
+    return "Validate remote configuration before any remote provider attempt.";
+  }
+  if (status === "allowed") {
+    return `${hook} is within the current advisory safety boundary.`;
+  }
+  if (status === "review_required") {
+    return `${hook} is the current next safe hook, but readiness is ${readinessStatus}; operator review is required.`;
+  }
+  return `${hook} is beyond the current next safe hook (${nextSafeHook}); resolve readiness blockers first.`;
+}
+
+function blockingCodesForPreflightStep(
+  hook: RemoteProviderPreflightStep["hook"],
+  signals: RemoteProviderReadinessSignal[],
+  checklist: RemoteProviderReadinessChecklistItem[],
+): string[] {
+  const hookBoundary = hookScore(hook);
+  const codes = [
+    ...signals
+      .filter((signal) => signal.severity !== "info")
+      .map((signal) => signal.code),
+    ...checklist
+      .filter((item) => item.status !== "pass" && hookScore(item.requiredBefore) <= hookBoundary)
+      .map((item) => item.code),
+  ];
+  return Array.from(new Set(codes)).sort();
+}
+
+function preflightStep(params: {
+  hook: RemoteProviderPreflightStep["hook"];
+  status: RemoteProviderPreflightStep["status"];
+  code: string;
+  label: string;
+  message: string;
+  blockingCodes: string[];
+}): RemoteProviderPreflightStep {
+  return {
+    ...projectionBoundary(),
+    observationSource: RUNTIME_OBSERVATION_SOURCE,
+    runtimeMode: "remote",
+    hook: params.hook,
+    status: params.status,
+    code: params.code,
+    label: params.label,
+    message: params.message,
+    blockingCodes: params.blockingCodes,
     terminalStateAdvanced: false,
   };
 }
