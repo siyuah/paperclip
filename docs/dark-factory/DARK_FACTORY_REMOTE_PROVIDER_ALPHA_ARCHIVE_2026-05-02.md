@@ -1077,3 +1077,43 @@ Validation after hardening batch 21:
 - `pnpm build` passed.
 - `pnpm test` passed: 16 files passed, 1 gated file skipped, 120 tests passed,
   1 skipped.
+
+## Hardening Batch 22
+
+Remote provider alpha hardening batch 22 added an explicit host/runtime active
+context bridge boundary before wiring real Paperclip host settings or runtime
+context into the remote provider UI surfaces.
+
+### Host Context Bridge Result
+
+Added `src/remote-provider-host-context-bridge.ts` and the plugin data key
+`remote-provider-host-context-bridge`.
+
+The bridge result composes:
+
+- normalized active context
+- readiness report
+- host context summary for operator notes
+- archive hints describing persistence boundaries
+- `doesAuthorizeRemoteExecution: false`
+
+It accepts the same host context envelope forms as the active context builder:
+
+- `activeContext`
+- `hostActiveContext`
+- `remoteProviderActiveContext`
+
+Direct top-level params still override nested host context fields, and the
+result records whether the input came from params, host context, or merged
+input.
+
+### Boundary Semantics
+
+The data surface is an intake/review boundary only. It does not call lifecycle
+hooks, does not contact a provider, does not persist state, does not authorize
+remote execution, and does not advance Paperclip terminal state.
+
+Validation after hardening batch 22:
+
+- targeted `remote-provider-host-context-bridge.spec.ts` passed: 4 tests.
+- `pnpm typecheck` passed.

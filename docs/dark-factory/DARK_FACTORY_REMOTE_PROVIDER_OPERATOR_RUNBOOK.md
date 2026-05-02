@@ -318,6 +318,20 @@ Direct top-level params override nested host context fields. This lets test
 harnesses and future host adapters override one field without rebuilding the
 entire context envelope.
 
+The bridge also exposes the assembled host/runtime context through the plugin
+data key `remote-provider-host-context-bridge`. This data surface returns:
+
+- the normalized active context
+- the derived readiness report
+- a compact host context summary for archives and operator notes
+- archive hints that state the result should not be persisted as a new control
+  plane and may only inform projection/cache/cursor/receipt/request metadata
+- `doesAuthorizeRemoteExecution: false`
+
+The bridge result is an intake and review boundary, not an execution trigger. It
+does not call lifecycle hooks, does not contact a provider, does not persist
+state, and does not grant permission to execute.
+
 The bridge also ships deterministic host observation fixtures for local replay.
 These fixtures are not a storage layer and do not contact a provider. They
 produce host-style active context envelopes for:
