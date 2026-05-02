@@ -37,6 +37,10 @@ import {
 import {
   buildRemoteProviderActiveContext,
 } from "./remote-provider-active-context.js";
+import {
+  buildUiSmokePreview,
+  uiSmokePreviewScenario,
+} from "./remote-provider-ui-smoke-preview.js";
 
 export { PROJECTION_DISCLAIMER } from "./runtime-contract.js";
 
@@ -166,6 +170,13 @@ const plugin = definePlugin({
 
     ctx.data.register("remote-provider-readiness", async (params) => {
       return buildRemoteProviderReadinessReport(buildRemoteProviderActiveContext(params).readinessInput);
+    });
+
+    ctx.data.register("remote-provider-ui-smoke-preview", async (params) => {
+      return buildUiSmokePreview(uiSmokePreviewScenario(params.scenario), {
+        endpoint: stringField(params.endpoint) ?? undefined,
+        checkedAt: stringField(params.checkedAt) ?? undefined,
+      });
     });
 
     ctx.actions.register("request-rehydrate", async (params) => {

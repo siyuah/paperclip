@@ -331,6 +331,27 @@ Each fixture can be replayed through the active context builder and readiness
 report to verify UI states, preflight behavior, breaker behavior, cursor lag,
 and readiness transitions before wiring real host-collected observations.
 
+## UI Smoke Preview Harness
+
+The bridge exposes deterministic UI preview states through the plugin data key
+`remote-provider-ui-smoke-preview`.
+
+Supported scenarios:
+
+| Scenario | Preview status | Expected UI meaning |
+| --- | --- | --- |
+| `healthy` | `ready` | credentials ready, observations clean, breaker closed, execute boundary allowed by advisory preflight |
+| `warning_latency` | `needs_attention` | latency warning present; execute preflight is blocked until operator review |
+| `blocked_failures` | `blocked` | repeated provider failures open the breaker and require operator intervention |
+| `stale_readiness` | `needs_attention` | Journal cursor lag regresses readiness from the previous ready evidence |
+
+The preview harness composes host observation fixtures, active context
+ingestion, observability snapshots, circuit breaker evaluation, credential
+diagnostics, and readiness reports. It is intended for UI/data smoke tests
+before full UI alpha. It does not contact a provider, does not persist state,
+does not expose resolved credential values, and does not authorize remote
+execution.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

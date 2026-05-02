@@ -830,6 +830,65 @@ Validation after hardening batch 17:
 - `pnpm test` passed: 13 files passed, 1 gated file skipped, 109 tests passed,
   1 skipped.
 
+## Hardening Batch 18
+
+Remote provider alpha hardening batch 18 added a deterministic UI smoke preview
+harness for full UI alpha preparation.
+
+### UI Smoke Preview Module
+
+Added `src/remote-provider-ui-smoke-preview.ts`.
+
+The module composes:
+
+- host observation fixtures
+- active context replay
+- credential diagnostics
+- observability snapshot and alerts
+- circuit breaker evaluation
+- readiness report, preflight plan, receipt, and transition
+
+It produces preview envelopes for:
+
+- `healthy`
+- `warning_latency`
+- `blocked_failures`
+- `stale_readiness`
+
+Each preview carries the projection boundary, `runtimeMode: "remote"`,
+`previewStatus`, `uiBadges`, readiness details, observability details,
+credential diagnostics, breaker evaluation, and
+`terminalStateAdvanced: false`.
+
+### Plugin Data Surface
+
+Registered the plugin data key `remote-provider-ui-smoke-preview` in
+`worker.ts`. The key accepts a `scenario` param and returns one deterministic
+preview envelope for UI smoke rendering or harness validation.
+
+This surface is in-process only. It does not contact a provider, does not
+persist state, does not expose resolved credential values, and does not
+authorize remote execution.
+
+### Tests
+
+Added `tests/remote-provider-ui-smoke-preview.spec.ts` covering:
+
+- deterministic preview creation for all four scenarios
+- healthy ready state and execute advisory boundary
+- latency warning state and execute review block
+- blocked failure state with open breaker
+- stale readiness regression and cursor lag
+- plugin `getData` access for the preview key
+- resolved credential value redaction
+
+Validation after hardening batch 18:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 14 files passed, 1 gated file skipped, 116 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
