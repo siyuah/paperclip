@@ -87,7 +87,7 @@ describe("Dark Factory environment lifecycle hooks", () => {
   it("validates HTTP mode config without external connectivity", async () => {
     const ok = await plugin.definition.onEnvironmentValidateConfig?.({
       driverKey: "dark-factory-mock",
-      config: { mode: "http", endpoint: "http://127.0.0.1:9701", timeoutMs: 2500 },
+      config: { mode: "http", endpoint: "https://127.0.0.1:9702", timeoutMs: 2500, apiKeySecretRef: "secret://dark-factory/api-key" },
     });
     const rejected = await plugin.definition.onEnvironmentValidateConfig?.({
       driverKey: "dark-factory-mock",
@@ -98,10 +98,11 @@ describe("Dark Factory environment lifecycle hooks", () => {
       ok: true,
       normalizedConfig: {
         mode: "http",
-        endpoint: "http://127.0.0.1:9701",
+        endpoint: "https://127.0.0.1:9702",
         timeoutMs: 2500,
         requestedBy: "paperclip-dark-factory-bridge",
         workloadClass: "code",
+        apiKeySecretRef: "secret://dark-factory/api-key",
         retryMaxRetries: 3,
         retryBaseDelayMs: 500,
         retryMaxDelayMs: 5000,

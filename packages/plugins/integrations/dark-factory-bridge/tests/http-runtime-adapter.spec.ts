@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DarkFactoryHttpClient } from "../src/http-runtime-adapter.js";
+import { DarkFactoryHttpClient, normalizeHttpEnvironmentConfig } from "../src/http-runtime-adapter.js";
 
 const runView = {
   protocolReleaseTag: "v3.0-agent-control-r1",
@@ -59,5 +59,42 @@ describe("DarkFactoryHttpClient hardening", () => {
       error_type: "DarkFactoryHttpError",
       error_message: "try again",
     });
+  });
+
+  it("normalizes secret references without sending them as API keys", async () => {
+    const normalized = normalizeHttpEnvironmentConfig({
+      mode: "http",
+      endpoint: "https://127.0.0.1:9702",
+      apiKeySecretRef: "secret://dark-factory/api-key",
+    });
+    expect(normalized).toMatchObject({
+      endpoint: "https://127.0.0.1:9702",
+      apiKeySecretRef: "secret://dark-factory/api-key",
+    });
+    expect(normalized).not.toHaveProperty("apiKey");
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(runView), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    const client = new DarkFactoryHttpClient({
+      mode: "http",
+      endpoint: "https://127.0.0.1:9702",
+      timeoutMs: 1000,
+      requestedBy: "test",
+      workloadClass: "code",
+      apiKeySecretRef: "secret://dark-factory/api-key",
+      retry: {
+        maxRetries: 0,
+        baseDelayMs: 1,
+        maxDelayMs: 1,
+        retryableStatuses: [503],
+      },
+    });
+    await client.getExternalRun("run-retry-test");
+
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    expect(headers["x-api-key"]).toBeUndefined();
   });
 });

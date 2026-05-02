@@ -2,15 +2,15 @@
 
 Date: 2026-05-02  
 Scope: `paperclip_upstream` Dark Factory bridge plugin plus the companion Dark Factory V3 HTTP server in the `123` repository.  
-Implementation state assessed: deterministic mock mode plus live-local HTTP mode (`mode: "http"`) connected to the local Dark Factory V3 FastAPI service, with MVP batch 1 hardening applied.
+Implementation state assessed: deterministic mock mode plus live-local HTTP mode (`mode: "http"`) connected to the local Dark Factory V3 FastAPI service, with MVP batch 1 and batch 2 internal-preview hardening applied.
 
 ## Executive Summary
 
 **Production readiness conclusion: CONDITIONAL YES for MVP internal preview**
 
-The Path B implementation is now past the local integration milestone and has the minimum controls needed for a constrained MVP internal preview: API key authentication, request logging with redaction, JSONL journal file locking, bridge HTTP retries, Docker packaging, and dedicated security/lock/retry tests.
+The Path B implementation is now past the local integration milestone and has the controls needed for a constrained MVP internal preview: API key authentication, request logging with redaction, JSONL journal file locking, bridge HTTP retries, Docker/Caddy packaging, secret-file deployment, journal backup/restore/retention tooling, and dedicated security/lock/retry/concurrency tests.
 
-It is still not ready for broad production or untrusted multi-tenant use. HTTPS/TLS, production secret management, backup/restore, load testing, and a real circuit breaker remain open. The recommended launch posture is a single-tenant, access-controlled internal preview behind trusted network boundaries.
+It is still not ready for broad production or untrusted multi-tenant use. Metrics/alerts, a real circuit breaker, durable multi-node append storage, and full event-backed provider failure/repair/archive workflows remain open. The recommended launch posture is a single-tenant, access-controlled internal preview behind trusted network boundaries.
 
 ## 1. Functionality
 
@@ -31,13 +31,13 @@ Notes:
 
 ## 2. Security
 
-- [ ] Credential management: live-local now supports an API key, but production still needs secret references, rotation, and host-side resolution. No token/password/API key storage should be added to plugin namespace state.
+- [x] Credential management: server supports `DF_API_KEY_FILE` for mounted secrets and `DF_API_KEY` for local development; bridge config now supports `apiKeySecretRef` so production config can store a host-resolved reference instead of the secret value. Rotation remains operational, not automatic.
 - [x] Log redaction: server request logs recursively redact sensitive body fields; bridge HTTP logging does not emit request bodies or API keys.
-- [ ] HTTPS: current integration path is HTTP-only and localhost-oriented.
+- [x] HTTPS: internal-preview TLS is handled by the included Caddy reverse proxy (`Caddyfile`) on port `9702`; FastAPI remains HTTP-only behind the private proxy boundary.
 - [x] Authentication/authorization: API key authentication is enforced for all non-health requests; `/api/health` remains unauthenticated for probes. This is sufficient for internal preview, not full production authorization.
 - [ ] Input validation and injection resistance: Pydantic models and protocol enum validation provide a baseline, but production needs stricter schema parity, payload limits, allowlists, and abuse controls.
 
-Security assessment: acceptable for a constrained internal preview behind trusted network boundaries. HTTPS, secret rotation, and deeper authorization remain blocking for broader production.
+Security assessment: acceptable for a constrained internal preview behind trusted network boundaries. Automatic secret rotation, deeper authorization, abuse controls, and formal threat modeling remain blocking for broader production.
 
 ## 3. Reliability
 
@@ -45,7 +45,8 @@ Security assessment: acceptable for a constrained internal preview behind truste
 - [x] Retry logic: bridge HTTP client has bounded exponential backoff for retryable 502/503/504 responses by default.
 - [ ] Circuit breaker: provider health projections include breaker-shaped fields, but live-local HTTP mode does not implement an actual circuit breaker.
 - [x] Graceful degradation: HTTP probe and execute paths map failures to non-authoritative metadata without advancing Paperclip terminal state.
-- [x] Data persistence: Dark Factory server supports JSONL file-backed journal and uses POSIX file locks for shared/exclusive access where `fcntl` is available.
+- [x] Data persistence: Dark Factory server supports JSONL file-backed journal, uses POSIX file locks for shared/exclusive access where `fcntl` is available, and now serializes in-process mutations per journal path.
+- [x] Backup/restore/retention: `tools/journal_admin.py` validates JSONL backups, restores via atomic replacement, and prunes backups by count/age for internal preview.
 
 Reliability assessment: acceptable for single-node internal preview. Circuit breaker behavior, backpressure, and production-grade append storage remain open.
 
@@ -60,10 +61,10 @@ Observability assessment: internal-preview logging is in place. Metrics and aler
 
 ## 5. Operability
 
-- [x] Docker deployment: `123` now includes a Dockerfile, `.dockerignore`, and pinned HTTP server requirements for internal preview packaging.
+- [x] Docker deployment: `123` now includes a Dockerfile, `.dockerignore`, `docker-compose.yml`, Caddy TLS reverse proxy config, and pinned HTTP server requirements for internal preview packaging.
 - [x] Health check: `/api/health` and `/health` are available.
-- [ ] Configuration management: bridge config schema supports endpoint/timeout/workload defaults, but production environment management, secret references, and policy validation are not defined.
-- [ ] Backup and restore: JSONL persistence exists, but no backup, restore, compaction, or retention process is documented or automated.
+- [x] Configuration management: bridge config schema supports endpoint/timeout/workload/retry defaults plus `apiKeySecretRef`; `123/docs/internal_preview_runbook.md` documents transport, secret, and journal operations for MVP preview.
+- [x] Backup and restore: JSONL backup, restore, and retention commands are documented and tested for MVP preview.
 - [ ] Horizontal scaling: not supported. File-backed append-only journal has process-level file locks, but multi-node coordination still requires a production append store.
 
 Operability assessment: enough for single-node internal preview; broader production operations still need configuration, backup/restore, and scaling design.
@@ -82,8 +83,8 @@ Bridge plugin test suite:
 | `tests/smoke-harness.spec.ts` | 5 | Pass |
 | `tests/plugin.spec.ts` | 13 | Pass |
 | `tests/http-integration.spec.ts` | 1 | Pass |
-| `tests/http-runtime-adapter.spec.ts` | 1 | Pass |
-| **Total** | **57** | **57/57 pass** |
+| `tests/http-runtime-adapter.spec.ts` | 2 | Pass |
+| **Total** | **58** | **58/58 pass** |
 
 Dark Factory V3 core checks observed during Path B:
 
@@ -93,23 +94,25 @@ Dark Factory V3 core checks observed during Path B:
 | `tests/test_v3_journal_verification.py` | 1 | Pass |
 | `tests/test_validate_v3_bundle.py` | 2 | Pass |
 | `tests/test_v3_http_server_security.py` | 5 | Pass |
-| **Core subset total** | **51** | **51/51 pass** |
+| `tests/test_v3_http_server_load.py` | 1 | Pass |
+| `tests/test_v3_journal_admin.py` | 1 | Pass |
+| **Core subset total** | **53** | **53/53 pass** |
 
-Full `123` pytest note after MVP batch 1: 75 tests passed and 3 release-evidence tests failed while the current hardening changes were uncommitted. Those failures were caused by release-evidence clean-tree gating, not by runtime, security, journal lock, or HTTP server behavior.
+Full `123` pytest after MVP batch 2: 80 tests passed.
 
 ### Coverage Assessment
 
 - Unit coverage is strong for deterministic mock projections, receipt simulation, plugin API routes, environment lifecycle behavior, and core V3 control-plane primitives.
 - Integration coverage now includes a real local HTTP server process and bridge lifecycle path through probe, acquire lease, park, rehydrate, and resume.
-- Coverage now includes API key authentication, sensitive field redaction, journal lock timeout, and bridge retry/API-key behavior. It is still not sufficient for production incidents, load, full authorization, TLS, backup/restore, or persistent journal recovery.
+- Coverage now includes API key authentication, sensitive field redaction, journal lock timeout, bridge retry/API-key behavior, secret reference normalization, concurrent HTTP run creation, and JSONL backup/restore/retention. It is still not sufficient for production incidents, full authorization, external CA TLS, multi-node durability, or persistent journal recovery under partial-write/corruption scenarios.
 
 ### Missing Test Scenarios
 
-- High-concurrency create/park/rehydrate requests against the same JSONL journal.
+- High-concurrency park/rehydrate requests against the same JSONL journal.
 - Duplicate idempotency requests across process restarts.
-- TLS/HTTPS deployment behavior.
+- External CA TLS deployment behavior.
 - Circuit-breaker behavior for transient network/server failures.
-- Journal corruption, partial writes, backup restore, and projection rebuild.
+- Journal corruption, partial writes, and projection rebuild.
 - Payload size limits and malformed request fuzzing.
 - Multi-tenant isolation and secret redaction tests.
 - Performance/load tests for projection replay as journal size grows.
@@ -118,13 +121,11 @@ Full `123` pytest note after MVP batch 1: 75 tests passed and 3 release-evidence
 
 | Gap | Severity | Fix effort | Blocks production? |
 | --- | --- | --- | --- |
-| No HTTPS/TLS transport | High | 1-2 days | Yes for production, no for localhost internal preview |
-| No production credential/secret model | High | 2-4 days | Yes for production, no for manually configured internal preview |
-| No backup/restore/retention policy for JSONL journal | Medium | 2-4 days | Yes for durable production |
 | No metrics or alerts | Medium | 2-4 days | Yes for operated production |
 | No real circuit breaker in live-local HTTP mode | Medium | 1-3 days | Yes for unreliable networks |
+| No durable multi-node append store | Medium | 1-3 weeks | Yes for horizontal production |
 | Provider failure, repair, and archive endpoints are facade-only | Medium | 1-2 weeks | Depends on launch scope |
-| No load/performance tests | Medium | 2-4 days | Yes for capacity confidence |
+| Limited load/performance tests | Medium | 2-4 days | Yes for capacity confidence beyond MVP preview |
 | UI is projection-focused and not yet production operator workflow complete | Low | 3-5 days | No for API-only MVP |
 
 ## 8. Launch Recommendation
@@ -133,14 +134,15 @@ Full `123` pytest note after MVP batch 1: 75 tests passed and 3 release-evidence
 
 A constrained MVP can now launch as a local or single-tenant internal preview if these operating conditions are enforced:
 
-1. Run only on localhost, a private network, or behind a trusted reverse proxy.
-2. Set `DF_API_KEY` explicitly and distribute it only through internal secret handling.
+1. Run through the included Caddy reverse proxy or another trusted TLS terminator.
+2. Set `DF_API_KEY_FILE` from a mounted secret; use inline `DF_API_KEY` only for local development.
 3. Use a single-node JSONL journal volume; do not run multiple writers across nodes.
 4. Keep `/api/health` as the only unauthenticated endpoint.
 5. Capture structured logs in the preview environment.
-6. Treat provider failure, repair, and archive endpoints as facade-only.
+6. Run journal backup and retention before and after preview windows.
+7. Treat provider failure, repair, and archive endpoints as facade-only.
 
-Estimated remaining MVP internal-preview hardening effort: **1-3 days**, mostly deployment wiring and operator runbook work.
+Estimated remaining MVP internal-preview hardening effort: **0-1 day**, mostly environment-specific wiring, certificate trust setup, and operator rehearsal.
 
 ### Complete Production Version
 
@@ -160,4 +162,4 @@ Estimated full production effort: **4-8 engineering weeks**, depending on persis
 
 **CONDITIONAL YES**, this implementation is ready for a constrained MVP internal preview.
 
-It should still not be exposed to broad production traffic or untrusted networks until HTTPS, production secret management, backup/restore, metrics/alerts, load testing, and a durable production append store are complete.
+It should still not be exposed to broad production traffic or untrusted networks until metrics/alerts, circuit breaker behavior, stronger authorization, broader load testing, and a durable production append store are complete.

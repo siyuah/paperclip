@@ -58,7 +58,11 @@ const manifest: PaperclipPluginManifestV1 = {
           },
           apiKey: {
             type: "string",
-            description: "API key for the local Dark Factory HTTP server. Prefer an environment-scoped secret reference in production."
+            description: "Inline API key for local preview only. Prefer apiKeySecretRef outside local development."
+          },
+          apiKeySecretRef: {
+            type: "string",
+            description: "Host-resolved secret reference for the Dark Factory API key. The plugin stores only the reference, not the secret value."
           },
           requestedBy: {
             type: "string",

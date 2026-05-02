@@ -31,6 +31,7 @@ type HttpRuntimeConfig = {
   requestedBy: string;
   workloadClass: string;
   apiKey?: string;
+  apiKeySecretRef?: string;
   retry: RetryConfig;
 };
 
@@ -97,6 +98,7 @@ export function parseHttpRuntimeConfig(config: Record<string, unknown>): HttpRun
     requestedBy: stringField(config.requestedBy) ?? "paperclip-dark-factory-bridge",
     workloadClass: stringField(config.workloadClass) ?? "code",
     apiKey: stringField(config.apiKey) ?? undefined,
+    apiKeySecretRef: stringField(config.apiKeySecretRef) ?? undefined,
     retry: parseRetryConfig(config),
   };
 }
@@ -115,6 +117,7 @@ export function normalizeHttpEnvironmentConfig(config: Record<string, unknown>):
     retryableStatuses: parsed.retry.retryableStatuses,
     ...(parsed.routePolicyRef ? { routePolicyRef: parsed.routePolicyRef } : {}),
     ...(parsed.apiKey ? { apiKey: parsed.apiKey } : {}),
+    ...(parsed.apiKeySecretRef ? { apiKeySecretRef: parsed.apiKeySecretRef } : {}),
   };
 }
 
