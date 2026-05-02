@@ -107,6 +107,32 @@ type RemoteBreakerEvaluationBody = {
   };
 };
 
+type RemoteProviderReadinessBody = {
+  source: string;
+  truthSource: string;
+  authoritative: boolean;
+  observationSource: string;
+  runtimeMode: string;
+  checkedAt: string;
+  readinessStatus: string;
+  ready: boolean;
+  summary: string;
+  recommendedAction: string;
+  credentialOk: boolean;
+  breakerState: string;
+  sampledObservationCount: number;
+  alertCount: number;
+  terminalStateAdvanced: boolean;
+  signals: Array<{
+    category: string;
+    severity: string;
+    code: string;
+    message: string;
+    remediation: string[];
+    terminalStateAdvanced: boolean;
+  }>;
+};
+
 function apiInput(routeKey: string, issueId: string, companyId: string, method: "GET" | "POST" = "GET", body: unknown = null) {
   return {
     routeKey,
@@ -731,6 +757,126 @@ describe("Dark Factory bridge projection plugin", () => {
         reason: "unavailable",
       },
     });
+  });
+
+  it("returns a blocked remote provider readiness report from missing credentials and sampled failures", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    await plugin.definition.setup(harness.ctx);
+
+    const result = await harness.getData<RemoteProviderReadinessBody>("remote-provider-readiness", {
+      companyId,
+      checkedAt: "2026-05-02T12:00:00.000Z",
+      evaluatedAt: "2026-05-02T12:00:00.000Z",
+      failureThreshold: 2,
+      config: { mode: "remote", endpoint: "https://dark-factory.example.test" },
+      observations: [
+        {
+          runtimeMode: "remote",
+          operation: "execute",
+          status: 503,
+          durationMs: 50,
+          attempt: 0,
+          retryable: true,
+          failureClass: "transient_provider",
+          errorCode: "bad_gateway",
+          journalCursor: "dark-factory://journal/readiness#4",
+          lastSequenceNo: 4,
+          terminalStateAdvanced: false,
+        },
+        {
+          runtimeMode: "remote",
+          operation: "execute",
+          status: 503,
+          durationMs: 50,
+          attempt: 1,
+          retryable: true,
+          failureClass: "transient_provider",
+          errorCode: "unavailable",
+          journalCursor: "dark-factory://journal/readiness#4",
+          lastSequenceNo: 4,
+          terminalStateAdvanced: false,
+        },
+      ],
+    });
+
+    expect(result).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      checkedAt: "2026-05-02T12:00:00.000Z",
+      readinessStatus: "blocked",
+      ready: false,
+      credentialOk: false,
+      breakerState: "open",
+      sampledObservationCount: 2,
+      terminalStateAdvanced: false,
+      signals: expect.arrayContaining([
+        expect.objectContaining({
+          category: "credentials",
+          severity: "critical",
+          code: "dark_factory_remote_credential_missing",
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          category: "breaker",
+          severity: "critical",
+          code: "dark_factory_remote_breaker_open",
+          terminalStateAdvanced: false,
+        }),
+      ]),
+    });
+  });
+
+  it("returns a ready remote provider readiness report without exposing resolved credential values", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    vi.stubEnv("DARK_FACTORY_PLUGIN_SPEC_CREDENTIAL", "plugin-spec-resolved-key");
+    await plugin.definition.setup(harness.ctx);
+
+    const result = await harness.getData<RemoteProviderReadinessBody>("remote-provider-readiness", {
+      companyId,
+      checkedAt: "2026-05-02T12:00:00.000Z",
+      config: {
+        mode: "remote",
+        endpoint: "https://dark-factory.example.test",
+        apiKeySecretRef: "env:DARK_FACTORY_PLUGIN_SPEC_CREDENTIAL",
+      },
+      observations: [
+        {
+          runtimeMode: "remote",
+          operation: "probe",
+          status: 200,
+          durationMs: 25,
+          attempt: 0,
+          retryable: false,
+          failureClass: "none",
+          errorCode: null,
+          journalCursor: "dark-factory://journal/readiness#5",
+          lastSequenceNo: 5,
+          terminalStateAdvanced: false,
+        },
+      ],
+    });
+
+    expect(result).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      readinessStatus: "ready",
+      ready: true,
+      credentialOk: true,
+      breakerState: "closed",
+      sampledObservationCount: 1,
+      alertCount: 0,
+      terminalStateAdvanced: false,
+    });
+    expect(result.signals.every((signal) => signal.terminalStateAdvanced === false)).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("plugin-spec-resolved-key");
   });
 
   it("returns remote credential diagnostics for missing, unsupported, and unresolved config", async () => {

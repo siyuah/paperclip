@@ -41,6 +41,10 @@ import {
   evaluateRemoteCircuitBreaker,
   type RemoteCircuitBreakerEvaluation,
 } from "./remote-provider-circuit-breaker.js";
+import {
+  buildRemoteProviderReadinessReport,
+  type RemoteCredentialDiagnosticsForReadiness,
+} from "./remote-provider-readiness.js";
 
 export { PROJECTION_DISCLAIMER } from "./runtime-contract.js";
 
@@ -232,7 +236,17 @@ function credentialRemediation(code: string): string[] {
   }
 }
 
-function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) {
+function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>): RemoteCredentialDiagnosticsForReadiness & {
+  credentialSource: string | null;
+  checkedConfig: {
+    configSupplied: boolean;
+    mode: "remote";
+    endpointPresent: boolean;
+    apiKeyPresent: boolean;
+    apiKeySecretRefPresent: boolean;
+    apiKeySecretRefScheme: "none" | "env" | "env_url" | "unsupported";
+  };
+} {
   const config = recordBody(params.config);
   if (!config) {
     const code = "dark_factory_remote_credential_config_not_supplied";
@@ -268,7 +282,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) 
   const apiKeySecretRef = stringField(remoteConfig.apiKeySecretRef);
   const checkedConfig = {
     configSupplied: true,
-    mode: "remote",
+    mode: "remote" as const,
     endpointPresent: stringField(remoteConfig.endpoint) !== null,
     apiKeyPresent: stringField(remoteConfig.apiKey) !== null,
     apiKeySecretRefPresent: apiKeySecretRef !== null,
@@ -380,6 +394,36 @@ const plugin = definePlugin({
           cooldownMs: numberField(params.cooldownMs) ?? undefined,
           halfOpenSuccessThreshold: numberField(params.halfOpenSuccessThreshold) ?? undefined,
         },
+      });
+    });
+
+    ctx.data.register("remote-provider-readiness", async (params) => {
+      const observations = remoteObservationsFromParams(params);
+      const snapshot = buildRemoteProviderMetricsSnapshot(observations, {
+        expectedSequenceNo: numberField(params.expectedSequenceNo),
+      });
+      const alerts = buildRemoteProviderAlertCandidates(snapshot, {
+        errorRateWarningThreshold: numberField(params.errorRateWarningThreshold) ?? undefined,
+        latencyWarningThresholdMs: numberField(params.latencyWarningThresholdMs) ?? undefined,
+        cursorLagWarningThreshold: numberField(params.cursorLagWarningThreshold) ?? undefined,
+      });
+      const breakerEvaluation = evaluateRemoteCircuitBreaker({
+        previous: previousBreakerFromParams(params),
+        observations,
+        evaluatedAt: stringField(params.evaluatedAt) ?? new Date(0).toISOString(),
+        policy: {
+          failureThreshold: numberField(params.failureThreshold) ?? undefined,
+          cooldownMs: numberField(params.cooldownMs) ?? undefined,
+          halfOpenSuccessThreshold: numberField(params.halfOpenSuccessThreshold) ?? undefined,
+        },
+      });
+      return buildRemoteProviderReadinessReport({
+        credentialDiagnostics: remoteCredentialDiagnosticsFromParams(params),
+        metricsSnapshot: snapshot,
+        alertCandidates: alerts,
+        breakerEvaluation,
+        sampledObservationCount: observations.length,
+        checkedAt: stringField(params.checkedAt) ?? stringField(params.evaluatedAt) ?? new Date(0).toISOString(),
       });
     });
 

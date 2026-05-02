@@ -204,6 +204,29 @@ renders the current evaluated breaker state next to credential diagnostics and
 observability. Empty sampled input evaluates to a closed/monitor state; this is
 an explicit local default, not a claim that a remote provider has been checked.
 
+## Remote Provider Readiness
+
+The bridge exposes a local readiness report through the plugin data key
+`remote-provider-readiness`.
+
+The report aggregates:
+
+- `remote-credential-diagnostics`
+- `remote-observability-snapshot`
+- `remote-breaker-evaluation`
+
+It returns one of three statuses:
+
+| Status | Meaning | Operator action |
+| --- | --- | --- |
+| `ready` | Credentials are ready, breaker is closed, and sampled observations have no readiness alerts. | Start with probe, then acquire, in an operator-controlled environment. |
+| `needs_attention` | A warning exists, such as empty settings-surface config, no sampled observations, cursor lag, high latency, or half-open breaker. | Review warnings before remote execute. |
+| `blocked` | A critical signal exists, such as missing credentials or open breaker. | Resolve blocking signals before attempting remote provider execution. |
+
+The readiness report is advisory only. It does not persist breaker state, does
+not change execution-path behavior, does not contact a provider, and does not
+advance Paperclip terminal state.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

@@ -456,6 +456,55 @@ Validation after hardening batch 9:
 - `pnpm test` passed: 10 files passed, 1 gated file skipped, 90 tests passed,
   1 skipped.
 
+## Hardening Batch 10
+
+Remote provider alpha hardening batch 10 added an advisory readiness report for
+operator-controlled remote provider attempts.
+
+### Readiness Aggregator
+
+Added `src/remote-provider-readiness.ts`.
+
+The aggregator combines:
+
+- remote credential diagnostics
+- remote provider observability snapshots and alert candidates
+- remote circuit breaker evaluation
+
+It returns:
+
+- `ready`
+- `needs_attention`
+- `blocked`
+
+The readiness report includes summary text, recommended action, sampled
+observation count, alert count, breaker state, credential status, and
+per-category signals with remediation hints.
+
+### Plugin Data + Settings UI
+
+Added a `remote-provider-readiness` plugin data key in `worker.ts`.
+
+Updated settings UI to show:
+
+- readiness status
+- summary and recommended action
+- credential readiness
+- breaker state
+- sampled observation and alert counts
+- readiness signals and remediation hints
+
+The report is advisory only. It does not persist breaker state, does not gate
+execution, does not contact a provider, and does not advance Paperclip terminal
+state.
+
+Validation after hardening batch 10:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 11 files passed, 1 gated file skipped, 96 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -491,3 +540,5 @@ tests before untrusted or multi-tenant production exposure.
 5. Feed host-collected observations into `remote-breaker-evaluation` from the
    settings/runtime context.
 6. Add host-managed secret resolver integration when the Plugin SDK exposes it.
+7. Feed host-collected observations and active config into
+   `remote-provider-readiness` when host settings/runtime context is available.
