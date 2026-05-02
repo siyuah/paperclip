@@ -62,7 +62,7 @@ const manifest: PaperclipPluginManifestV1 = {
           },
           apiKeySecretRef: {
             type: "string",
-            description: "Host-resolved secret reference for the Dark Factory API key. The plugin stores only the reference, not the secret value."
+            description: "Secret reference for the Dark Factory API key. Remote alpha supports env:NAME or env://NAME while host secret resolver support is pending. The plugin stores only the reference, not the secret value."
           },
           requestedBy: {
             type: "string",

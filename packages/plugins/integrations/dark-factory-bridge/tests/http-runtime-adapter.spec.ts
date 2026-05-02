@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DarkFactoryHttpClient, classifyHttpFailure, normalizeHttpEnvironmentConfig } from "../src/http-runtime-adapter.js";
+import { DarkFactoryHttpClient, classifyHttpFailure, httpClientFromConfig, normalizeHttpEnvironmentConfig } from "../src/http-runtime-adapter.js";
 
 const runView = {
   protocolReleaseTag: "v3.0-agent-control-r1",
@@ -80,6 +80,74 @@ describe("DarkFactoryHttpClient hardening", () => {
 
     const client = new DarkFactoryHttpClient({
       mode: "http",
+      endpoint: "https://127.0.0.1:9702",
+      timeoutMs: 1000,
+      requestedBy: "test",
+      workloadClass: "code",
+      apiKeySecretRef: "secret://dark-factory/api-key",
+      retry: {
+        maxRetries: 0,
+        baseDelayMs: 1,
+        maxDelayMs: 1,
+        retryableStatuses: [503],
+      },
+    });
+    await client.getExternalRun("run-retry-test");
+
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    expect(headers["x-api-key"]).toBeUndefined();
+  });
+
+  it("resolves env secret references at request time without normalizing the secret value", async () => {
+    vi.stubEnv("DARK_FACTORY_TEST_API_KEY", "env-resolved-api-key");
+    const normalized = normalizeHttpEnvironmentConfig({
+      mode: "remote",
+      endpoint: "https://127.0.0.1:9702",
+      apiKeySecretRef: "env:DARK_FACTORY_TEST_API_KEY",
+    });
+    expect(normalized).toMatchObject({
+      mode: "remote",
+      endpoint: "https://127.0.0.1:9702",
+      apiKeySecretRef: "env:DARK_FACTORY_TEST_API_KEY",
+    });
+    expect(JSON.stringify(normalized)).not.toContain("env-resolved-api-key");
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(runView), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    const client = httpClientFromConfig({
+      mode: "remote",
+      endpoint: "https://127.0.0.1:9702",
+      timeoutMs: 1000,
+      requestedBy: "test",
+      workloadClass: "code",
+      apiKeySecretRef: "env:DARK_FACTORY_TEST_API_KEY",
+      retry: {
+        maxRetries: 0,
+        baseDelayMs: 1,
+        maxDelayMs: 1,
+        retryableStatuses: [503],
+      },
+    });
+    await client.getExternalRun("run-retry-test");
+
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    expect(headers["x-api-key"]).toBe("env-resolved-api-key");
+    const logText = vi.mocked(console.info).mock.calls.map((call) => String(call[0])).join("\n");
+    expect(logText).not.toContain("env-resolved-api-key");
+  });
+
+  it("ignores unsupported secret reference schemes", async () => {
+    vi.stubEnv("DARK_FACTORY_TEST_API_KEY", "env-resolved-api-key");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(runView), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    const client = new DarkFactoryHttpClient({
+      mode: "remote",
       endpoint: "https://127.0.0.1:9702",
       timeoutMs: 1000,
       requestedBy: "test",

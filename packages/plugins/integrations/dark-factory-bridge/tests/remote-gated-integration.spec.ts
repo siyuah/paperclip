@@ -3,7 +3,9 @@ import plugin from "../src/worker.js";
 
 const endpoint = process.env.DARK_FACTORY_REMOTE_ENDPOINT;
 const apiKey = process.env.DARK_FACTORY_REMOTE_API_KEY;
-const runGated = process.env.DARK_FACTORY_REMOTE_INTEGRATION === "1" && endpoint && apiKey;
+const apiKeyEnvName = process.env.DARK_FACTORY_REMOTE_API_KEY_ENV;
+const apiKeySecretRef = apiKeyEnvName ? `env:${apiKeyEnvName}` : undefined;
+const runGated = process.env.DARK_FACTORY_REMOTE_INTEGRATION === "1" && endpoint && (apiKey || apiKeySecretRef);
 
 const maybeDescribe = runGated ? describe : describe.skip;
 
@@ -16,7 +18,7 @@ maybeDescribe("Dark Factory gated remote provider integration", () => {
       config: {
         mode: "remote",
         endpoint: endpoint!,
-        apiKey: apiKey!,
+        ...(apiKey ? { apiKey } : { apiKeySecretRef: apiKeySecretRef! }),
         timeoutMs: 5000,
         retryMaxRetries: 1,
         retryBaseDelayMs: 50,

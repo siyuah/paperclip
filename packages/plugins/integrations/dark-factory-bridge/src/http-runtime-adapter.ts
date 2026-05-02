@@ -77,6 +77,10 @@ type HealthView = {
 };
 
 export function parseHttpRuntimeConfig(config: Record<string, unknown>): HttpRuntimeConfig {
+  return parseHttpRuntimeConfigInternal(config, true);
+}
+
+function parseHttpRuntimeConfigInternal(config: Record<string, unknown>, resolveSecretRefs: boolean): HttpRuntimeConfig {
   const mode = httpRuntimeModeFromConfig(config);
   const endpoint = stringField(config.endpoint);
   if (!endpoint) {
@@ -102,14 +106,14 @@ export function parseHttpRuntimeConfig(config: Record<string, unknown>): HttpRun
     routePolicyRef: stringField(config.routePolicyRef) ?? undefined,
     requestedBy: stringField(config.requestedBy) ?? "paperclip-dark-factory-bridge",
     workloadClass: stringField(config.workloadClass) ?? "code",
-    apiKey: stringField(config.apiKey) ?? undefined,
+    apiKey: stringField(config.apiKey) ?? (resolveSecretRefs ? resolveApiKeySecretRef(stringField(config.apiKeySecretRef)) : null) ?? undefined,
     apiKeySecretRef: stringField(config.apiKeySecretRef) ?? undefined,
     retry: parseRetryConfig(config),
   };
 }
 
 export function normalizeHttpEnvironmentConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const parsed = parseHttpRuntimeConfig(config);
+  const parsed = parseHttpRuntimeConfigInternal(config, false);
   return {
     mode: parsed.mode,
     endpoint: parsed.endpoint,
@@ -728,6 +732,24 @@ function journalCursorFallback(run: RunView): string {
 
 function sourceJournalRefFallback(runtimeMode: DarkFactoryHttpRuntimeMode): string {
   return runtimeMode === "remote" ? "dark-factory-remote" : "dark-factory-http";
+}
+
+function resolveApiKeySecretRef(secretRef: string | null): string | null {
+  if (!secretRef) return null;
+  const envName = envNameFromSecretRef(secretRef);
+  if (!envName) return null;
+  const value = process.env[envName];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function envNameFromSecretRef(secretRef: string): string | null {
+  const rawName = secretRef.startsWith("env://")
+    ? secretRef.slice("env://".length)
+    : secretRef.startsWith("env:")
+      ? secretRef.slice("env:".length)
+      : "";
+  if (!rawName) return null;
+  return /^[A-Z_][A-Z0-9_]*$/.test(rawName) ? rawName : null;
 }
 
 async function readJson(response: Response): Promise<unknown> {

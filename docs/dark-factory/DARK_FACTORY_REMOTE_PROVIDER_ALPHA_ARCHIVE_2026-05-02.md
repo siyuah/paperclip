@@ -140,6 +140,56 @@ Validation after hardening batch 1:
 - `pnpm build` passed.
 - `pnpm test` passed: 8 files passed, 1 gated file skipped, 69 passed, 1 skipped.
 
+## Hardening Batch 2
+
+Remote provider alpha hardening batch 2 focused on credential handling and
+operator documentation without modifying Paperclip core or the Plugin SDK.
+
+### Secret Resolver Finding
+
+Current Paperclip plugin SDK types do not expose a generic host secret resolver
+for environment lifecycle hooks. The kitchen-sink example contains a UI/action
+demo for secret references, but that is not a reusable SDK contract for this
+bridge.
+
+### Alpha Env Secret Reference
+
+The bridge now supports a narrow alpha resolver for `apiKeySecretRef`:
+
+- `env:NAME`
+- `env://NAME`
+
+The environment variable name must match `^[A-Z_][A-Z0-9_]*$`.
+
+Behavior:
+
+- resolved value is used only as the provider `x-api-key` header
+- normalized config preserves only `apiKeySecretRef`
+- resolved value is not logged
+- unsupported schemes such as `secret://...` are preserved but not resolved
+
+This is intentionally a transition mechanism until a host-managed secret
+resolver exists.
+
+### Operator Runbook
+
+Created `docs/dark-factory/DARK_FACTORY_REMOTE_PROVIDER_OPERATOR_RUNBOOK.md`.
+
+It covers:
+
+- remote mode config
+- supported alpha secret references
+- gated remote integration test commands
+- failure triage table
+- boundary constraints
+- next production hardening steps
+
+Validation after hardening batch 2:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 8 files passed, 1 gated file skipped, 71 passed, 1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -164,11 +214,11 @@ tests before untrusted or multi-tenant production exposure.
 
 ## Next Recommended Tasks
 
-1. Connect `apiKeySecretRef` to the host secret resolver once the Paperclip host
-   exposes that resolution hook.
+1. Replace the alpha `env:` resolver with a Paperclip host secret resolver once
+   the host exposes that resolution hook.
 2. Add metrics and alerting for remote request latency, error rate, retry count,
    stale projection rate, and journal cursor lag.
 3. Design the real circuit breaker state machine before allowing provider
    outages to influence operator-facing health beyond projection metadata.
-4. Add remote integration documentation for the exact operator-controlled
-   environment variables and failure triage flow.
+4. Add operator-facing configuration validation for missing resolved environment
+   variables before remote probe/acquire/execute.
