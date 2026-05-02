@@ -37,6 +37,10 @@ import {
   type RemoteProviderObservation,
   type RemoteProviderOperation,
 } from "./remote-provider-observability.js";
+import {
+  evaluateRemoteCircuitBreaker,
+  type RemoteCircuitBreakerEvaluation,
+} from "./remote-provider-circuit-breaker.js";
 
 export { PROJECTION_DISCLAIMER } from "./runtime-contract.js";
 
@@ -160,6 +164,10 @@ function booleanField(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function breakerState(value: unknown): RemoteCircuitBreakerEvaluation["breakerState"] | null {
+  return value === "closed" || value === "open" || value === "half_open" ? value : null;
+}
+
 function remoteObservationsFromParams(params: Record<string, unknown>): RemoteProviderObservation[] {
   return recordArray(params.observations).map((item) => ({
     runtimeMode: "remote",
@@ -174,6 +182,20 @@ function remoteObservationsFromParams(params: Record<string, unknown>): RemotePr
     lastSequenceNo: numberField(item.lastSequenceNo),
     terminalStateAdvanced: false,
   }));
+}
+
+function previousBreakerFromParams(params: Record<string, unknown>): Partial<RemoteCircuitBreakerEvaluation> | null {
+  const previous = recordBody(params.previousBreaker);
+  if (!previous) return null;
+  return {
+    breakerState: breakerState(previous.breakerState) ?? undefined,
+    consecutiveFailures: numberField(previous.consecutiveFailures) ?? undefined,
+    consecutiveHalfOpenSuccesses: numberField(previous.consecutiveHalfOpenSuccesses) ?? undefined,
+    openedAt: stringField(previous.openedAt),
+    cooldownUntil: stringField(previous.cooldownUntil),
+    openReason: stringField(previous.openReason),
+    lastFailureClass: failureClass(previous.lastFailureClass),
+  };
 }
 
 function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>) {
@@ -307,6 +329,19 @@ const plugin = definePlugin({
 
     ctx.data.register("remote-credential-diagnostics", async (params) => {
       return remoteCredentialDiagnosticsFromParams(params);
+    });
+
+    ctx.data.register("remote-breaker-evaluation", async (params) => {
+      return evaluateRemoteCircuitBreaker({
+        previous: previousBreakerFromParams(params),
+        observations: remoteObservationsFromParams(params),
+        evaluatedAt: stringField(params.evaluatedAt) ?? new Date(0).toISOString(),
+        policy: {
+          failureThreshold: numberField(params.failureThreshold) ?? undefined,
+          cooldownMs: numberField(params.cooldownMs) ?? undefined,
+          halfOpenSuccessThreshold: numberField(params.halfOpenSuccessThreshold) ?? undefined,
+        },
+      });
     });
 
     ctx.actions.register("request-rehydrate", async (params) => {

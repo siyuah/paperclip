@@ -189,6 +189,11 @@ returns non-authoritative projection metadata, including `breakerState`,
 `cooldownUntil`, `openReason`, and `runtimeImpact`. It does not contact a
 provider, does not persist state, and does not advance Paperclip terminal state.
 
+The settings page reads the plugin data key `remote-breaker-evaluation` and
+renders the current evaluated breaker state next to credential diagnostics and
+observability. Empty sampled input evaluates to a closed/monitor state; this is
+an explicit local default, not a claim that a remote provider has been checked.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |
@@ -218,6 +223,8 @@ Recommended alpha thresholds:
    `remote-credential-diagnostics` when the host exposes settings context.
 4. Wire the circuit breaker evaluator into the remote execution path after host
    persistence for breaker state is available.
-5. Wire the snapshot into a metrics exporter and host alert rules for remote
+5. Feed sampled observations and previous breaker state into
+   `remote-breaker-evaluation` from host settings/runtime context.
+6. Wire the snapshot into a metrics exporter and host alert rules for remote
    provider unavailability and repeated
    execution failures.

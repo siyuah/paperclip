@@ -156,6 +156,31 @@ type RemoteCredentialDiagnostics = {
   }>;
 };
 
+type RemoteBreakerEvaluation = {
+  source: "dark-factory-projection";
+  truthSource: "dark-factory-journal";
+  authoritative: false;
+  observationSource: "runtime_observation";
+  runtimeMode: "remote";
+  breakerState: string;
+  previousBreakerState: string;
+  consecutiveFailures: number;
+  consecutiveHalfOpenSuccesses: number;
+  openedAt: string | null;
+  cooldownUntil: string | null;
+  openReason: string | null;
+  lastFailureClass: string;
+  terminalStateAdvanced: false;
+  runtimeImpact: {
+    mode: string;
+    severity: string;
+    operatorAction: string;
+    paperclipTerminalState: "unchanged";
+    terminalStateAdvanced: false;
+    reason: string | null;
+  };
+};
+
 const panelStyle = {
   display: "grid",
   gap: 10,
@@ -318,6 +343,25 @@ function RemoteCredentialDiagnosticsRows({ data }: { data: RemoteCredentialDiagn
   );
 }
 
+function RemoteBreakerRows({ data }: { data: RemoteBreakerEvaluation }) {
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <strong>Remote Circuit Breaker</strong>
+      <div style={rowStyle}><span>State</span><strong>{data.breakerState}</strong></div>
+      <div style={rowStyle}><span>Previous state</span><strong>{data.previousBreakerState}</strong></div>
+      <div style={rowStyle}><span>Consecutive failures</span><strong>{data.consecutiveFailures}</strong></div>
+      <div style={rowStyle}><span>Half-open successes</span><strong>{data.consecutiveHalfOpenSuccesses}</strong></div>
+      <div style={rowStyle}><span>Last failure class</span><code>{data.lastFailureClass}</code></div>
+      <div style={rowStyle}><span>Open reason</span><code>{data.openReason ?? "none"}</code></div>
+      <div style={rowStyle}><span>Opened at</span><code>{data.openedAt ?? "none"}</code></div>
+      <div style={rowStyle}><span>Cooldown until</span><code>{data.cooldownUntil ?? "none"}</code></div>
+      <div style={rowStyle}><span>Runtime impact</span><strong>{data.runtimeImpact.mode} / {data.runtimeImpact.severity}</strong></div>
+      <div style={rowStyle}><span>Operator action</span><code>{data.runtimeImpact.operatorAction}</code></div>
+      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+    </div>
+  );
+}
+
 export function DashboardWidget({ context }: PluginWidgetProps) {
   const { data, loading, error } = usePluginData<ProjectionSummary>("projection-summary", {
     companyId: context.companyId,
@@ -401,6 +445,13 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
   } = usePluginData<RemoteCredentialDiagnostics>("remote-credential-diagnostics", {
     companyId: context.companyId,
   });
+  const {
+    data: remoteBreaker,
+    loading: remoteBreakerLoading,
+    error: remoteBreakerError,
+  } = usePluginData<RemoteBreakerEvaluation>("remote-breaker-evaluation", {
+    companyId: context.companyId,
+  });
 
   if (loading) return <div>Loading Dark Factory bridge settings...</div>;
   if (error) return <div>Dark Factory bridge settings error: {error.message}</div>;
@@ -416,6 +467,9 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
       {remoteCredentialDiagnosticsLoading ? <div>Loading remote credential diagnostics...</div> : null}
       {remoteCredentialDiagnosticsError ? <div style={errorStyle}>Remote credential diagnostics error: {remoteCredentialDiagnosticsError.message}</div> : null}
       {remoteCredentialDiagnostics ? <RemoteCredentialDiagnosticsRows data={remoteCredentialDiagnostics} /> : null}
+      {remoteBreakerLoading ? <div>Loading remote circuit breaker...</div> : null}
+      {remoteBreakerError ? <div style={errorStyle}>Remote circuit breaker error: {remoteBreakerError.message}</div> : null}
+      {remoteBreaker ? <RemoteBreakerRows data={remoteBreaker} /> : null}
       {remoteObservabilityLoading ? <div>Loading remote provider observability...</div> : null}
       {remoteObservabilityError ? <div style={errorStyle}>Remote observability error: {remoteObservabilityError.message}</div> : null}
       {remoteObservability ? <RemoteObservabilityRows data={remoteObservability} /> : null}

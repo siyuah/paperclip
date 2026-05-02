@@ -81,6 +81,31 @@ type RemoteCredentialDiagnosticsBody = {
   }>;
 };
 
+type RemoteBreakerEvaluationBody = {
+  source: string;
+  truthSource: string;
+  authoritative: boolean;
+  observationSource: string;
+  runtimeMode: string;
+  breakerState: string;
+  previousBreakerState: string;
+  consecutiveFailures: number;
+  consecutiveHalfOpenSuccesses: number;
+  openedAt: string | null;
+  cooldownUntil: string | null;
+  openReason: string | null;
+  lastFailureClass: string;
+  terminalStateAdvanced: boolean;
+  runtimeImpact: {
+    mode: string;
+    severity: string;
+    operatorAction: string;
+    paperclipTerminalState: string;
+    terminalStateAdvanced: boolean;
+    reason: string | null;
+  };
+};
+
 function apiInput(routeKey: string, issueId: string, companyId: string, method: "GET" | "POST" = "GET", body: unknown = null) {
   return {
     routeKey,
@@ -603,6 +628,107 @@ describe("Dark Factory bridge projection plugin", () => {
         terminalStateAdvanced: false,
       },
       alerts: [],
+    });
+  });
+
+  it("returns a default closed remote breaker evaluation through getData", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    await plugin.definition.setup(harness.ctx);
+
+    const result = await harness.getData<RemoteBreakerEvaluationBody>("remote-breaker-evaluation", {
+      companyId,
+      evaluatedAt: "2026-05-02T12:00:00.000Z",
+    });
+
+    expect(result).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      breakerState: "closed",
+      previousBreakerState: "closed",
+      consecutiveFailures: 0,
+      consecutiveHalfOpenSuccesses: 0,
+      openedAt: null,
+      cooldownUntil: null,
+      openReason: null,
+      lastFailureClass: "none",
+      terminalStateAdvanced: false,
+      runtimeImpact: {
+        mode: "available",
+        severity: "info",
+        operatorAction: "monitor",
+        paperclipTerminalState: "unchanged",
+        terminalStateAdvanced: false,
+        reason: null,
+      },
+    });
+  });
+
+  it("returns an open remote breaker evaluation from sampled failures through getData", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    await plugin.definition.setup(harness.ctx);
+
+    const result = await harness.getData<RemoteBreakerEvaluationBody>("remote-breaker-evaluation", {
+      companyId,
+      evaluatedAt: "2026-05-02T12:00:00.000Z",
+      failureThreshold: 2,
+      cooldownMs: 10_000,
+      observations: [
+        {
+          runtimeMode: "remote",
+          operation: "execute",
+          status: 503,
+          durationMs: 50,
+          attempt: 0,
+          retryable: true,
+          failureClass: "transient_provider",
+          errorCode: "bad_gateway",
+          journalCursor: "dark-factory://journal/breaker#4",
+          lastSequenceNo: 4,
+          terminalStateAdvanced: false,
+        },
+        {
+          runtimeMode: "remote",
+          operation: "execute",
+          status: 503,
+          durationMs: 50,
+          attempt: 1,
+          retryable: true,
+          failureClass: "transient_provider",
+          errorCode: "unavailable",
+          journalCursor: "dark-factory://journal/breaker#4",
+          lastSequenceNo: 4,
+          terminalStateAdvanced: false,
+        },
+      ],
+    });
+
+    expect(result).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      breakerState: "open",
+      previousBreakerState: "closed",
+      consecutiveFailures: 2,
+      openedAt: "2026-05-02T12:00:00.000Z",
+      cooldownUntil: "2026-05-02T12:00:10.000Z",
+      openReason: "unavailable",
+      lastFailureClass: "transient_provider",
+      terminalStateAdvanced: false,
+      runtimeImpact: {
+        mode: "blocked",
+        severity: "critical",
+        operatorAction: "pause_external_execution_and_reconcile_journal",
+        paperclipTerminalState: "unchanged",
+        terminalStateAdvanced: false,
+        reason: "unavailable",
+      },
     });
   });
 

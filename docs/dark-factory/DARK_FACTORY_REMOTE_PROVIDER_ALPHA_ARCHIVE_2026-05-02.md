@@ -379,6 +379,48 @@ Validation after hardening batch 7:
 - `pnpm typecheck` passed.
 - targeted circuit breaker tests passed: 1 file, 6 tests.
 
+## Hardening Batch 8
+
+Remote provider alpha hardening batch 8 exposed the circuit breaker evaluator
+through the plugin-hosted operator surface.
+
+### Plugin Data Surface
+
+Added a `remote-breaker-evaluation` plugin data entry in `worker.ts`.
+
+The data entry accepts:
+
+- sampled remote provider observations
+- optional previous breaker state
+- evaluated-at timestamp
+- failure threshold
+- cooldown duration
+- half-open success threshold
+
+It returns the deterministic circuit breaker evaluation with
+`authoritative: false` and `terminalStateAdvanced: false`.
+
+### Settings UI
+
+Updated `src/ui/index.tsx` so the settings page displays:
+
+- breaker state
+- previous breaker state
+- consecutive failures
+- half-open successes
+- open reason
+- opened-at timestamp
+- cooldown-until timestamp
+- runtime impact and operator action
+
+Empty sampled input evaluates to closed/monitor by default. This is a local
+default, not a remote-provider health claim.
+
+Validation after hardening batch 8:
+
+- `pnpm typecheck` passed.
+- targeted tests passed: 2 files, 25 tests.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -411,5 +453,7 @@ tests before untrusted or multi-tenant production exposure.
    when the host exposes settings context.
 4. Persist and feed previous breaker state before wiring the evaluator into
    remote execution decisions.
-5. Add operator-facing remediation hints for each remote credential diagnostic
+5. Feed host-collected observations into `remote-breaker-evaluation` from the
+   settings/runtime context.
+6. Add operator-facing remediation hints for each remote credential diagnostic
    code.
