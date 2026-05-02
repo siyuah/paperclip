@@ -127,6 +127,11 @@ The helper does not contact a provider, does not store secrets, and does not
 advance terminal state. It is a deterministic foundation for later UI panels,
 metrics exporters, or alert rules.
 
+The bridge exposes this snapshot through the plugin data key
+`remote-observability-snapshot`. The settings page renders the current snapshot,
+failure-class counts, and alert candidates. When no sampled observations are
+available yet, the snapshot stays empty instead of inventing provider health.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |
@@ -150,8 +155,9 @@ Recommended alpha thresholds:
 
 1. Replace the alpha `env:` resolver with a Paperclip host secret resolver when
    the SDK exposes one.
-2. Wire the in-process observability snapshot into an operator-facing UI or
-   metrics exporter.
-3. Add host alert rules for remote provider unavailability and repeated
+2. Feed real host-collected remote observations into the
+   `remote-observability-snapshot` data key.
+3. Wire the snapshot into a metrics exporter and host alert rules for remote
+   provider unavailability and repeated
    execution failures.
 4. Implement a real circuit breaker before broad production traffic.

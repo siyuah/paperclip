@@ -262,6 +262,43 @@ Validation after hardening batch 4:
 - `pnpm typecheck` passed.
 - targeted observability tests passed: 1 file, 5 tests.
 
+## Hardening Batch 5
+
+Remote provider alpha hardening batch 5 exposed the observability helper through
+the plugin-hosted operator surface.
+
+### Plugin Data Surface
+
+Added a `remote-observability-snapshot` plugin data entry in `worker.ts`.
+
+The data entry:
+
+- accepts sampled remote observation events from the host/test harness
+- builds the same deterministic metrics snapshot as the helper
+- derives alert candidates using configurable thresholds
+- returns an explicit empty snapshot when no observations exist
+- keeps `authoritative: false`
+- keeps `terminalStateAdvanced: false`
+
+### Settings UI
+
+Updated `src/ui/index.tsx` so the settings page displays:
+
+- sampled observation count
+- request/success/failure/retry counts
+- average and max latency
+- cursor lag and latest cursor
+- latest error code
+- failure-class counts
+- alert candidates
+
+The UI does not invent live provider state. Empty sampled input stays empty.
+
+Validation after hardening batch 5:
+
+- `pnpm typecheck` passed.
+- targeted tests passed: 2 files, 20 tests.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
@@ -288,8 +325,8 @@ tests before untrusted or multi-tenant production exposure.
 
 1. Replace the alpha `env:` resolver with a Paperclip host secret resolver once
    the host exposes that resolution hook.
-2. Wire the in-process observability snapshot into an operator-facing UI or
-   metrics exporter.
+2. Feed real host-collected remote observations into the
+   `remote-observability-snapshot` data key.
 3. Design the real circuit breaker state machine before allowing provider
    outages to influence operator-facing health beyond projection metadata.
 4. Add operator-facing UI affordances for remote credential diagnostic codes.

@@ -92,6 +92,45 @@ type JournalCursor = {
   gapDetected: boolean;
 };
 
+type RemoteObservabilitySnapshot = {
+  source: "dark-factory-projection";
+  truthSource: "dark-factory-journal";
+  authoritative: false;
+  observationSource: "runtime_observation";
+  runtimeMode: "remote";
+  sampledObservationCount: number;
+  terminalStateAdvanced: false;
+  snapshot: {
+    requestCount: number;
+    successCount: number;
+    failureCount: number;
+    retryCount: number;
+    retryableFailureCount: number;
+    averageLatencyMs: number;
+    maxLatencyMs: number;
+    latestErrorCode: string | null;
+    latestJournalCursor: string | null;
+    latestSequenceNo: number | null;
+    cursorLag: number | null;
+    terminalStateAdvanced: false;
+    failureClassCounts: {
+      none: number;
+      transient_provider: number;
+      provider_unavailable: number;
+      quota_exceeded: number;
+      runtime_blocked: number;
+    };
+  };
+  alerts: Array<{
+    severity: string;
+    code: string;
+    message: string;
+    failureClass: string;
+    retryable: boolean;
+    terminalStateAdvanced: false;
+  }>;
+};
+
 const panelStyle = {
   display: "grid",
   gap: 10,
@@ -199,6 +238,38 @@ function ProviderHealthRows({ data }: { data: ProjectionSummary }) {
   );
 }
 
+function RemoteObservabilityRows({ data }: { data: RemoteObservabilitySnapshot }) {
+  const snapshot = data.snapshot;
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <strong>Remote Provider Observability</strong>
+      <div style={rowStyle}><span>Sampled observations</span><strong>{data.sampledObservationCount}</strong></div>
+      <div style={rowStyle}><span>Requests</span><strong>{snapshot.requestCount}</strong></div>
+      <div style={rowStyle}><span>Success / failure</span><strong>{snapshot.successCount} / {snapshot.failureCount}</strong></div>
+      <div style={rowStyle}><span>Retries</span><strong>{snapshot.retryCount}</strong></div>
+      <div style={rowStyle}><span>Retryable failures</span><strong>{snapshot.retryableFailureCount}</strong></div>
+      <div style={rowStyle}><span>Average latency</span><strong>{snapshot.averageLatencyMs}ms</strong></div>
+      <div style={rowStyle}><span>Max latency</span><strong>{snapshot.maxLatencyMs}ms</strong></div>
+      <div style={rowStyle}><span>Cursor lag</span><strong>{snapshot.cursorLag ?? "unknown"}</strong></div>
+      <div style={rowStyle}><span>Latest cursor</span><code>{snapshot.latestJournalCursor ?? "none"}</code></div>
+      <div style={rowStyle}><span>Latest error</span><code>{snapshot.latestErrorCode ?? "none"}</code></div>
+      <div style={rowStyle}><span>Failure classes</span><code>{Object.entries(snapshot.failureClassCounts).map(([key, value]) => `${key}:${value}`).join(" ")}</code></div>
+      {data.alerts.length > 0 ? (
+        <div style={{ display: "grid", gap: 6 }}>
+          {data.alerts.map((alert) => (
+            <div key={alert.code} role="status" style={alert.severity === "critical" ? errorStyle : noticeStyle}>
+              {alert.code}: {alert.message}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={noticeStyle}>No remote provider alert candidates in the current sampled window.</div>
+      )}
+      <div style={rowStyle}><span>Terminal advanced</span><strong>{snapshot.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+    </div>
+  );
+}
+
 export function DashboardWidget({ context }: PluginWidgetProps) {
   const { data, loading, error } = usePluginData<ProjectionSummary>("projection-summary", {
     companyId: context.companyId,
@@ -268,6 +339,13 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
   const { data, loading, error } = usePluginData<ProjectionSummary>("projection-summary", {
     companyId: context.companyId,
   });
+  const {
+    data: remoteObservability,
+    loading: remoteObservabilityLoading,
+    error: remoteObservabilityError,
+  } = usePluginData<RemoteObservabilitySnapshot>("remote-observability-snapshot", {
+    companyId: context.companyId,
+  });
 
   if (loading) return <div>Loading Dark Factory bridge settings...</div>;
   if (error) return <div>Dark Factory bridge settings error: {error.message}</div>;
@@ -280,6 +358,9 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
       <div>Mock projection mode. No real Dark Factory connection is configured, and no token or secret is stored.</div>
       <ProjectionRows data={data} />
       <ProviderHealthRows data={data} />
+      {remoteObservabilityLoading ? <div>Loading remote provider observability...</div> : null}
+      {remoteObservabilityError ? <div style={errorStyle}>Remote observability error: {remoteObservabilityError.message}</div> : null}
+      {remoteObservability ? <RemoteObservabilityRows data={remoteObservability} /> : null}
     </div>
   );
 }

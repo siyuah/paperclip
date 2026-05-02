@@ -28,6 +28,34 @@ type ProviderHealthBody = {
   };
 };
 
+type RemoteObservabilityBody = {
+  source: string;
+  truthSource: string;
+  authoritative: boolean;
+  observationSource: string;
+  runtimeMode: string;
+  sampledObservationCount: number;
+  terminalStateAdvanced: boolean;
+  snapshot: {
+    requestCount: number;
+    successCount: number;
+    failureCount: number;
+    retryCount: number;
+    retryableFailureCount: number;
+    maxLatencyMs: number;
+    cursorLag: number | null;
+    latestErrorCode: string | null;
+    terminalStateAdvanced: boolean;
+    failureClassCounts: Record<string, number>;
+  };
+  alerts: Array<{
+    code: string;
+    severity: string;
+    failureClass: string;
+    terminalStateAdvanced: boolean;
+  }>;
+};
+
 function apiInput(routeKey: string, issueId: string, companyId: string, method: "GET" | "POST" = "GET", body: unknown = null) {
   return {
     routeKey,
@@ -437,6 +465,115 @@ describe("Dark Factory bridge projection plugin", () => {
         breakerState: expect.any(String),
         lastUpdatedAt: expect.any(String),
       }),
+    });
+  });
+
+  it("returns remote observability snapshots through getData for settings UI", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    await plugin.definition.setup(harness.ctx);
+
+    const snapshot = await harness.getData<RemoteObservabilityBody>("remote-observability-snapshot", {
+      companyId,
+      expectedSequenceNo: 9,
+      observations: [
+        {
+          runtimeMode: "remote",
+          operation: "probe",
+          status: 200,
+          durationMs: 50,
+          attempt: 0,
+          retryable: false,
+          failureClass: "none",
+          errorCode: null,
+          journalCursor: "dark-factory://journal/settings#4",
+          lastSequenceNo: 4,
+          terminalStateAdvanced: false,
+        },
+        {
+          runtimeMode: "remote",
+          operation: "execute",
+          status: 503,
+          durationMs: 6200,
+          attempt: 1,
+          retryable: true,
+          failureClass: "transient_provider",
+          errorCode: "unavailable",
+          journalCursor: "dark-factory://journal/settings#4",
+          lastSequenceNo: 4,
+          terminalStateAdvanced: false,
+        },
+      ],
+      errorRateWarningThreshold: 0.5,
+      latencyWarningThresholdMs: 5000,
+      cursorLagWarningThreshold: 5,
+    });
+
+    expect(snapshot).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      sampledObservationCount: 2,
+      terminalStateAdvanced: false,
+      snapshot: {
+        requestCount: 2,
+        successCount: 1,
+        failureCount: 1,
+        retryCount: 1,
+        retryableFailureCount: 1,
+        maxLatencyMs: 6200,
+        cursorLag: 5,
+        latestErrorCode: "unavailable",
+        terminalStateAdvanced: false,
+        failureClassCounts: {
+          none: 1,
+          transient_provider: 1,
+        },
+      },
+      alerts: expect.arrayContaining([
+        expect.objectContaining({
+          code: "dark_factory_remote_error_rate_high",
+          severity: "warning",
+          failureClass: "transient_provider",
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          code: "dark_factory_remote_latency_high",
+          terminalStateAdvanced: false,
+        }),
+        expect.objectContaining({
+          code: "dark_factory_remote_cursor_lag_high",
+          terminalStateAdvanced: false,
+        }),
+      ]),
+    });
+  });
+
+  it("returns an empty remote observability snapshot before sampled observations exist", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    await plugin.definition.setup(harness.ctx);
+
+    const snapshot = await harness.getData<RemoteObservabilityBody>("remote-observability-snapshot", {
+      companyId,
+    });
+
+    expect(snapshot).toMatchObject({
+      source: "dark-factory-projection",
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      sampledObservationCount: 0,
+      terminalStateAdvanced: false,
+      snapshot: {
+        requestCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        cursorLag: null,
+        terminalStateAdvanced: false,
+      },
+      alerts: [],
     });
   });
 

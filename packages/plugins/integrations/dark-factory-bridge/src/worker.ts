@@ -31,6 +31,12 @@ import {
   getProviderRuntimeMode,
   replayMockJournal,
 } from "./mock-runtime-adapter.js";
+import {
+  buildRemoteProviderAlertCandidates,
+  buildRemoteProviderMetricsSnapshot,
+  type RemoteProviderObservation,
+  type RemoteProviderOperation,
+} from "./remote-provider-observability.js";
 
 export { PROJECTION_DISCLAIMER } from "./runtime-contract.js";
 
@@ -112,11 +118,62 @@ function stringField(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
+function numberField(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 function recordBody(value: unknown): Record<string, unknown> | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== "object") return null;
   if (Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+function recordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object" && !Array.isArray(item))
+    : [];
+}
+
+function remoteOperation(value: unknown): RemoteProviderOperation {
+  return value === "probe" || value === "acquire" || value === "resume" || value === "execute" || value === "release" || value === "destroy"
+    ? value
+    : "execute";
+}
+
+function failureClass(value: unknown): RemoteProviderObservation["failureClass"] {
+  return value === "none"
+    || value === "transient_provider"
+    || value === "provider_unavailable"
+    || value === "quota_exceeded"
+    || value === "runtime_blocked"
+    ? value
+    : "none";
+}
+
+function booleanField(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function remoteObservationsFromParams(params: Record<string, unknown>): RemoteProviderObservation[] {
+  return recordArray(params.observations).map((item) => ({
+    runtimeMode: "remote",
+    operation: remoteOperation(item.operation),
+    status: numberField(item.status),
+    durationMs: numberField(item.durationMs) ?? 0,
+    attempt: numberField(item.attempt) ?? 0,
+    retryable: booleanField(item.retryable, false),
+    failureClass: failureClass(item.failureClass),
+    errorCode: stringField(item.errorCode),
+    journalCursor: stringField(item.journalCursor),
+    lastSequenceNo: numberField(item.lastSequenceNo),
+    terminalStateAdvanced: false,
+  }));
 }
 
 function idempotencyKeyFrom(input: PluginApiRequestInput, body: Record<string, unknown> | null): string | null {
@@ -135,6 +192,26 @@ const plugin = definePlugin({
         return buildHttpProjectionSummary(issueId, params);
       }
       return buildSummary(issueId);
+    });
+
+    ctx.data.register("remote-observability-snapshot", async (params) => {
+      const observations = remoteObservationsFromParams(params);
+      const snapshot = buildRemoteProviderMetricsSnapshot(observations, {
+        expectedSequenceNo: numberField(params.expectedSequenceNo),
+      });
+      return {
+        ...projectionBoundary(),
+        observationSource: RUNTIME_OBSERVATION_SOURCE,
+        runtimeMode: "remote",
+        sampledObservationCount: observations.length,
+        snapshot,
+        alerts: buildRemoteProviderAlertCandidates(snapshot, {
+          errorRateWarningThreshold: numberField(params.errorRateWarningThreshold) ?? undefined,
+          latencyWarningThresholdMs: numberField(params.latencyWarningThresholdMs) ?? undefined,
+          cursorLagWarningThreshold: numberField(params.cursorLagWarningThreshold) ?? undefined,
+        }),
+        terminalStateAdvanced: false,
+      };
     });
 
     ctx.actions.register("request-rehydrate", async (params) => {
