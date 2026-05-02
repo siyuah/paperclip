@@ -141,6 +141,18 @@ type RemoteProviderReadinessBody = {
     requiredBefore: string;
     terminalStateAdvanced: boolean;
   }>;
+  readinessReceipt: {
+    source: string;
+    truthSource: string;
+    authoritative: boolean;
+    observationSource: string;
+    runtimeMode: string;
+    receiptId: string;
+    digest: string;
+    digestAlgorithm: string;
+    doesAuthorizeRemoteExecution: boolean;
+    terminalStateAdvanced: boolean;
+  };
 };
 
 function apiInput(routeKey: string, issueId: string, companyId: string, method: "GET" | "POST" = "GET", body: unknown = null) {
@@ -852,6 +864,18 @@ describe("Dark Factory bridge projection plugin", () => {
           terminalStateAdvanced: false,
         }),
       ]),
+      readinessReceipt: {
+        source: "dark-factory-projection",
+        truthSource: "dark-factory-journal",
+        authoritative: false,
+        observationSource: "runtime_observation",
+        runtimeMode: "remote",
+        receiptId: expect.stringMatching(/^df-readiness-[0-9a-f]{8}$/),
+        digest: expect.stringMatching(/^[0-9a-f]{8}$/),
+        digestAlgorithm: "fnv1a32",
+        doesAuthorizeRemoteExecution: false,
+        terminalStateAdvanced: false,
+      },
     });
   });
 
@@ -912,6 +936,13 @@ describe("Dark Factory bridge projection plugin", () => {
           terminalStateAdvanced: false,
         }),
       ]),
+      readinessReceipt: {
+        receiptId: expect.stringMatching(/^df-readiness-[0-9a-f]{8}$/),
+        digest: expect.stringMatching(/^[0-9a-f]{8}$/),
+        digestAlgorithm: "fnv1a32",
+        doesAuthorizeRemoteExecution: false,
+        terminalStateAdvanced: false,
+      },
     });
     expect(result.signals.every((signal) => signal.terminalStateAdvanced === false)).toBe(true);
     expect(JSON.stringify(result)).not.toContain("plugin-spec-resolved-key");

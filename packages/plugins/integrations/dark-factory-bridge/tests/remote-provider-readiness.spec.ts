@@ -78,6 +78,18 @@ describe("remote provider readiness", () => {
       sampledObservationCount: 2,
       alertCount: 0,
       terminalStateAdvanced: false,
+      readinessReceipt: {
+        source: "dark-factory-projection",
+        authoritative: false,
+        truthSource: "dark-factory-journal",
+        observationSource: "runtime_observation",
+        runtimeMode: "remote",
+        receiptId: expect.stringMatching(/^df-readiness-[0-9a-f]{8}$/),
+        digest: expect.stringMatching(/^[0-9a-f]{8}$/),
+        digestAlgorithm: "fnv1a32",
+        doesAuthorizeRemoteExecution: false,
+        terminalStateAdvanced: false,
+      },
     });
     expect(report.readinessChecklist).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "dark_factory_remote_readiness_credentials", status: "pass" }),
@@ -112,6 +124,13 @@ describe("remote provider readiness", () => {
       breakerState: "closed",
       sampledObservationCount: 0,
       terminalStateAdvanced: false,
+      readinessReceipt: {
+        receiptId: expect.stringMatching(/^df-readiness-[0-9a-f]{8}$/),
+        readinessStatus: "needs_attention",
+        nextSafeHook: "onEnvironmentProbe",
+        doesAuthorizeRemoteExecution: false,
+        terminalStateAdvanced: false,
+      },
     });
     expect(report.signals).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -161,6 +180,22 @@ describe("remote provider readiness", () => {
       breakerState: "open",
       alertCount: 1,
       terminalStateAdvanced: false,
+      readinessReceipt: {
+        readinessStatus: "blocked",
+        nextSafeHook: "onEnvironmentValidateConfig",
+        doesAuthorizeRemoteExecution: false,
+        terminalStateAdvanced: false,
+        evidence: {
+          credentialOk: false,
+          breakerState: "open",
+          sampledObservationCount: 2,
+          alertCount: 1,
+          signalCodes: expect.arrayContaining([
+            "dark_factory_remote_credential_missing",
+            "dark_factory_remote_breaker_open",
+          ]),
+        },
+      },
     });
     expect(report.signals).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -196,6 +231,10 @@ describe("remote provider readiness", () => {
       checkedAt: "2026-05-02T12:00:00.000Z",
     };
 
-    expect(buildRemoteProviderReadinessReport(input)).toEqual(buildRemoteProviderReadinessReport(input));
+    const first = buildRemoteProviderReadinessReport(input);
+    const second = buildRemoteProviderReadinessReport(input);
+    expect(first).toEqual(second);
+    expect(first.readinessReceipt).toEqual(second.readinessReceipt);
+    expect(first.readinessReceipt.doesAuthorizeRemoteExecution).toBe(false);
   });
 });

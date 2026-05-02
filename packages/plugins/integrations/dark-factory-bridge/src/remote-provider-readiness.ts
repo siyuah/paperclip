@@ -64,6 +64,31 @@ export type RemoteProviderReadinessChecklistItem = ProjectionBoundary & {
   terminalStateAdvanced: false;
 };
 
+export type RemoteProviderReadinessReceipt = ProjectionBoundary & {
+  observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
+  runtimeMode: "remote";
+  receiptId: string;
+  digest: string;
+  digestAlgorithm: "fnv1a32";
+  checkedAt: string;
+  readinessStatus: RemoteProviderReadinessStatus;
+  nextSafeHook: RemoteProviderNextSafeHook;
+  doesAuthorizeRemoteExecution: false;
+  terminalStateAdvanced: false;
+  evidence: {
+    credentialOk: boolean;
+    breakerState: BreakerState;
+    sampledObservationCount: number;
+    alertCount: number;
+    signalCodes: string[];
+    checklist: Array<{
+      code: string;
+      status: RemoteProviderReadinessChecklistItem["status"];
+      requiredBefore: RemoteProviderNextSafeHook;
+    }>;
+  };
+};
+
 export type RemoteProviderReadinessReport = ProjectionBoundary & {
   observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
   runtimeMode: "remote";
@@ -79,6 +104,7 @@ export type RemoteProviderReadinessReport = ProjectionBoundary & {
   alertCount: number;
   signals: RemoteProviderReadinessSignal[];
   readinessChecklist: RemoteProviderReadinessChecklistItem[];
+  readinessReceipt: RemoteProviderReadinessReceipt;
   terminalStateAdvanced: false;
 };
 
@@ -103,6 +129,17 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
   const readinessStatus: RemoteProviderReadinessStatus = hasCritical ? "blocked" : hasWarning ? "needs_attention" : "ready";
   const readinessChecklist = buildReadinessChecklist(input, signals);
   const nextSafeHook = nextSafeHookFor(readinessStatus, signals);
+  const readinessReceipt = buildReadinessReceipt({
+    checkedAt,
+    readinessStatus,
+    nextSafeHook,
+    credentialOk: input.credentialDiagnostics.ok,
+    breakerState: input.breakerEvaluation.breakerState,
+    sampledObservationCount: input.sampledObservationCount,
+    alertCount: input.alertCandidates.length,
+    signals,
+    readinessChecklist,
+  });
 
   return {
     ...projectionBoundary(),
@@ -120,7 +157,55 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
     alertCount: input.alertCandidates.length,
     signals,
     readinessChecklist,
+    readinessReceipt,
     terminalStateAdvanced: false,
+  };
+}
+
+function buildReadinessReceipt(input: {
+  checkedAt: string;
+  readinessStatus: RemoteProviderReadinessStatus;
+  nextSafeHook: RemoteProviderNextSafeHook;
+  credentialOk: boolean;
+  breakerState: BreakerState;
+  sampledObservationCount: number;
+  alertCount: number;
+  signals: RemoteProviderReadinessSignal[];
+  readinessChecklist: RemoteProviderReadinessChecklistItem[];
+}): RemoteProviderReadinessReceipt {
+  const evidence = {
+    credentialOk: input.credentialOk,
+    breakerState: input.breakerState,
+    sampledObservationCount: input.sampledObservationCount,
+    alertCount: input.alertCount,
+    signalCodes: input.signals.map((signal) => signal.code).sort(),
+    checklist: input.readinessChecklist.map((item) => ({
+      code: item.code,
+      status: item.status,
+      requiredBefore: item.requiredBefore,
+    })),
+  };
+  const payload = stableStringify({
+    checkedAt: input.checkedAt,
+    readinessStatus: input.readinessStatus,
+    nextSafeHook: input.nextSafeHook,
+    evidence,
+  });
+  const digest = fnv1a32(payload);
+
+  return {
+    ...projectionBoundary(),
+    observationSource: RUNTIME_OBSERVATION_SOURCE,
+    runtimeMode: "remote",
+    receiptId: `df-readiness-${digest}`,
+    digest,
+    digestAlgorithm: "fnv1a32",
+    checkedAt: input.checkedAt,
+    readinessStatus: input.readinessStatus,
+    nextSafeHook: input.nextSafeHook,
+    doesAuthorizeRemoteExecution: false,
+    terminalStateAdvanced: false,
+    evidence,
   };
 }
 
@@ -324,6 +409,22 @@ function breakerChecklistStatus(breakerState: BreakerState): RemoteProviderReadi
 function normalizeIsoTimestamp(value: string): string {
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? new Date(0).toISOString() : new Date(parsed).toISOString();
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(",")}}`;
+}
+
+function fnv1a32(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
 }
 
 function signal(params: {

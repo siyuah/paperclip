@@ -216,6 +216,13 @@ type RemoteProviderReadiness = {
     requiredBefore: string;
     terminalStateAdvanced: false;
   }>;
+  readinessReceipt: {
+    receiptId: string;
+    digest: string;
+    digestAlgorithm: string;
+    doesAuthorizeRemoteExecution: false;
+    terminalStateAdvanced: false;
+  };
 };
 
 const panelStyle = {
@@ -421,6 +428,9 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
       <div style={rowStyle}><span>Recommended action</span><code>{data.recommendedAction}</code></div>
       <div style={rowStyle}><span>Next safe hook</span><code>{data.nextSafeHook}</code></div>
       <div style={rowStyle}><span>Checked at</span><code>{data.checkedAt}</code></div>
+      <div style={rowStyle}><span>Readiness receipt</span><code>{data.readinessReceipt.receiptId}</code></div>
+      <div style={rowStyle}><span>Evidence digest</span><code>{data.readinessReceipt.digestAlgorithm}:{data.readinessReceipt.digest}</code></div>
+      <div style={rowStyle}><span>Authorizes remote execution</span><strong>{data.readinessReceipt.doesAuthorizeRemoteExecution ? "yes" : "no"}</strong></div>
       <div style={{ display: "grid", gap: 6 }}>
         {data.readinessChecklist.map((item) => (
           <div key={item.code} role="status" style={item.status === "fail" ? errorStyle : item.status === "warn" ? noticeStyle : undefined}>

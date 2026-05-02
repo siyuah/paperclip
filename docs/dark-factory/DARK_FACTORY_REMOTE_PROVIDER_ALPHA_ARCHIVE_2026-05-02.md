@@ -547,6 +547,41 @@ Validation after hardening batch 11:
 - `pnpm test` passed: 11 files passed, 1 gated file skipped, 96 tests passed,
   1 skipped.
 
+## Hardening Batch 12
+
+Remote provider alpha hardening batch 12 added a deterministic readiness
+receipt and compact evidence digest to the advisory readiness report.
+
+### Readiness Receipt
+
+The readiness report now includes `readinessReceipt` with:
+
+- `receiptId` in the form `df-readiness-{digest}`
+- deterministic `fnv1a32` digest
+- checked-at timestamp
+- readiness status
+- next safe hook
+- compact evidence basis
+- `doesAuthorizeRemoteExecution: false`
+- `terminalStateAdvanced: false`
+
+The evidence basis captures credential readiness, breaker state, sampled
+observation count, alert count, signal codes, and checklist status. This gives
+operators a stable receipt for notes and archives without turning the receipt
+into a permission token.
+
+### Settings UI
+
+The settings page now renders readiness receipt id, evidence digest, and the
+explicit "does not authorize remote execution" flag.
+
+Validation after hardening batch 12:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 11 files passed, 1 gated file skipped, 96 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.

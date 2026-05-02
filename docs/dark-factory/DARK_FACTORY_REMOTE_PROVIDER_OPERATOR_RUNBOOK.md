@@ -245,6 +245,19 @@ human-facing recommendation only:
 | warning-only state | `onEnvironmentProbe` |
 | ready state | `onEnvironmentExecute` |
 
+Each readiness report also includes a `readinessReceipt`:
+
+| Field | Meaning |
+| --- | --- |
+| `receiptId` | Stable `df-readiness-{digest}` identifier for the exact readiness evidence. |
+| `digest` | Deterministic FNV-1a 32-bit digest of checked-at time, status, next safe hook, signal codes, checklist status, and key counts. |
+| `doesAuthorizeRemoteExecution` | Always `false`; the receipt records evidence but never grants permission by itself. |
+| `evidence` | Compact basis containing credential status, breaker state, sampled observation count, alert count, signal codes, and checklist statuses. |
+
+The receipt is suitable for operator notes and progress logs. It is not a
+security token, not a capability grant, and not a substitute for reviewing Dark
+Factory Journal.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |
