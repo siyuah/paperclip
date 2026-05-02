@@ -332,6 +332,21 @@ The bridge result is an intake and review boundary, not an execution trigger. It
 does not call lifecycle hooks, does not contact a provider, does not persist
 state, and does not grant permission to execute.
 
+Previous readiness and breaker evidence can be represented with the
+`remote-provider-evidence-store-contract` helpers. The contract converts a host
+context bridge result into a deterministic evidence record containing:
+
+- breaker state evidence
+- readiness transition seed evidence
+- readiness receipt id and digest
+- sampled observation and alert counts
+- storage boundary metadata
+
+The evidence record is explicitly `contract_only_not_persisted`. It may seed a
+future active context as `previousBreaker` and `previousReadiness`, but it does
+not itself write plugin DB rows, store resolved credential values, authorize
+remote execution, or advance terminal state.
+
 The bridge also ships deterministic host observation fixtures for local replay.
 These fixtures are not a storage layer and do not contact a provider. They
 produce host-style active context envelopes for:

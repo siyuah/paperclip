@@ -1117,3 +1117,40 @@ Validation after hardening batch 22:
 
 - targeted `remote-provider-host-context-bridge.spec.ts` passed: 4 tests.
 - `pnpm typecheck` passed.
+
+## Hardening Batch 23
+
+Remote provider alpha hardening batch 23 added a contract-only previous evidence
+record and replay helper for readiness and breaker continuity.
+
+### Evidence Store Contract
+
+Added `src/remote-provider-evidence-store-contract.ts`.
+
+The contract converts a `remote-provider-host-context-bridge` result into a
+deterministic evidence record containing:
+
+- breaker state evidence
+- readiness transition seed evidence
+- readiness receipt id and digest
+- sampled observation count
+- alert count
+- storage boundary metadata
+
+The record is marked `contract_only_not_persisted`. It is a future plugin
+namespace DB contract, not a migration and not an active storage implementation.
+
+### Fixture-Backed Replay
+
+The replay helper converts the evidence record back into an active context seed:
+
+- `previousBreaker`
+- `previousReadiness`
+
+Tests verify that blocked evidence can seed a later healthy host context and
+produce an `improved` readiness transition without authorizing execution.
+
+Validation after hardening batch 23:
+
+- targeted `remote-provider-evidence-store-contract.spec.ts` passed: 4 tests.
+- `pnpm typecheck` passed.
