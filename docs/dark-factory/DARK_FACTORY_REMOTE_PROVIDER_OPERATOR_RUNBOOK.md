@@ -287,6 +287,21 @@ and `terminalStateAdvanced: false`. The plan is advisory operator guidance. It
 does not call hooks, does not persist state, does not connect to a provider, and
 does not grant execution permission.
 
+The readiness data surfaces are assembled through an active context ingestion
+layer. That layer normalizes the currently supplied params into:
+
+- remote config diagnostics
+- sampled remote observations
+- metrics snapshot and alert candidates
+- previous breaker evidence
+- previous readiness evidence
+- readiness report input
+
+The active context is in-process only. It is intended as the future host/runtime
+context boundary, but it does not persist state, does not resolve host-managed
+secrets, does not contact a provider, and does not expose resolved credential
+values in plugin data.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |

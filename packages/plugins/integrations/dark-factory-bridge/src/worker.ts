@@ -32,22 +32,11 @@ import {
   replayMockJournal,
 } from "./mock-runtime-adapter.js";
 import {
-  buildRemoteProviderAlertCandidates,
-  buildRemoteProviderMetricsSnapshot,
-  type RemoteProviderObservation,
-  type RemoteProviderOperation,
-} from "./remote-provider-observability.js";
-import {
-  evaluateRemoteCircuitBreaker,
-  type RemoteCircuitBreakerEvaluation,
-} from "./remote-provider-circuit-breaker.js";
-import {
   buildRemoteProviderReadinessReport,
-  type RemoteCredentialDiagnosticsForReadiness,
-  type RemoteProviderNextSafeHook,
-  type RemoteProviderReadinessStatus,
-  type RemoteProviderReadinessTransitionInput,
 } from "./remote-provider-readiness.js";
+import {
+  buildRemoteProviderActiveContext,
+} from "./remote-provider-active-context.js";
 
 export { PROJECTION_DISCLAIMER } from "./runtime-contract.js";
 
@@ -129,248 +118,11 @@ function stringField(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-function numberField(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
 function recordBody(value: unknown): Record<string, unknown> | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== "object") return null;
   if (Array.isArray(value)) return null;
   return value as Record<string, unknown>;
-}
-
-function recordArray(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => item !== null && typeof item === "object" && !Array.isArray(item))
-    : [];
-}
-
-function remoteOperation(value: unknown): RemoteProviderOperation {
-  return value === "probe" || value === "acquire" || value === "resume" || value === "execute" || value === "release" || value === "destroy"
-    ? value
-    : "execute";
-}
-
-function failureClass(value: unknown): RemoteProviderObservation["failureClass"] {
-  return value === "none"
-    || value === "transient_provider"
-    || value === "provider_unavailable"
-    || value === "quota_exceeded"
-    || value === "runtime_blocked"
-    ? value
-    : "none";
-}
-
-function booleanField(value: unknown, fallback: boolean): boolean {
-  return typeof value === "boolean" ? value : fallback;
-}
-
-function breakerState(value: unknown): RemoteCircuitBreakerEvaluation["breakerState"] | null {
-  return value === "closed" || value === "open" || value === "half_open" ? value : null;
-}
-
-function readinessStatus(value: unknown): RemoteProviderReadinessStatus | null {
-  return value === "ready" || value === "needs_attention" || value === "blocked" ? value : null;
-}
-
-function readinessNextSafeHook(value: unknown): RemoteProviderNextSafeHook | null {
-  return value === "onEnvironmentValidateConfig"
-    || value === "onEnvironmentProbe"
-    || value === "onEnvironmentAcquireLease"
-    || value === "onEnvironmentExecute"
-    || value === "none"
-    ? value
-    : null;
-}
-
-function remoteObservationsFromParams(params: Record<string, unknown>): RemoteProviderObservation[] {
-  return recordArray(params.observations).map((item) => ({
-    runtimeMode: "remote",
-    operation: remoteOperation(item.operation),
-    status: numberField(item.status),
-    durationMs: numberField(item.durationMs) ?? 0,
-    attempt: numberField(item.attempt) ?? 0,
-    retryable: booleanField(item.retryable, false),
-    failureClass: failureClass(item.failureClass),
-    errorCode: stringField(item.errorCode),
-    journalCursor: stringField(item.journalCursor),
-    lastSequenceNo: numberField(item.lastSequenceNo),
-    terminalStateAdvanced: false,
-  }));
-}
-
-function previousBreakerFromParams(params: Record<string, unknown>): Partial<RemoteCircuitBreakerEvaluation> | null {
-  const previous = recordBody(params.previousBreaker);
-  if (!previous) return null;
-  return {
-    breakerState: breakerState(previous.breakerState) ?? undefined,
-    consecutiveFailures: numberField(previous.consecutiveFailures) ?? undefined,
-    consecutiveHalfOpenSuccesses: numberField(previous.consecutiveHalfOpenSuccesses) ?? undefined,
-    openedAt: stringField(previous.openedAt),
-    cooldownUntil: stringField(previous.cooldownUntil),
-    openReason: stringField(previous.openReason),
-    lastFailureClass: failureClass(previous.lastFailureClass),
-  };
-}
-
-function previousReadinessFromParams(params: Record<string, unknown>): RemoteProviderReadinessTransitionInput {
-  const previous = recordBody(params.previousReadiness);
-  if (!previous) return null;
-  const status = readinessStatus(previous.readinessStatus);
-  const nextSafeHook = readinessNextSafeHook(previous.nextSafeHook);
-  return {
-    ...(status ? { readinessStatus: status } : {}),
-    ...(nextSafeHook ? { nextSafeHook } : {}),
-    receiptDigest: stringField(previous.receiptDigest) ?? stringField(previous.digest),
-    receiptId: stringField(previous.receiptId),
-    checkedAt: stringField(previous.checkedAt),
-  };
-}
-
-function credentialRemediation(code: string): string[] {
-  switch (code) {
-    case "dark_factory_remote_credential_config_not_supplied":
-      return [
-        "Open the environment driver settings and provide a remote config sample before validating credentials.",
-        "Treat this as an empty settings surface state, not a provider failure.",
-      ];
-    case "dark_factory_remote_credential_missing":
-      return [
-        "Set apiKeySecretRef to env:NAME or env://NAME for remote alpha.",
-        "Use inline apiKey only for controlled local testing.",
-      ];
-    case "dark_factory_remote_credential_ref_unsupported":
-      return [
-        "Replace the unsupported secret reference with env:NAME or env://NAME.",
-        "Wait for a host-managed secret resolver before using secret:// style references.",
-      ];
-    case "dark_factory_remote_credential_unresolved":
-      return [
-        "Create or export the referenced environment variable in the plugin host process.",
-        "Restart or reload the host after updating environment variables.",
-      ];
-    case "dark_factory_remote_credential_ready":
-      return [
-        "No credential remediation is needed.",
-        "Continue with probe or acquire only in an operator-controlled environment.",
-      ];
-    default:
-      return [
-        "Review the remote provider configuration and keep credential values outside plugin data surfaces.",
-      ];
-  }
-}
-
-function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>): RemoteCredentialDiagnosticsForReadiness & {
-  credentialSource: string | null;
-  checkedConfig: {
-    configSupplied: boolean;
-    mode: "remote";
-    endpointPresent: boolean;
-    apiKeyPresent: boolean;
-    apiKeySecretRefPresent: boolean;
-    apiKeySecretRefScheme: "none" | "env" | "env_url" | "unsupported";
-  };
-} {
-  const config = recordBody(params.config);
-  if (!config) {
-    const code = "dark_factory_remote_credential_config_not_supplied";
-    return {
-      ...projectionBoundary(),
-      observationSource: RUNTIME_OBSERVATION_SOURCE,
-      runtimeMode: "remote",
-      ok: false,
-      credentialSource: null,
-      checkedConfig: {
-        configSupplied: false,
-        mode: "remote",
-        endpointPresent: false,
-        apiKeyPresent: false,
-        apiKeySecretRefPresent: false,
-        apiKeySecretRefScheme: "none",
-      },
-      diagnostics: [
-        {
-          severity: "info",
-          code,
-          message: "No remote credential config was supplied to the settings surface",
-          details: { mode: "remote" },
-          remediation: credentialRemediation(code),
-        },
-      ],
-      terminalStateAdvanced: false,
-    };
-  }
-
-  const remoteConfig: Record<string, unknown> = { ...config, mode: "remote" };
-  const validation = validateHttpCredentialConfig(remoteConfig);
-  const apiKeySecretRef = stringField(remoteConfig.apiKeySecretRef);
-  const checkedConfig = {
-    configSupplied: true,
-    mode: "remote" as const,
-    endpointPresent: stringField(remoteConfig.endpoint) !== null,
-    apiKeyPresent: stringField(remoteConfig.apiKey) !== null,
-    apiKeySecretRefPresent: apiKeySecretRef !== null,
-    apiKeySecretRefScheme: apiKeySecretRefScheme(apiKeySecretRef),
-  };
-
-  if (validation.ok) {
-    const code = "dark_factory_remote_credential_ready";
-    return {
-      ...projectionBoundary(),
-      observationSource: RUNTIME_OBSERVATION_SOURCE,
-      runtimeMode: "remote",
-      ok: true,
-      credentialSource: validation.credentialSource,
-      checkedConfig,
-      diagnostics: [
-        {
-          severity: "info",
-          code,
-          message: `Remote credential check passed using ${validation.credentialSource} credential`,
-          details: { credentialSource: validation.credentialSource },
-          remediation: credentialRemediation(code),
-        },
-      ],
-      terminalStateAdvanced: false,
-    };
-  }
-
-  return {
-    ...projectionBoundary(),
-    observationSource: RUNTIME_OBSERVATION_SOURCE,
-    runtimeMode: "remote",
-    ok: false,
-    credentialSource: null,
-    checkedConfig,
-    diagnostics: [
-      {
-        severity: "error",
-        code: validation.code,
-        message: validation.message,
-        details: {
-          mode: "remote",
-          apiKeySecretRefScheme: checkedConfig.apiKeySecretRefScheme,
-          ...(stringField(validation.details.envName) ? { envName: stringField(validation.details.envName) } : {}),
-        },
-        remediation: credentialRemediation(validation.code),
-      },
-    ],
-    terminalStateAdvanced: false,
-  };
-}
-
-function apiKeySecretRefScheme(secretRef: string | null): "none" | "env" | "env_url" | "unsupported" {
-  if (!secretRef) return "none";
-  if (secretRef.startsWith("env://")) return "env_url";
-  if (secretRef.startsWith("env:")) return "env";
-  return "unsupported";
 }
 
 function idempotencyKeyFrom(input: PluginApiRequestInput, body: Record<string, unknown> | null): string | null {
@@ -392,71 +144,28 @@ const plugin = definePlugin({
     });
 
     ctx.data.register("remote-observability-snapshot", async (params) => {
-      const observations = remoteObservationsFromParams(params);
-      const snapshot = buildRemoteProviderMetricsSnapshot(observations, {
-        expectedSequenceNo: numberField(params.expectedSequenceNo),
-      });
+      const activeContext = buildRemoteProviderActiveContext(params);
       return {
         ...projectionBoundary(),
         observationSource: RUNTIME_OBSERVATION_SOURCE,
         runtimeMode: "remote",
-        sampledObservationCount: observations.length,
-        snapshot,
-        alerts: buildRemoteProviderAlertCandidates(snapshot, {
-          errorRateWarningThreshold: numberField(params.errorRateWarningThreshold) ?? undefined,
-          latencyWarningThresholdMs: numberField(params.latencyWarningThresholdMs) ?? undefined,
-          cursorLagWarningThreshold: numberField(params.cursorLagWarningThreshold) ?? undefined,
-        }),
+        sampledObservationCount: activeContext.sampledObservationCount,
+        snapshot: activeContext.metricsSnapshot,
+        alerts: activeContext.alertCandidates,
         terminalStateAdvanced: false,
       };
     });
 
     ctx.data.register("remote-credential-diagnostics", async (params) => {
-      return remoteCredentialDiagnosticsFromParams(params);
+      return buildRemoteProviderActiveContext(params).credentialDiagnostics;
     });
 
     ctx.data.register("remote-breaker-evaluation", async (params) => {
-      return evaluateRemoteCircuitBreaker({
-        previous: previousBreakerFromParams(params),
-        observations: remoteObservationsFromParams(params),
-        evaluatedAt: stringField(params.evaluatedAt) ?? new Date(0).toISOString(),
-        policy: {
-          failureThreshold: numberField(params.failureThreshold) ?? undefined,
-          cooldownMs: numberField(params.cooldownMs) ?? undefined,
-          halfOpenSuccessThreshold: numberField(params.halfOpenSuccessThreshold) ?? undefined,
-        },
-      });
+      return buildRemoteProviderActiveContext(params).breakerEvaluation;
     });
 
     ctx.data.register("remote-provider-readiness", async (params) => {
-      const observations = remoteObservationsFromParams(params);
-      const snapshot = buildRemoteProviderMetricsSnapshot(observations, {
-        expectedSequenceNo: numberField(params.expectedSequenceNo),
-      });
-      const alerts = buildRemoteProviderAlertCandidates(snapshot, {
-        errorRateWarningThreshold: numberField(params.errorRateWarningThreshold) ?? undefined,
-        latencyWarningThresholdMs: numberField(params.latencyWarningThresholdMs) ?? undefined,
-        cursorLagWarningThreshold: numberField(params.cursorLagWarningThreshold) ?? undefined,
-      });
-      const breakerEvaluation = evaluateRemoteCircuitBreaker({
-        previous: previousBreakerFromParams(params),
-        observations,
-        evaluatedAt: stringField(params.evaluatedAt) ?? new Date(0).toISOString(),
-        policy: {
-          failureThreshold: numberField(params.failureThreshold) ?? undefined,
-          cooldownMs: numberField(params.cooldownMs) ?? undefined,
-          halfOpenSuccessThreshold: numberField(params.halfOpenSuccessThreshold) ?? undefined,
-        },
-      });
-      return buildRemoteProviderReadinessReport({
-        credentialDiagnostics: remoteCredentialDiagnosticsFromParams(params),
-        metricsSnapshot: snapshot,
-        alertCandidates: alerts,
-        breakerEvaluation,
-        sampledObservationCount: observations.length,
-        checkedAt: stringField(params.checkedAt) ?? stringField(params.evaluatedAt) ?? new Date(0).toISOString(),
-        previousReadiness: previousReadinessFromParams(params),
-      });
+      return buildRemoteProviderReadinessReport(buildRemoteProviderActiveContext(params).readinessInput);
     });
 
     ctx.actions.register("request-rehydrate", async (params) => {

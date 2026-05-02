@@ -673,6 +673,60 @@ Validation after hardening batch 14:
 - `pnpm test` passed: 11 files passed, 1 gated file skipped, 98 tests passed,
   1 skipped.
 
+## Hardening Batch 15
+
+Remote provider alpha hardening batch 15 added an active context ingestion
+layer for readiness-related data surfaces.
+
+### Active Context Builder
+
+Added `src/remote-provider-active-context.ts`.
+
+The builder normalizes the current settings/runtime params into one structured
+context containing:
+
+- checked/evaluated timestamps
+- expected Journal sequence number
+- normalized remote observations
+- credential diagnostics
+- metrics snapshot
+- alert candidates
+- circuit breaker evaluation
+- previous readiness evidence
+- direct `RemoteProviderReadinessInput`
+
+### Worker Integration
+
+The worker now uses the active context builder for:
+
+- `remote-observability-snapshot`
+- `remote-credential-diagnostics`
+- `remote-breaker-evaluation`
+- `remote-provider-readiness`
+
+This keeps host/runtime input parsing in one place and prepares the bridge for
+future host-supplied active environment driver config, observations, previous
+breaker state, and previous readiness evidence.
+
+### Tests
+
+Added `tests/remote-provider-active-context.spec.ts` with coverage for:
+
+- normalization of active readiness inputs
+- credential diagnostics without exposing resolved values
+- previous breaker/readiness evidence ingestion
+- parity between `context.readinessInput` and a manually assembled readiness
+  report input
+- deterministic behavior for identical params
+- safe defaults for invalid inputs
+
+Validation after hardening batch 15:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 12 files passed, 1 gated file skipped, 101 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.
