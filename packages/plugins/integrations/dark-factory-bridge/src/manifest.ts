@@ -56,6 +56,10 @@ const manifest: PaperclipPluginManifestV1 = {
             type: "number",
             default: 10000
           },
+          apiKey: {
+            type: "string",
+            description: "API key for the local Dark Factory HTTP server. Prefer an environment-scoped secret reference in production."
+          },
           requestedBy: {
             type: "string",
             default: "paperclip-dark-factory-bridge"
@@ -67,6 +71,23 @@ const manifest: PaperclipPluginManifestV1 = {
           },
           routePolicyRef: {
             type: "string"
+          },
+          retryMaxRetries: {
+            type: "number",
+            default: 3
+          },
+          retryBaseDelayMs: {
+            type: "number",
+            default: 500
+          },
+          retryMaxDelayMs: {
+            type: "number",
+            default: 5000
+          },
+          retryableStatuses: {
+            type: "array",
+            items: { type: "number" },
+            default: [502, 503, 504]
           }
         },
         required: ["mode"]

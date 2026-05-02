@@ -102,6 +102,10 @@ describe("Dark Factory environment lifecycle hooks", () => {
         timeoutMs: 2500,
         requestedBy: "paperclip-dark-factory-bridge",
         workloadClass: "code",
+        retryMaxRetries: 3,
+        retryBaseDelayMs: 500,
+        retryMaxDelayMs: 5000,
+        retryableStatuses: [502, 503, 504],
       },
     });
     expect(rejected).toEqual({

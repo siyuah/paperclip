@@ -16,6 +16,13 @@ import {
 
 type JsonObject = Record<string, unknown>;
 
+type RetryConfig = {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  retryableStatuses: number[];
+};
+
 type HttpRuntimeConfig = {
   mode: "http";
   endpoint: string;
@@ -23,6 +30,8 @@ type HttpRuntimeConfig = {
   routePolicyRef?: string;
   requestedBy: string;
   workloadClass: string;
+  apiKey?: string;
+  retry: RetryConfig;
 };
 
 type RunView = {
@@ -87,6 +96,8 @@ export function parseHttpRuntimeConfig(config: Record<string, unknown>): HttpRun
     routePolicyRef: stringField(config.routePolicyRef) ?? undefined,
     requestedBy: stringField(config.requestedBy) ?? "paperclip-dark-factory-bridge",
     workloadClass: stringField(config.workloadClass) ?? "code",
+    apiKey: stringField(config.apiKey) ?? undefined,
+    retry: parseRetryConfig(config),
   };
 }
 
@@ -98,7 +109,12 @@ export function normalizeHttpEnvironmentConfig(config: Record<string, unknown>):
     timeoutMs: parsed.timeoutMs,
     requestedBy: parsed.requestedBy,
     workloadClass: parsed.workloadClass,
+    retryMaxRetries: parsed.retry.maxRetries,
+    retryBaseDelayMs: parsed.retry.baseDelayMs,
+    retryMaxDelayMs: parsed.retry.maxDelayMs,
+    retryableStatuses: parsed.retry.retryableStatuses,
     ...(parsed.routePolicyRef ? { routePolicyRef: parsed.routePolicyRef } : {}),
+    ...(parsed.apiKey ? { apiKey: parsed.apiKey } : {}),
   };
 }
 
@@ -161,36 +177,107 @@ export class DarkFactoryHttpClient {
   }
 
   private async request<T>(method: "GET" | "POST", path: string, body?: JsonObject): Promise<T> {
+    const url = `${this.config.endpoint}/api${path}`;
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= this.config.retry.maxRetries; attempt += 1) {
+      const startedAt = Date.now();
+      let loggedHttpResponseError = false;
+      try {
+        const response = await this.fetchOnce(url, method, body);
+        const durationMs = Date.now() - startedAt;
+        const payload = await readJson(response);
+        if (!response.ok) {
+          const errorPayload = record(payload);
+          const message = stringField(errorPayload.message) ?? response.statusText;
+          const code = stringField(errorPayload.errorCode) ?? `http_${response.status}`;
+          const error = new DarkFactoryHttpError(code, message, response.status, errorPayload);
+          logHttpRequest({
+            endpoint: this.config.endpoint,
+            method,
+            path,
+            status: response.status,
+            durationMs,
+            attempt,
+            errorType: error.name,
+            errorMessage: error.message,
+          });
+          loggedHttpResponseError = true;
+          if (this.shouldRetryStatus(response.status, attempt)) {
+            lastError = error;
+            await delay(this.retryDelay(attempt));
+            continue;
+          }
+          throw error;
+        }
+        logHttpRequest({
+          endpoint: this.config.endpoint,
+          method,
+          path,
+          status: response.status,
+          durationMs,
+          attempt,
+        });
+        return payload as T;
+      } catch (error) {
+        if (error instanceof DarkFactoryHttpError && loggedHttpResponseError) {
+          throw error;
+        }
+        const mapped = mapFetchError(error, this.config.timeoutMs);
+        const durationMs = Date.now() - startedAt;
+        logHttpRequest({
+          endpoint: this.config.endpoint,
+          method,
+          path,
+          status: mapped.status,
+          durationMs,
+          attempt,
+          errorType: mapped.name,
+          errorMessage: mapped.message,
+        });
+        if (error instanceof DarkFactoryHttpError && !this.shouldRetryStatus(error.status, attempt)) {
+          throw error;
+        }
+        if (!(error instanceof DarkFactoryHttpError) && !this.shouldRetryStatus(mapped.status, attempt)) {
+          throw mapped;
+        }
+        lastError = error instanceof DarkFactoryHttpError ? error : mapped;
+        await delay(this.retryDelay(attempt));
+      }
+    }
+    if (lastError instanceof DarkFactoryHttpError) throw lastError;
+    throw mapFetchError(lastError, this.config.timeoutMs);
+  }
+
+  private async fetchOnce(url: string, method: "GET" | "POST", body?: JsonObject): Promise<Response> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    const headers: Record<string, string> = {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "x-protocol-release-tag": DARK_FACTORY_PROTOCOL_RELEASE_TAG,
+    };
+    if (this.config.apiKey) {
+      headers["x-api-key"] = this.config.apiKey;
+    }
     try {
-      const response = await fetch(`${this.config.endpoint}/api${path}`, {
+      return await fetch(url, {
         method,
-        headers: {
-          "accept": "application/json",
-          "content-type": "application/json",
-          "x-protocol-release-tag": DARK_FACTORY_PROTOCOL_RELEASE_TAG,
-        },
+        headers,
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
-      const payload = await readJson(response);
-      if (!response.ok) {
-        const errorPayload = record(payload);
-        const message = stringField(errorPayload.message) ?? response.statusText;
-        const code = stringField(errorPayload.errorCode) ?? `http_${response.status}`;
-        throw new DarkFactoryHttpError(code, message, response.status, errorPayload);
-      }
-      return payload as T;
-    } catch (error) {
-      if (error instanceof DarkFactoryHttpError) throw error;
-      if ((error as Error).name === "AbortError") {
-        throw new DarkFactoryHttpError("dark_factory_http_timeout", `Dark Factory HTTP request timed out after ${this.config.timeoutMs}ms`, 504);
-      }
-      throw new DarkFactoryHttpError("dark_factory_http_unreachable", (error as Error).message, 503);
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  private shouldRetryStatus(status: number, attempt: number): boolean {
+    return attempt < this.config.retry.maxRetries && this.config.retry.retryableStatuses.includes(status);
+  }
+
+  private retryDelay(attempt: number): number {
+    const rawDelay = this.config.retry.baseDelayMs * 2 ** attempt;
+    return Math.min(rawDelay, this.config.retry.maxDelayMs);
   }
 }
 
@@ -596,4 +683,71 @@ function numberField(value: unknown): number | null {
 
 function record(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
+}
+
+function parseRetryConfig(config: Record<string, unknown>): RetryConfig {
+  return {
+    maxRetries: nonNegativeIntegerField(config.retryMaxRetries) ?? 3,
+    baseDelayMs: positiveIntegerField(config.retryBaseDelayMs) ?? 500,
+    maxDelayMs: positiveIntegerField(config.retryMaxDelayMs) ?? 5000,
+    retryableStatuses: numberListField(config.retryableStatuses) ?? [502, 503, 504],
+  };
+}
+
+function positiveIntegerField(value: unknown): number | null {
+  const parsed = numberField(value);
+  return parsed !== null && Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function nonNegativeIntegerField(value: unknown): number | null {
+  const parsed = numberField(value);
+  return parsed !== null && Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function numberListField(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  const parsed = value.map((item) => numberField(item));
+  if (parsed.some((item) => item === null || !Number.isInteger(item))) return null;
+  return parsed as number[];
+}
+
+function mapFetchError(error: unknown, timeoutMs: number): DarkFactoryHttpError {
+  if (error instanceof DarkFactoryHttpError) return error;
+  if ((error as Error | undefined)?.name === "AbortError") {
+    return new DarkFactoryHttpError("dark_factory_http_timeout", `Dark Factory HTTP request timed out after ${timeoutMs}ms`, 504);
+  }
+  return new DarkFactoryHttpError("dark_factory_http_unreachable", (error as Error).message, 503);
+}
+
+function delay(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function logHttpRequest(fields: {
+  endpoint: string;
+  method: string;
+  path: string;
+  status: number;
+  durationMs: number;
+  attempt: number;
+  errorType?: string;
+  errorMessage?: string;
+}): void {
+  const payload = {
+    component: "dark-factory-http-client",
+    endpoint: fields.endpoint,
+    method: fields.method,
+    path: fields.path,
+    status: fields.status,
+    duration_ms: fields.durationMs,
+    attempt: fields.attempt,
+    ...(fields.errorType ? { error_type: fields.errorType } : {}),
+    ...(fields.errorMessage ? { error_message: fields.errorMessage } : {}),
+  };
+  if (fields.errorType || fields.status >= 500) {
+    console.warn(JSON.stringify(payload));
+  } else {
+    console.info(JSON.stringify(payload));
+  }
 }

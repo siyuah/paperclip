@@ -9,6 +9,7 @@ const DARK_FACTORY_ROOT = "/home/siyuah/workspace/123";
 const DARK_FACTORY_PYTHON = `${DARK_FACTORY_ROOT}/.venv312/bin/python`;
 const SERVER_PORT = 9781;
 const SERVER_ENDPOINT = `http://127.0.0.1:${SERVER_PORT}`;
+const SERVER_API_KEY = "test-dark-factory-api-key";
 
 const driverParams = {
   driverKey: "dark-factory-mock",
@@ -18,6 +19,8 @@ const driverParams = {
     mode: "http",
     endpoint: SERVER_ENDPOINT,
     timeoutMs: 5000,
+    apiKey: SERVER_API_KEY,
+    retryMaxRetries: 0,
     requestedBy: "paperclip-http-integration-test",
     workloadClass: "code",
   },
@@ -59,6 +62,7 @@ describe("Dark Factory HTTP integration", () => {
         env: {
           ...process.env,
           PYTHONUNBUFFERED: "1",
+          DF_API_KEY: SERVER_API_KEY,
         },
       },
     );
