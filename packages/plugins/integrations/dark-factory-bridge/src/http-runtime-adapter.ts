@@ -23,8 +23,10 @@ type RetryConfig = {
   retryableStatuses: number[];
 };
 
+export type DarkFactoryHttpRuntimeMode = "http" | "remote";
+
 type HttpRuntimeConfig = {
-  mode: "http";
+  mode: DarkFactoryHttpRuntimeMode;
   endpoint: string;
   timeoutMs: number;
   routePolicyRef?: string;
@@ -73,9 +75,10 @@ type HealthView = {
 };
 
 export function parseHttpRuntimeConfig(config: Record<string, unknown>): HttpRuntimeConfig {
+  const mode = httpRuntimeModeFromConfig(config);
   const endpoint = stringField(config.endpoint);
   if (!endpoint) {
-    throw new Error("endpoint is required for http mode");
+    throw new Error(`endpoint is required for ${mode} mode`);
   }
   let parsed: URL;
   try {
@@ -91,7 +94,7 @@ export function parseHttpRuntimeConfig(config: Record<string, unknown>): HttpRun
     throw new Error("timeoutMs must be a positive number");
   }
   return {
-    mode: "http",
+    mode,
     endpoint: parsed.toString().replace(/\/$/, ""),
     timeoutMs,
     routePolicyRef: stringField(config.routePolicyRef) ?? undefined,
@@ -106,7 +109,7 @@ export function parseHttpRuntimeConfig(config: Record<string, unknown>): HttpRun
 export function normalizeHttpEnvironmentConfig(config: Record<string, unknown>): Record<string, unknown> {
   const parsed = parseHttpRuntimeConfig(config);
   return {
-    mode: "http",
+    mode: parsed.mode,
     endpoint: parsed.endpoint,
     timeoutMs: parsed.timeoutMs,
     requestedBy: parsed.requestedBy,
@@ -119,6 +122,14 @@ export function normalizeHttpEnvironmentConfig(config: Record<string, unknown>):
     ...(parsed.apiKey ? { apiKey: parsed.apiKey } : {}),
     ...(parsed.apiKeySecretRef ? { apiKeySecretRef: parsed.apiKeySecretRef } : {}),
   };
+}
+
+export function isDarkFactoryHttpRuntimeMode(value: unknown): value is DarkFactoryHttpRuntimeMode {
+  return value === "http" || value === "remote";
+}
+
+export function httpRuntimeModeFromConfig(config: Record<string, unknown>): DarkFactoryHttpRuntimeMode {
+  return config.mode === "remote" ? "remote" : "http";
 }
 
 export class DarkFactoryHttpClient {
@@ -301,13 +312,14 @@ export function httpClientFromConfig(config: Record<string, unknown>): DarkFacto
 }
 
 export async function buildHttpProjectionSummary(issueId: string, config: Record<string, unknown>): Promise<JsonObject> {
+  const runtimeMode = httpRuntimeModeFromConfig(config);
   const client = httpClientFromConfig(config);
   const run = await ensureRun(client, issueId, "projection-summary");
   const routeDecisions = await client.routeDecisions(run.runId);
   return {
     ...projectionBoundary(),
     disclaimer: PROJECTION_DISCLAIMER,
-    runtimeMode: "http",
+    runtimeMode,
     projectionStatus: projectionStatusForRun(run),
     issueId,
     runId: run.runId,
@@ -318,25 +330,26 @@ export async function buildHttpProjectionSummary(issueId: string, config: Record
     staleReason: null,
     degradedReason: null,
     blockedReason: run.blockedBy.length > 0 ? run.blockedBy.join(",") : null,
-    projection: httpRuntimeProjection(issueId, run, routeDecisions),
-    providerHealth: httpProviderHealth(run),
-    runtimeImpact: httpRuntimeImpact(run),
-    runAttemptMetadata: httpRunAttemptMetadata(run),
+    projection: httpRuntimeProjection(issueId, run, routeDecisions, runtimeMode),
+    providerHealth: httpProviderHealth(run, runtimeMode),
+    runtimeImpact: httpRuntimeImpact(run, runtimeMode),
+    runAttemptMetadata: httpRunAttemptMetadata(run, runtimeMode),
   };
 }
 
 export async function probeHttpEnvironment(params: PluginEnvironmentProbeParams): Promise<{ ok: boolean; summary: string; metadata: JsonObject; diagnostics?: Array<{ severity: "info" | "warning" | "error"; message: string; code?: string; details?: JsonObject }> }> {
+  const runtimeMode = httpRuntimeModeFromConfig(params.config);
   try {
     const health = await httpClientFromConfig(params.config).health();
     return {
       ok: true,
-      summary: "Dark Factory HTTP environment ready",
+      summary: runtimeMode === "remote" ? "Dark Factory remote environment ready" : "Dark Factory HTTP environment ready",
       metadata: {
         ...projectionBoundary(),
         observationSource: RUNTIME_OBSERVATION_SOURCE,
         driverKey: params.driverKey,
         environmentId: params.environmentId,
-        runtimeMode: "http",
+        runtimeMode,
         health,
         terminalStateAdvanced: false,
       },
@@ -345,7 +358,7 @@ export async function probeHttpEnvironment(params: PluginEnvironmentProbeParams)
     const mapped = mapHttpError(error);
     return {
       ok: false,
-      summary: "Dark Factory HTTP environment unavailable",
+      summary: runtimeMode === "remote" ? "Dark Factory remote environment unavailable" : "Dark Factory HTTP environment unavailable",
       diagnostics: [
         {
           severity: "error",
@@ -359,7 +372,7 @@ export async function probeHttpEnvironment(params: PluginEnvironmentProbeParams)
         observationSource: RUNTIME_OBSERVATION_SOURCE,
         driverKey: params.driverKey,
         environmentId: params.environmentId,
-        runtimeMode: "http",
+        runtimeMode,
         terminalStateAdvanced: false,
       },
     };
@@ -367,6 +380,7 @@ export async function probeHttpEnvironment(params: PluginEnvironmentProbeParams)
 }
 
 export async function acquireHttpLease(params: PluginEnvironmentAcquireLeaseParams): Promise<PluginEnvironmentLease> {
+  const runtimeMode = httpRuntimeModeFromConfig(params.config);
   const client = httpClientFromConfig(params.config);
   const traceId = traceIdForRun(params.runId, "lease");
   const run = await client.createExternalRun({
@@ -374,16 +388,18 @@ export async function acquireHttpLease(params: PluginEnvironmentAcquireLeasePara
     traceId,
     inputRef: `paperclip://runs/${encodeURIComponent(params.runId)}`,
   });
-  return leaseFromRun(run, params, { acquiredLease: true });
+  return leaseFromRun(run, params, { acquiredLease: true }, runtimeMode);
 }
 
 export async function resumeHttpLease(params: PluginEnvironmentResumeLeaseParams): Promise<PluginEnvironmentLease> {
+  const runtimeMode = httpRuntimeModeFromConfig(params.config);
   const runId = runIdFromLease(params.providerLeaseId, params.leaseMetadata);
   const run = await httpClientFromConfig(params.config).getExternalRun(runId);
-  return leaseFromRun(run, params, { resumedLease: true });
+  return leaseFromRun(run, params, { resumedLease: true }, runtimeMode);
 }
 
 export async function executeHttpEnvironment(params: PluginEnvironmentExecuteParams) {
+  const runtimeMode = httpRuntimeModeFromConfig(params.config);
   const runId = stringField(params.lease.metadata?.runId) ?? runIdFromLease(params.lease.providerLeaseId, params.lease.metadata);
   const client = httpClientFromConfig(params.config);
   const before = await client.getExternalRun(runId);
@@ -407,7 +423,7 @@ export async function executeHttpEnvironment(params: PluginEnvironmentExecutePar
   const routeDecisions = await client.routeDecisions(runId);
   const summary = {
     ...projectionBoundary(),
-    runtimeMode: "http",
+    runtimeMode,
     runId,
     command: params.command,
     runState: after.runState,
@@ -422,17 +438,17 @@ export async function executeHttpEnvironment(params: PluginEnvironmentExecutePar
     stderr: "",
     metadata: {
       ...projectionBoundary(),
-      runtimeMode: "http",
+      runtimeMode,
       terminalStateAdvanced: false,
       disclaimer: PROJECTION_DISCLAIMER,
-      projection: httpRuntimeProjection(runId, after, routeDecisions),
+      projection: httpRuntimeProjection(runId, after, routeDecisions, runtimeMode),
       runBefore: before,
       runAfter: after,
       routeDecisions,
-      providerHealth: httpProviderHealth(after),
-      runtimeImpact: httpRuntimeImpact(after),
-      runAttemptMetadata: httpRunAttemptMetadata(after),
-      cursor: httpJournalCursor(after),
+      providerHealth: httpProviderHealth(after, runtimeMode),
+      runtimeImpact: httpRuntimeImpact(after, runtimeMode),
+      runAttemptMetadata: httpRunAttemptMetadata(after, runtimeMode),
+      cursor: httpJournalCursor(after, runtimeMode),
     },
   };
 }
@@ -477,16 +493,17 @@ async function ensureRun(client: DarkFactoryHttpClient, runId: string, reason: s
   }
 }
 
-function httpRuntimeProjection(issueId: string, run: RunView, routeDecisions: RouteDecisionView[]): JsonObject {
+function httpRuntimeProjection(issueId: string, run: RunView, routeDecisions: RouteDecisionView[], runtimeMode: DarkFactoryHttpRuntimeMode): JsonObject {
   const status = projectionStatusForRun(run);
   return {
     ...projectionBoundary(),
     disclaimer: PROJECTION_DISCLAIMER,
+    runtimeMode,
     issueId,
     runId: run.runId,
     linkedRunId: run.runId,
     journalCursor: run.journalCursor ?? journalCursorFallback(run),
-    journalCursorMetadata: httpJournalCursor(run),
+    journalCursorMetadata: httpJournalCursor(run, runtimeMode),
     lastSequenceNo: run.lastSequenceNo ?? 0,
     projectionStatus: status,
     callbackReceiptId: `df-http-${run.runId}`,
@@ -496,7 +513,7 @@ function httpRuntimeProjection(issueId: string, run: RunView, routeDecisions: Ro
     fallbackTriggered: false,
     terminalStateAdvanced: false,
     projectionId: `df-http-projection-${run.runId}`,
-    sourceJournalRef: run.sourceJournalRef ?? "dark-factory-http",
+    sourceJournalRef: run.sourceJournalRef ?? sourceJournalRefFallback(runtimeMode),
     projectionJson: {
       issueId,
       runId: run.runId,
@@ -508,7 +525,7 @@ function httpRuntimeProjection(issueId: string, run: RunView, routeDecisions: Ro
       receiptId: `df-http-${run.runId}`,
       status: "observed",
       terminalStateAdvanced: false,
-      idempotencyKey: `http:${run.runId}:${run.lastSequenceNo ?? 0}`,
+      idempotencyKey: `${runtimeMode}:${run.runId}:${run.lastSequenceNo ?? 0}`,
     },
     flags: {
       degraded: false,
@@ -522,18 +539,19 @@ function httpRuntimeProjection(issueId: string, run: RunView, routeDecisions: Ro
   };
 }
 
-function httpJournalCursor(run: RunView): JsonObject {
+function httpJournalCursor(run: RunView, runtimeMode: DarkFactoryHttpRuntimeMode): JsonObject {
   const lastSequenceNo = run.lastSequenceNo ?? 0;
   const cursor = run.journalCursor ?? journalCursorFallback(run);
   return {
     ...projectionBoundary(),
-    cursorId: `df-http-cursor-${run.runId}`,
+    runtimeMode,
+    cursorId: `df-${runtimeMode}-cursor-${run.runId}`,
     runId: run.runId,
     journalCursor: cursor,
     lastSequenceNo,
     lastJournalSequenceNo: lastSequenceNo,
     journalRef: cursor,
-    sourceJournalRef: run.sourceJournalRef ?? "dark-factory-http",
+    sourceJournalRef: run.sourceJournalRef ?? sourceJournalRefFallback(runtimeMode),
     monotonic: true,
     gapDetected: false,
     cursorMonotonicity: {
@@ -544,10 +562,11 @@ function httpJournalCursor(run: RunView): JsonObject {
   };
 }
 
-function httpProviderHealth(run: RunView): JsonObject {
+function httpProviderHealth(run: RunView, runtimeMode: DarkFactoryHttpRuntimeMode): JsonObject {
   const blocked = run.blockedBy.length > 0;
   return {
     ...projectionBoundary(),
+    runtimeMode,
     observationSource: RUNTIME_OBSERVATION_SOURCE,
     providerRole: "primary_execution",
     modelRole: "execution_model",
@@ -572,9 +591,10 @@ function httpProviderHealth(run: RunView): JsonObject {
   };
 }
 
-function httpRuntimeImpact(run: RunView): JsonObject {
+function httpRuntimeImpact(run: RunView, runtimeMode: DarkFactoryHttpRuntimeMode): JsonObject {
   const blocked = run.blockedBy.length > 0;
   return {
+    runtimeMode,
     mode: blocked ? "blocked" : "available",
     severity: blocked ? "critical" : "info",
     operatorAction: blocked ? "pause_external_execution_and_reconcile_journal" : "monitor",
@@ -584,9 +604,10 @@ function httpRuntimeImpact(run: RunView): JsonObject {
   };
 }
 
-function httpRunAttemptMetadata(run: RunView): JsonObject {
+function httpRunAttemptMetadata(run: RunView, runtimeMode: DarkFactoryHttpRuntimeMode): JsonObject {
   return {
     ...projectionBoundary(),
+    runtimeMode,
     providerRole: "primary_execution",
     modelRole: "execution_model",
     failureClass: run.blockedBy.length > 0 ? "runtime_blocked" : "none",
@@ -609,9 +630,10 @@ function leaseFromRun(
   run: RunView,
   params: Pick<PluginEnvironmentAcquireLeaseParams | PluginEnvironmentResumeLeaseParams, "driverKey" | "environmentId">,
   extra: JsonObject,
+  runtimeMode: DarkFactoryHttpRuntimeMode,
 ): PluginEnvironmentLease {
   return {
-    providerLeaseId: leaseIdForRun(run.runId),
+    providerLeaseId: leaseIdForRun(run.runId, runtimeMode),
     expiresAt: null,
     metadata: {
       ...projectionBoundary(),
@@ -619,18 +641,18 @@ function leaseFromRun(
       driverKey: params.driverKey,
       environmentId: params.environmentId,
       runId: run.runId,
-      runtimeMode: "http",
+      runtimeMode,
       run,
-      journalCursor: httpJournalCursor(run),
-      providerHealth: httpProviderHealth(run),
-      runtimeImpact: httpRuntimeImpact(run),
+      journalCursor: httpJournalCursor(run, runtimeMode),
+      providerHealth: httpProviderHealth(run, runtimeMode),
+      runtimeImpact: httpRuntimeImpact(run, runtimeMode),
       terminalStateAdvanced: false,
     },
   };
 }
 
-function leaseIdForRun(runId: string): string {
-  return `df-http-lease-${runId.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+function leaseIdForRun(runId: string, runtimeMode: DarkFactoryHttpRuntimeMode): string {
+  return `df-${runtimeMode}-lease-${runId.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
 }
 
 function attemptIdForRun(runId: string): string {
@@ -652,13 +674,17 @@ function rehydrationTokenForRun(runId: string): string {
 function runIdFromLease(providerLeaseId: string | null | undefined, metadata?: Record<string, unknown>): string {
   const metadataRunId = stringField(metadata?.runId);
   if (metadataRunId) return metadataRunId;
-  const leaseRunId = stringField(providerLeaseId)?.replace(/^df-http-lease-/, "");
+  const leaseRunId = stringField(providerLeaseId)?.replace(/^df-(?:http|remote)-lease-/, "");
   if (leaseRunId) return leaseRunId;
   throw new Error("runId is required to resume an HTTP Dark Factory lease");
 }
 
 function journalCursorFallback(run: RunView): string {
   return `dark-factory://journal/${run.runId}#${run.lastSequenceNo ?? 0}`;
+}
+
+function sourceJournalRefFallback(runtimeMode: DarkFactoryHttpRuntimeMode): string {
+  return runtimeMode === "remote" ? "dark-factory-remote" : "dark-factory-http";
 }
 
 async function readJson(response: Response): Promise<unknown> {

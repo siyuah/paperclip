@@ -33,19 +33,19 @@ const manifest: PaperclipPluginManifestV1 = {
       driverKey: "dark-factory-mock",
       kind: "environment_driver",
       displayName: "Dark Factory Bridge",
-      description: "Dark Factory environment driver with deterministic mock mode and local HTTP mode. Projection is non-authoritative; Dark Factory Journal remains truth source.",
+      description: "Dark Factory environment driver with deterministic mock mode, live-local HTTP mode, and remote provider alpha mode. Projection is non-authoritative; Dark Factory Journal remains truth source.",
       configSchema: {
         type: "object",
         additionalProperties: false,
         properties: {
           mode: {
             type: "string",
-            enum: ["mock", "http"],
+            enum: ["mock", "http", "remote"],
             default: "mock"
           },
           endpoint: {
             type: "string",
-            description: "Dark Factory HTTP endpoint for http mode, for example http://127.0.0.1:9701."
+            description: "Dark Factory HTTP endpoint for http or remote mode, for example http://127.0.0.1:9701 or a trusted remote URL."
           },
           projectionMode: {
             type: "string",

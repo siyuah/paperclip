@@ -11,6 +11,7 @@ import {
   acquireHttpLease,
   buildHttpProjectionSummary,
   executeHttpEnvironment,
+  isDarkFactoryHttpRuntimeMode,
   mapHttpError,
   normalizeHttpEnvironmentConfig,
   probeHttpEnvironment,
@@ -79,7 +80,7 @@ function projectionBoundary() {
 }
 
 function normalizeEnvironmentConfig(config: Record<string, unknown>): Record<string, unknown> {
-  if (config.mode === "http") {
+  if (isDarkFactoryHttpRuntimeMode(config.mode)) {
     return normalizeHttpEnvironmentConfig(config);
   }
   const { mode: _mode, ...rest } = config;
@@ -120,7 +121,7 @@ function idempotencyKeyFrom(input: PluginApiRequestInput, body: Record<string, u
 }
 
 function isHttpMode(config: Record<string, unknown>): boolean {
-  return config.mode === "http";
+  return isDarkFactoryHttpRuntimeMode(config.mode);
 }
 
 const plugin = definePlugin({
@@ -239,7 +240,7 @@ const plugin = definePlugin({
   },
 
   async onEnvironmentValidateConfig(params) {
-    if (params.config.mode === "http") {
+    if (isDarkFactoryHttpRuntimeMode(params.config.mode)) {
       try {
         return {
           ok: true,

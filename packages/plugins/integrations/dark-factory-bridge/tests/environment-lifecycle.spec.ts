@@ -52,7 +52,7 @@ describe("Dark Factory environment lifecycle hooks", () => {
               description: expect.stringContaining("HTTP endpoint"),
             }),
             mode: expect.objectContaining({
-              enum: ["mock", "http"],
+              enum: ["mock", "http", "remote"],
             }),
           }),
         }),
