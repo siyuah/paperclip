@@ -223,6 +223,18 @@ type RemoteProviderReadiness = {
     doesAuthorizeRemoteExecution: false;
     terminalStateAdvanced: false;
   };
+  readinessTransition: {
+    transitionKind: string;
+    previousStatus: string | null;
+    currentStatus: string;
+    previousNextSafeHook: string | null;
+    currentNextSafeHook: string;
+    previousReceiptDigest: string | null;
+    currentReceiptDigest: string;
+    receiptChanged: boolean;
+    summary: string;
+    terminalStateAdvanced: false;
+  };
 };
 
 const panelStyle = {
@@ -431,6 +443,13 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
       <div style={rowStyle}><span>Readiness receipt</span><code>{data.readinessReceipt.receiptId}</code></div>
       <div style={rowStyle}><span>Evidence digest</span><code>{data.readinessReceipt.digestAlgorithm}:{data.readinessReceipt.digest}</code></div>
       <div style={rowStyle}><span>Authorizes remote execution</span><strong>{data.readinessReceipt.doesAuthorizeRemoteExecution ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>Transition</span><strong>{data.readinessTransition.transitionKind}</strong></div>
+      <div style={rowStyle}><span>Transition summary</span><code>{data.readinessTransition.summary}</code></div>
+      <div style={rowStyle}><span>Previous status</span><code>{data.readinessTransition.previousStatus ?? "none"}</code></div>
+      <div style={rowStyle}><span>Current status</span><code>{data.readinessTransition.currentStatus}</code></div>
+      <div style={rowStyle}><span>Previous hook</span><code>{data.readinessTransition.previousNextSafeHook ?? "none"}</code></div>
+      <div style={rowStyle}><span>Current hook</span><code>{data.readinessTransition.currentNextSafeHook}</code></div>
+      <div style={rowStyle}><span>Receipt changed</span><strong>{data.readinessTransition.receiptChanged ? "yes" : "no"}</strong></div>
       <div style={{ display: "grid", gap: 6 }}>
         {data.readinessChecklist.map((item) => (
           <div key={item.code} role="status" style={item.status === "fail" ? errorStyle : item.status === "warn" ? noticeStyle : undefined}>

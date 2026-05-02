@@ -153,6 +153,17 @@ type RemoteProviderReadinessBody = {
     doesAuthorizeRemoteExecution: boolean;
     terminalStateAdvanced: boolean;
   };
+  readinessTransition: {
+    transitionKind: string;
+    previousStatus: string | null;
+    currentStatus: string;
+    previousNextSafeHook: string | null;
+    currentNextSafeHook: string;
+    previousReceiptDigest: string | null;
+    currentReceiptDigest: string;
+    receiptChanged: boolean;
+    terminalStateAdvanced: boolean;
+  };
 };
 
 function apiInput(routeKey: string, issueId: string, companyId: string, method: "GET" | "POST" = "GET", body: unknown = null) {
@@ -876,6 +887,17 @@ describe("Dark Factory bridge projection plugin", () => {
         doesAuthorizeRemoteExecution: false,
         terminalStateAdvanced: false,
       },
+      readinessTransition: {
+        transitionKind: "new",
+        previousStatus: null,
+        currentStatus: "blocked",
+        previousNextSafeHook: null,
+        currentNextSafeHook: "onEnvironmentValidateConfig",
+        previousReceiptDigest: null,
+        currentReceiptDigest: expect.stringMatching(/^[0-9a-f]{8}$/),
+        receiptChanged: false,
+        terminalStateAdvanced: false,
+      },
     });
   });
 
@@ -943,8 +965,65 @@ describe("Dark Factory bridge projection plugin", () => {
         doesAuthorizeRemoteExecution: false,
         terminalStateAdvanced: false,
       },
+      readinessTransition: {
+        transitionKind: "new",
+        currentStatus: "ready",
+        currentNextSafeHook: "onEnvironmentExecute",
+        receiptChanged: false,
+        terminalStateAdvanced: false,
+      },
     });
     expect(result.signals.every((signal) => signal.terminalStateAdvanced === false)).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("plugin-spec-resolved-key");
+  });
+
+  it("returns readiness transition summaries from previous readiness evidence", async () => {
+    const companyId = randomUUID();
+    const harness = createTestHarness({ manifest });
+    vi.stubEnv("DARK_FACTORY_PLUGIN_SPEC_CREDENTIAL", "plugin-spec-resolved-key");
+    await plugin.definition.setup(harness.ctx);
+
+    const result = await harness.getData<RemoteProviderReadinessBody>("remote-provider-readiness", {
+      companyId,
+      checkedAt: "2026-05-02T12:00:00.000Z",
+      previousReadiness: {
+        readinessStatus: "blocked",
+        nextSafeHook: "onEnvironmentValidateConfig",
+        receiptDigest: "00000000",
+      },
+      config: {
+        mode: "remote",
+        endpoint: "https://dark-factory.example.test",
+        apiKeySecretRef: "env:DARK_FACTORY_PLUGIN_SPEC_CREDENTIAL",
+      },
+      observations: [
+        {
+          runtimeMode: "remote",
+          operation: "probe",
+          status: 200,
+          durationMs: 25,
+          attempt: 0,
+          retryable: false,
+          failureClass: "none",
+          errorCode: null,
+          journalCursor: "dark-factory://journal/readiness#5",
+          lastSequenceNo: 5,
+          terminalStateAdvanced: false,
+        },
+      ],
+    });
+
+    expect(result.readinessTransition).toMatchObject({
+      transitionKind: "improved",
+      previousStatus: "blocked",
+      currentStatus: "ready",
+      previousNextSafeHook: "onEnvironmentValidateConfig",
+      currentNextSafeHook: "onEnvironmentExecute",
+      previousReceiptDigest: "00000000",
+      currentReceiptDigest: result.readinessReceipt.digest,
+      receiptChanged: true,
+      terminalStateAdvanced: false,
+    });
     expect(JSON.stringify(result)).not.toContain("plugin-spec-resolved-key");
   });
 

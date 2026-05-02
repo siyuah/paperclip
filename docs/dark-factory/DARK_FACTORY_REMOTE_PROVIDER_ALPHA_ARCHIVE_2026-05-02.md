@@ -582,6 +582,50 @@ Validation after hardening batch 12:
 - `pnpm test` passed: 11 files passed, 1 gated file skipped, 96 tests passed,
   1 skipped.
 
+## Hardening Batch 13
+
+Remote provider alpha hardening batch 13 added readiness transition summaries.
+
+### Previous Evidence Input
+
+The `remote-provider-readiness` data surface now accepts optional
+`previousReadiness` evidence containing:
+
+- previous readiness status
+- previous next safe hook
+- previous receipt digest
+- optional previous receipt id / checked-at metadata
+
+### Transition Summary
+
+The readiness report now includes `readinessTransition` with:
+
+- `new`
+- `unchanged`
+- `improved`
+- `regressed`
+- `changed`
+
+The transition compares previous and current readiness status, next safe hook,
+and receipt digest. It gives operators a compact summary of whether remote alpha
+readiness moved forward, moved backward, stayed unchanged, or changed laterally.
+
+### Settings UI
+
+The settings page now renders transition kind, summary, previous/current
+status, previous/current next safe hook, and whether the evidence receipt
+changed.
+
+Transitions are advisory only. They do not persist state, contact a provider,
+invoke hooks, authorize execution, or advance Paperclip terminal state.
+
+Validation after hardening batch 13:
+
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 11 files passed, 1 gated file skipped, 98 tests passed,
+  1 skipped.
+
 ## Boundary Compliance
 
 - Dark Factory Journal remains truth source.

@@ -90,6 +90,17 @@ describe("remote provider readiness", () => {
         doesAuthorizeRemoteExecution: false,
         terminalStateAdvanced: false,
       },
+      readinessTransition: {
+        transitionKind: "new",
+        previousStatus: null,
+        currentStatus: "ready",
+        previousNextSafeHook: null,
+        currentNextSafeHook: "onEnvironmentExecute",
+        previousReceiptDigest: null,
+        currentReceiptDigest: expect.stringMatching(/^[0-9a-f]{8}$/),
+        receiptChanged: false,
+        terminalStateAdvanced: false,
+      },
     });
     expect(report.readinessChecklist).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "dark_factory_remote_readiness_credentials", status: "pass" }),
@@ -129,6 +140,13 @@ describe("remote provider readiness", () => {
         readinessStatus: "needs_attention",
         nextSafeHook: "onEnvironmentProbe",
         doesAuthorizeRemoteExecution: false,
+        terminalStateAdvanced: false,
+      },
+      readinessTransition: {
+        transitionKind: "new",
+        currentStatus: "needs_attention",
+        currentNextSafeHook: "onEnvironmentProbe",
+        receiptChanged: false,
         terminalStateAdvanced: false,
       },
     });
@@ -196,6 +214,13 @@ describe("remote provider readiness", () => {
           ]),
         },
       },
+      readinessTransition: {
+        transitionKind: "new",
+        currentStatus: "blocked",
+        currentNextSafeHook: "onEnvironmentValidateConfig",
+        receiptChanged: false,
+        terminalStateAdvanced: false,
+      },
     });
     expect(report.signals).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -236,5 +261,43 @@ describe("remote provider readiness", () => {
     expect(first).toEqual(second);
     expect(first.readinessReceipt).toEqual(second.readinessReceipt);
     expect(first.readinessReceipt.doesAuthorizeRemoteExecution).toBe(false);
+  });
+
+  it("summarizes readiness transition from previous evidence", () => {
+    const observations = [observation({ operation: "probe" })];
+    const snapshot = buildRemoteProviderMetricsSnapshot(observations);
+    const report = buildRemoteProviderReadinessReport({
+      credentialDiagnostics: credentials(true),
+      metricsSnapshot: snapshot,
+      alertCandidates: buildRemoteProviderAlertCandidates(snapshot),
+      breakerEvaluation: evaluateRemoteCircuitBreaker({
+        observations,
+        evaluatedAt: "2026-05-02T12:00:00.000Z",
+      }),
+      sampledObservationCount: observations.length,
+      checkedAt: "2026-05-02T12:00:00.000Z",
+      previousReadiness: {
+        readinessStatus: "blocked",
+        nextSafeHook: "onEnvironmentValidateConfig",
+        receiptDigest: "00000000",
+      },
+    });
+
+    expect(report.readinessTransition).toMatchObject({
+      source: "dark-factory-projection",
+      authoritative: false,
+      truthSource: "dark-factory-journal",
+      observationSource: "runtime_observation",
+      runtimeMode: "remote",
+      transitionKind: "improved",
+      previousStatus: "blocked",
+      currentStatus: "ready",
+      previousNextSafeHook: "onEnvironmentValidateConfig",
+      currentNextSafeHook: "onEnvironmentExecute",
+      previousReceiptDigest: "00000000",
+      currentReceiptDigest: report.readinessReceipt.digest,
+      receiptChanged: true,
+      terminalStateAdvanced: false,
+    });
   });
 });

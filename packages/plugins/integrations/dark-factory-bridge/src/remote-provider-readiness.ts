@@ -89,6 +89,29 @@ export type RemoteProviderReadinessReceipt = ProjectionBoundary & {
   };
 };
 
+export type RemoteProviderReadinessTransitionInput = {
+  readinessStatus?: RemoteProviderReadinessStatus;
+  nextSafeHook?: RemoteProviderNextSafeHook;
+  receiptDigest?: string | null;
+  receiptId?: string | null;
+  checkedAt?: string | null;
+} | null;
+
+export type RemoteProviderReadinessTransition = ProjectionBoundary & {
+  observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
+  runtimeMode: "remote";
+  transitionKind: "new" | "unchanged" | "improved" | "regressed" | "changed";
+  previousStatus: RemoteProviderReadinessStatus | null;
+  currentStatus: RemoteProviderReadinessStatus;
+  previousNextSafeHook: RemoteProviderNextSafeHook | null;
+  currentNextSafeHook: RemoteProviderNextSafeHook;
+  previousReceiptDigest: string | null;
+  currentReceiptDigest: string;
+  receiptChanged: boolean;
+  summary: string;
+  terminalStateAdvanced: false;
+};
+
 export type RemoteProviderReadinessReport = ProjectionBoundary & {
   observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
   runtimeMode: "remote";
@@ -105,6 +128,7 @@ export type RemoteProviderReadinessReport = ProjectionBoundary & {
   signals: RemoteProviderReadinessSignal[];
   readinessChecklist: RemoteProviderReadinessChecklistItem[];
   readinessReceipt: RemoteProviderReadinessReceipt;
+  readinessTransition: RemoteProviderReadinessTransition;
   terminalStateAdvanced: false;
 };
 
@@ -115,6 +139,7 @@ export type RemoteProviderReadinessInput = {
   breakerEvaluation: RemoteCircuitBreakerEvaluation;
   sampledObservationCount: number;
   checkedAt: string;
+  previousReadiness?: RemoteProviderReadinessTransitionInput;
 };
 
 export function buildRemoteProviderReadinessReport(input: RemoteProviderReadinessInput): RemoteProviderReadinessReport {
@@ -140,6 +165,11 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
     signals,
     readinessChecklist,
   });
+  const readinessTransition = buildReadinessTransition(input.previousReadiness ?? null, {
+    readinessStatus,
+    nextSafeHook,
+    readinessReceipt,
+  });
 
   return {
     ...projectionBoundary(),
@@ -158,6 +188,38 @@ export function buildRemoteProviderReadinessReport(input: RemoteProviderReadines
     signals,
     readinessChecklist,
     readinessReceipt,
+    readinessTransition,
+    terminalStateAdvanced: false,
+  };
+}
+
+function buildReadinessTransition(
+  previous: RemoteProviderReadinessTransitionInput,
+  current: {
+    readinessStatus: RemoteProviderReadinessStatus;
+    nextSafeHook: RemoteProviderNextSafeHook;
+    readinessReceipt: RemoteProviderReadinessReceipt;
+  },
+): RemoteProviderReadinessTransition {
+  const previousStatus = previous?.readinessStatus ?? null;
+  const previousNextSafeHook = previous?.nextSafeHook ?? null;
+  const previousReceiptDigest = previous?.receiptDigest ?? null;
+  const receiptChanged = previousReceiptDigest !== null && previousReceiptDigest !== current.readinessReceipt.digest;
+  const transitionKind = transitionKindFor(previousStatus, current.readinessStatus, previousNextSafeHook, current.nextSafeHook);
+
+  return {
+    ...projectionBoundary(),
+    observationSource: RUNTIME_OBSERVATION_SOURCE,
+    runtimeMode: "remote",
+    transitionKind,
+    previousStatus,
+    currentStatus: current.readinessStatus,
+    previousNextSafeHook,
+    currentNextSafeHook: current.nextSafeHook,
+    previousReceiptDigest,
+    currentReceiptDigest: current.readinessReceipt.digest,
+    receiptChanged,
+    summary: transitionSummary(transitionKind, previousStatus, current.readinessStatus, previousNextSafeHook, current.nextSafeHook),
     terminalStateAdvanced: false,
   };
 }
@@ -381,6 +443,55 @@ function nextSafeHookFor(
   }
   if (status === "needs_attention") return "onEnvironmentProbe";
   return "none";
+}
+
+function transitionKindFor(
+  previousStatus: RemoteProviderReadinessStatus | null,
+  currentStatus: RemoteProviderReadinessStatus,
+  previousNextSafeHook: RemoteProviderNextSafeHook | null,
+  currentNextSafeHook: RemoteProviderNextSafeHook,
+): RemoteProviderReadinessTransition["transitionKind"] {
+  if (!previousStatus) return "new";
+  const previousScore = readinessScore(previousStatus, previousNextSafeHook);
+  const currentScore = readinessScore(currentStatus, currentNextSafeHook);
+  if (currentScore > previousScore) return "improved";
+  if (currentScore < previousScore) return "regressed";
+  if (previousStatus === currentStatus && previousNextSafeHook === currentNextSafeHook) return "unchanged";
+  return "changed";
+}
+
+function readinessScore(status: RemoteProviderReadinessStatus, nextSafeHook: RemoteProviderNextSafeHook | null): number {
+  const statusScore = status === "ready" ? 30 : status === "needs_attention" ? 20 : 10;
+  return statusScore + hookScore(nextSafeHook);
+}
+
+function hookScore(hook: RemoteProviderNextSafeHook | null): number {
+  switch (hook) {
+    case "onEnvironmentExecute":
+      return 4;
+    case "onEnvironmentAcquireLease":
+      return 3;
+    case "onEnvironmentProbe":
+      return 2;
+    case "onEnvironmentValidateConfig":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function transitionSummary(
+  kind: RemoteProviderReadinessTransition["transitionKind"],
+  previousStatus: RemoteProviderReadinessStatus | null,
+  currentStatus: RemoteProviderReadinessStatus,
+  previousNextSafeHook: RemoteProviderNextSafeHook | null,
+  currentNextSafeHook: RemoteProviderNextSafeHook,
+): string {
+  if (kind === "new") return `Initial readiness report is ${currentStatus}; next safe hook is ${currentNextSafeHook}.`;
+  if (kind === "unchanged") return `Readiness remains ${currentStatus}; next safe hook remains ${currentNextSafeHook}.`;
+  if (kind === "improved") return `Readiness improved from ${previousStatus} to ${currentStatus}; next safe hook is ${currentNextSafeHook}.`;
+  if (kind === "regressed") return `Readiness regressed from ${previousStatus} to ${currentStatus}; next safe hook moved from ${previousNextSafeHook ?? "none"} to ${currentNextSafeHook}.`;
+  return `Readiness changed from ${previousStatus} to ${currentStatus}; next safe hook moved from ${previousNextSafeHook ?? "none"} to ${currentNextSafeHook}.`;
 }
 
 function credentialChecklistStatus(

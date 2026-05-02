@@ -44,6 +44,9 @@ import {
 import {
   buildRemoteProviderReadinessReport,
   type RemoteCredentialDiagnosticsForReadiness,
+  type RemoteProviderNextSafeHook,
+  type RemoteProviderReadinessStatus,
+  type RemoteProviderReadinessTransitionInput,
 } from "./remote-provider-readiness.js";
 
 export { PROJECTION_DISCLAIMER } from "./runtime-contract.js";
@@ -172,6 +175,20 @@ function breakerState(value: unknown): RemoteCircuitBreakerEvaluation["breakerSt
   return value === "closed" || value === "open" || value === "half_open" ? value : null;
 }
 
+function readinessStatus(value: unknown): RemoteProviderReadinessStatus | null {
+  return value === "ready" || value === "needs_attention" || value === "blocked" ? value : null;
+}
+
+function readinessNextSafeHook(value: unknown): RemoteProviderNextSafeHook | null {
+  return value === "onEnvironmentValidateConfig"
+    || value === "onEnvironmentProbe"
+    || value === "onEnvironmentAcquireLease"
+    || value === "onEnvironmentExecute"
+    || value === "none"
+    ? value
+    : null;
+}
+
 function remoteObservationsFromParams(params: Record<string, unknown>): RemoteProviderObservation[] {
   return recordArray(params.observations).map((item) => ({
     runtimeMode: "remote",
@@ -199,6 +216,20 @@ function previousBreakerFromParams(params: Record<string, unknown>): Partial<Rem
     cooldownUntil: stringField(previous.cooldownUntil),
     openReason: stringField(previous.openReason),
     lastFailureClass: failureClass(previous.lastFailureClass),
+  };
+}
+
+function previousReadinessFromParams(params: Record<string, unknown>): RemoteProviderReadinessTransitionInput {
+  const previous = recordBody(params.previousReadiness);
+  if (!previous) return null;
+  const status = readinessStatus(previous.readinessStatus);
+  const nextSafeHook = readinessNextSafeHook(previous.nextSafeHook);
+  return {
+    ...(status ? { readinessStatus: status } : {}),
+    ...(nextSafeHook ? { nextSafeHook } : {}),
+    receiptDigest: stringField(previous.receiptDigest) ?? stringField(previous.digest),
+    receiptId: stringField(previous.receiptId),
+    checkedAt: stringField(previous.checkedAt),
   };
 }
 
@@ -424,6 +455,7 @@ const plugin = definePlugin({
         breakerEvaluation,
         sampledObservationCount: observations.length,
         checkedAt: stringField(params.checkedAt) ?? stringField(params.evaluatedAt) ?? new Date(0).toISOString(),
+        previousReadiness: previousReadinessFromParams(params),
       });
     });
 

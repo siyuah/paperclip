@@ -258,6 +258,20 @@ The receipt is suitable for operator notes and progress logs. It is not a
 security token, not a capability grant, and not a substitute for reviewing Dark
 Factory Journal.
 
+When a previous readiness receipt is supplied as `previousReadiness`, the report
+also returns `readinessTransition`:
+
+| Field | Meaning |
+| --- | --- |
+| `transitionKind` | `new`, `unchanged`, `improved`, `regressed`, or `changed`. |
+| `previousStatus` / `currentStatus` | Readiness state comparison. |
+| `previousNextSafeHook` / `currentNextSafeHook` | Whether the safe lifecycle boundary moved forward or backward. |
+| `receiptChanged` | Whether the evidence digest changed. |
+| `summary` | Human-readable transition summary for operator notes. |
+
+Transitions are computed locally from supplied previous evidence. They do not
+persist state, do not prove remote health, and do not authorize execution.
+
 Recommended alpha thresholds:
 
 | Signal | Suggested warning threshold | Operator action |
