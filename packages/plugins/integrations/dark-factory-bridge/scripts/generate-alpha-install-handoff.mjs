@@ -20,6 +20,7 @@ async function main() {
   const manifest = manifestModule.default;
   const installPolicy = await readJson(join(pluginRoot, "docs/install-distribution-policy.json"));
   const uiBetaEvidence = await readJson(join(pluginRoot, "docs/ui-beta-install-evidence.json"));
+  const realProviderGatedAttemptEvidence = await readJson(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json"));
   const finalGateStatusPath = join(repoRoot, "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
   const finalGateStatusText = await readOptionalText(finalGateStatusPath);
 
@@ -31,7 +32,8 @@ async function main() {
     check("environment_driver", Array.isArray(manifest.environmentDrivers) && manifest.environmentDrivers.some((driver) => driver.driverKey === "dark-factory-mock"), "environment driver declaration is present"),
     check("install_distribution_policy", installPolicy?.distributionMode === "fork-local-workspace" && installPolicy?.npmPublish === false, "fork-local install distribution policy is present"),
     check("ui_beta_evidence", uiBetaEvidence?.uiInternalBetaReady === true, "UI beta install evidence is present and ready"),
-    check("final_gate_status", finalGateStatusText.includes("real_provider_gated_attempt_not_completed") && finalGateStatusText.includes("productionReady: false"), "final real provider gate status is archived"),
+    check("final_gate_status", finalGateStatusText.includes("provider_shim_not_operationalized") && finalGateStatusText.includes("productionReady: false"), "final real provider gate status is archived"),
+    check("real_provider_gated_attempt_evidence", isValidRealProviderGatedAttemptEvidence(realProviderGatedAttemptEvidence), "real provider gated attempt evidence is present, passed, and boundary-safe"),
     check("boundary_policy", hasBoundary(installPolicy?.boundary) && hasBoundary(uiBetaEvidence?.boundary), "policy and UI evidence preserve non-authoritative Journal boundary"),
   ];
 
@@ -47,9 +49,9 @@ async function main() {
     productionReady: false,
     productionBlockers: [
       {
-        code: "real_provider_gated_attempt_not_completed",
+        code: "provider_shim_not_operationalized",
         severity: "blocker",
-        message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
+        message: "The first gated attempt passed through the local LinghuCall shim, but production install still needs an operationalized provider/shim deployment and monitoring plan.",
       },
     ],
     checks,
@@ -76,12 +78,13 @@ async function main() {
       migration: relativeToRepo(join(pluginRoot, "migrations/001_dark_factory_projection.sql")),
       installDistributionPolicy: relativeToRepo(join(pluginRoot, "docs/install-distribution-policy.json")),
       uiBetaInstallEvidence: relativeToRepo(join(pluginRoot, "docs/ui-beta-install-evidence.json")),
+      realProviderGatedAttemptEvidence: relativeToRepo(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json")),
       finalRealProviderGateStatus: relativeToRepo(finalGateStatusPath),
       firstProviderRunbook: "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md",
     },
     operatorNotes: [
       "Install from the fork-local workspace/package during controlled alpha.",
-      "Do not claim productionReady until the real provider gated attempt passes.",
+      "The first shim-backed gated provider attempt has passed; do not claim productionReady until the provider/shim deployment is operationalized.",
       "Do not put resolved credential values in docs, logs, screenshots, or committed files.",
       "Use the first-provider gated attempt runbook for the final production gate.",
     ],
@@ -167,6 +170,20 @@ function hasBoundary(value) {
     && value?.terminalStateAdvanced === false
     && value?.doesAuthorizeRemoteExecution === false
     && value?.noResolvedCredentialValues === true;
+}
+
+function isValidRealProviderGatedAttemptEvidence(value) {
+  return value?.schemaVersion === 1
+    && value?.reportType === "dark-factory-real-provider-gated-attempt-evidence"
+    && value?.gatedTest?.passed === true
+    && value?.productionDecision?.realProviderGatedAttemptResultRecorded === true
+    && value?.productionDecision?.realProviderGatedAttemptPassed === true
+    && value?.productionDecision?.productionReady === false
+    && value?.boundary?.truthSource === "dark-factory-journal"
+    && value?.boundary?.authoritative === false
+    && value?.boundary?.terminalStateAdvanced === false
+    && value?.boundary?.noResolvedCredentialValues === true
+    && value?.boundary?.credentialValuesRedacted === true;
 }
 
 function check(id, ok, message) {

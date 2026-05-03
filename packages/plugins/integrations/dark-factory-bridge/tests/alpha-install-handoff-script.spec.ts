@@ -13,7 +13,8 @@ describe("alpha install handoff script", () => {
     expect(source).toContain("dark-factory-alpha-install-handoff");
     expect(source).toContain("installableAlphaReady");
     expect(source).toContain("productionReady: false");
-    expect(source).toContain("real_provider_gated_attempt_not_completed");
+    expect(source).toContain("real_provider_gated_attempt_evidence");
+    expect(source).toContain("provider_shim_not_operationalized");
   });
 
   it("writes deterministic boundary-safe alpha install handoff evidence", async () => {
@@ -31,7 +32,7 @@ describe("alpha install handoff script", () => {
         failedChecks: [],
       });
       expect(summary.productionBlockers).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "real_provider_gated_attempt_not_completed" }),
+        expect.objectContaining({ code: "provider_shim_not_operationalized" }),
       ]));
 
       const report = JSON.parse(await readFile(reportPath, "utf8"));
@@ -67,7 +68,9 @@ describe("alpha install handoff script", () => {
         expect.objectContaining({ id: "install_distribution_policy", status: "pass" }),
         expect.objectContaining({ id: "ui_beta_evidence", status: "pass" }),
         expect.objectContaining({ id: "final_gate_status", status: "pass" }),
+        expect.objectContaining({ id: "real_provider_gated_attempt_evidence", status: "pass" }),
       ]));
+      expect(report.artifacts.realProviderGatedAttemptEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json");
       expect(report.artifacts.finalRealProviderGateStatus).toBe("docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {

@@ -18,7 +18,8 @@ describe("install readiness script", () => {
     expect(source).toContain("host_secret_resolver_contract");
     expect(source).toContain("ui_beta_install_evidence");
     expect(source).toContain("alpha_install_handoff_manifest");
-    expect(source).toContain("real_provider_gated_attempt_not_completed");
+    expect(source).toContain("real_provider_gated_attempt_evidence");
+    expect(source).toContain("provider_shim_not_operationalized");
   });
 
   it("writes an alpha-ready report while preserving production blockers", async () => {
@@ -35,6 +36,9 @@ describe("install readiness script", () => {
         productionReady: false,
       });
       expect(summary.productionBlockers).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "provider_shim_not_operationalized" }),
+      ]));
+      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "real_provider_gated_attempt_not_completed" }),
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
@@ -83,7 +87,9 @@ describe("install readiness script", () => {
         expect.objectContaining({ id: "host_secret_resolver_contract", status: "pass" }),
         expect.objectContaining({ id: "ui_beta_install_evidence", status: "pass" }),
         expect.objectContaining({ id: "alpha_install_handoff_manifest", status: "pass" }),
+        expect.objectContaining({ id: "real_provider_gated_attempt_evidence", status: "pass" }),
       ]));
+      expect(report.artifacts.realProviderGatedAttemptEvidence).toBe("docs/real-provider-gated-attempt-evidence.json");
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {
       await rm(outDir, { recursive: true, force: true });

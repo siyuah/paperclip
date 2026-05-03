@@ -101,9 +101,10 @@ pnpm install:readiness
 ```
 
 The report must show `installableAlphaReady: true`. It may still show
-`productionReady: false` until manifest identity, namespace naming,
-host-managed secret resolver, real provider gated attempt, and full UI beta
-install blockers are resolved.
+`productionReady: false` until the provider/shim deployment, monitoring,
+startup, retention, and rollback plan is operationalized. The first
+shim-backed gated attempt is recorded separately as
+`packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json`.
 
 Run it only in an operator-controlled environment:
 

@@ -10,9 +10,9 @@
   "productionReady": false,
   "productionBlockers": [
     {
-      "code": "real_provider_gated_attempt_not_completed",
+      "code": "provider_shim_not_operationalized",
       "severity": "blocker",
-      "message": "Real provider gated attempt has not been run with an operator-controlled endpoint."
+      "message": "The first gated attempt passed through the local LinghuCall shim, but production install still needs an operationalized provider/shim deployment and monitoring plan."
     }
   ],
   "checks": [
@@ -65,6 +65,12 @@
       "message": "final real provider gate status is archived"
     },
     {
+      "id": "real_provider_gated_attempt_evidence",
+      "ok": true,
+      "status": "pass",
+      "message": "real provider gated attempt evidence is present, passed, and boundary-safe"
+    },
+    {
       "id": "boundary_policy",
       "ok": true,
       "status": "pass",
@@ -102,12 +108,13 @@
     "migration": "packages/plugins/integrations/dark-factory-bridge/migrations/001_dark_factory_projection.sql",
     "installDistributionPolicy": "packages/plugins/integrations/dark-factory-bridge/docs/install-distribution-policy.json",
     "uiBetaInstallEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/ui-beta-install-evidence.json",
+    "realProviderGatedAttemptEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json",
     "finalRealProviderGateStatus": "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md",
     "firstProviderRunbook": "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md"
   },
   "operatorNotes": [
     "Install from the fork-local workspace/package during controlled alpha.",
-    "Do not claim productionReady until the real provider gated attempt passes.",
+    "The first shim-backed gated provider attempt has passed; do not claim productionReady until the provider/shim deployment is operationalized.",
     "Do not put resolved credential values in docs, logs, screenshots, or committed files.",
     "Use the first-provider gated attempt runbook for the final production gate."
   ],

@@ -12,6 +12,7 @@ const repoRoot = resolve(pluginRoot, "../../../..");
 const defaultOutDir = join(repoRoot, "output/dark-factory-install-readiness");
 const uiBetaEvidencePath = join(pluginRoot, "docs/ui-beta-install-evidence.json");
 const alphaInstallHandoffPath = join(pluginRoot, "docs/alpha-install-handoff-manifest.json");
+const realProviderGatedAttemptEvidencePath = join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json");
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -76,8 +77,10 @@ async function main() {
   checks.push(check("ui_beta_install_evidence", isValidUiBetaEvidence({ uiBetaEvidence, packageJson, manifest }), "UI internal beta install evidence is present and boundary-safe"));
   const alphaInstallHandoff = await readJsonFile(alphaInstallHandoffPath);
   checks.push(check("alpha_install_handoff_manifest", isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest }), "alpha install handoff manifest is present and keeps production gate explicit"));
+  const realProviderGatedAttemptEvidence = await readJsonFile(realProviderGatedAttemptEvidencePath);
+  checks.push(check("real_provider_gated_attempt_evidence", isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence, packageJson }), "real provider gated attempt evidence is present, passed, and boundary-safe"));
 
-  const productionBlockers = collectProductionBlockers({ manifest });
+  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
   const productionReady = installableAlphaReady && productionBlockers.length === 0;
   const report = {
@@ -99,6 +102,7 @@ async function main() {
       installDistributionPolicy: "docs/install-distribution-policy.json",
       uiBetaInstallEvidence: "docs/ui-beta-install-evidence.json",
       alphaInstallHandoff: "docs/alpha-install-handoff-manifest.json",
+      realProviderGatedAttemptEvidence: "docs/real-provider-gated-attempt-evidence.json",
     },
     installDistributionPolicy: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -179,7 +183,7 @@ function parseArgs(args) {
   return parsed;
 }
 
-function collectProductionBlockers({ manifest }) {
+function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence }) {
   const blockers = [];
   if (/example/i.test(manifest.id) || /example/i.test(manifest.displayName)) {
     blockers.push({
@@ -188,11 +192,19 @@ function collectProductionBlockers({ manifest }) {
       message: "Manifest id/displayName still carries example wording; rename before production install.",
     });
   }
-  blockers.push({
-    code: "real_provider_gated_attempt_not_completed",
-    severity: "blocker",
-    message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
-  });
+  if (isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence })) {
+    blockers.push({
+      code: "provider_shim_not_operationalized",
+      severity: "blocker",
+      message: "The first gated attempt passed through the local LinghuCall shim, but production install still needs an operationalized provider/shim deployment and monitoring plan.",
+    });
+  } else {
+    blockers.push({
+      code: "real_provider_gated_attempt_not_completed",
+      severity: "blocker",
+      message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
+    });
+  }
   return blockers;
 }
 
@@ -254,7 +266,7 @@ function isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest
     && alphaInstallHandoff?.installableAlphaReady === true
     && alphaInstallHandoff?.productionReady === false
     && Array.isArray(alphaInstallHandoff?.productionBlockers)
-    && alphaInstallHandoff.productionBlockers.some((blocker) => blocker?.code === "real_provider_gated_attempt_not_completed")
+    && alphaInstallHandoff.productionBlockers.some((blocker) => blocker?.code === "provider_shim_not_operationalized")
     && alphaInstallHandoff?.installDistribution?.distributionMode === "fork-local-workspace"
     && alphaInstallHandoff?.installDistribution?.npmPublish === false
     && alphaInstallHandoff?.uiBetaEvidence?.uiInternalBetaReady === true
@@ -264,6 +276,21 @@ function isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest
     && alphaInstallHandoff?.boundary?.doesAuthorizeRemoteExecution === false
     && alphaInstallHandoff?.boundary?.shouldContactRemoteProvider === false
     && alphaInstallHandoff?.boundary?.noResolvedCredentialValues === true;
+}
+
+function isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence, packageJson } = {}) {
+  return realProviderGatedAttemptEvidence?.schemaVersion === 1
+    && realProviderGatedAttemptEvidence?.reportType === "dark-factory-real-provider-gated-attempt-evidence"
+    && (!packageJson || realProviderGatedAttemptEvidence?.packageName === packageJson.name)
+    && realProviderGatedAttemptEvidence?.gatedTest?.passed === true
+    && realProviderGatedAttemptEvidence?.productionDecision?.realProviderGatedAttemptResultRecorded === true
+    && realProviderGatedAttemptEvidence?.productionDecision?.realProviderGatedAttemptPassed === true
+    && realProviderGatedAttemptEvidence?.productionDecision?.productionReady === false
+    && realProviderGatedAttemptEvidence?.boundary?.truthSource === "dark-factory-journal"
+    && realProviderGatedAttemptEvidence?.boundary?.authoritative === false
+    && realProviderGatedAttemptEvidence?.boundary?.terminalStateAdvanced === false
+    && realProviderGatedAttemptEvidence?.boundary?.noResolvedCredentialValues === true
+    && realProviderGatedAttemptEvidence?.boundary?.credentialValuesRedacted === true;
 }
 
 function check(id, ok, message) {

@@ -1991,3 +1991,51 @@ Boundary compliance:
 - `authoritative: false` remains required on preview outputs: yes
 - `terminalStateAdvanced: false` remains required on preview outputs: yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 43
+
+Remote provider alpha hardening batch 43 recorded the first shim-backed real
+backend gated attempt and updated production-gate diagnostics.
+
+### LinghuCall Shim-Backed Gated Attempt
+
+The operator-provided sanitized output showed:
+
+- `pnpm gate:provider-status -- --require-ready` completed with
+  `readyForOperatorGatedAttempt: true`.
+- `pnpm test -- tests/remote-gated-integration.spec.ts` passed.
+- The test exercised validate, probe, acquire, execute, resume, and release
+  against a local Dark Factory external-runs shim at `127.0.0.1:9791`.
+- The shim called the LinghuCall OpenAI-compatible chat completions backend with
+  model `gpt-5.5`.
+
+Added
+`packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json`
+as machine-readable non-sensitive evidence. The evidence records only redacted
+provider/backend classification, status codes, hook chain, and boundary
+assertions.
+
+Updated the gate status, alpha handoff, and install readiness scripts so the
+production blocker advances from `real_provider_gated_attempt_not_completed` to
+`provider_shim_not_operationalized`.
+
+Validation after hardening batch 43:
+
+- targeted gate/readiness/handoff script tests passed: 8 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 31 files passed, 1 gated file skipped, 176 tests passed,
+  1 skipped.
+- `pnpm install:readiness -- --skip-build` passed with
+  `installableAlphaReady: true`, `productionReady: false`, and production
+  blocker `provider_shim_not_operationalized`.
+
+Boundary compliance:
+
+- Dark Factory Journal remains truth source: yes
+- Gated attempt evidence is non-authoritative: yes
+- `terminalStateAdvanced: false`: yes
+- No resolved credential value is recorded: yes
+- The direct LinghuCall endpoint is not treated as a Dark Factory provider: yes
+- Production readiness remains blocked until provider/shim operations are
+  productionized: yes

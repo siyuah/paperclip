@@ -14,6 +14,8 @@ describe("real provider gate status script", () => {
     expect(source).toContain("gatedTestWillRun");
     expect(source).toContain("doesAuthorizeRemoteExecution: false");
     expect(source).toContain("noResolvedCredentialValues: true");
+    expect(source).toContain("real-provider-gated-attempt-evidence.json");
+    expect(source).toContain("provider_shim_not_operationalized");
   });
 
   it("reports default skip when operator gate inputs are absent", async () => {
@@ -57,8 +59,22 @@ describe("real provider gate status script", () => {
           noResolvedCredentialValues: true,
         },
       });
+      expect(report.decisions).toMatchObject({
+        realProviderGatedAttemptResultRecorded: true,
+        realProviderGatedAttemptPassed: true,
+      });
+      expect(report.recordedGatedAttempt).toMatchObject({
+        recorded: true,
+        passed: true,
+        evidence: {
+          attemptKind: "linghucall-shim-backed",
+          providerBackendKind: "openai-compatible-chat-completions",
+          bridgeEndpointKind: "local-dark-factory-external-runs-shim",
+          credentialValuesRedacted: true,
+        },
+      });
       expect(report.productionBlockers).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "real_provider_gated_attempt_not_completed" }),
+        expect.objectContaining({ code: "provider_shim_not_operationalized" }),
       ]));
     } finally {
       await rm(outDir, { recursive: true, force: true });
@@ -102,8 +118,12 @@ describe("real provider gate status script", () => {
         valueRedacted: true,
       });
       expect(report.inputSignals.directCredential).not.toHaveProperty("length");
+      expect(report.decisions).toMatchObject({
+        realProviderGatedAttemptResultRecorded: true,
+        realProviderGatedAttemptPassed: true,
+      });
       expect(report.productionBlockers).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "real_provider_gated_attempt_result_not_recorded" }),
+        expect.objectContaining({ code: "provider_shim_not_operationalized" }),
       ]));
     } finally {
       await rm(outDir, { recursive: true, force: true });

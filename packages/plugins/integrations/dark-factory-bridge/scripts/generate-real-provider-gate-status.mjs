@@ -8,6 +8,7 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const pluginRoot = resolve(scriptDir, "..");
 const repoRoot = resolve(pluginRoot, "../../../..");
 const defaultOutDir = join(repoRoot, "output/dark-factory-real-provider-gate-status");
+const gatedAttemptEvidencePath = join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json");
 const stableGeneratedAt = "2026-05-03T00:00:00.000Z";
 
 async function main() {
@@ -18,10 +19,12 @@ async function main() {
     : join(outDir, "GATE_STATUS.json");
 
   const packageJson = JSON.parse(await readFile(join(pluginRoot, "package.json"), "utf8"));
+  const gatedAttemptEvidence = await readJsonFile(gatedAttemptEvidencePath);
   const status = buildGateStatus({
     generatedAt: options.generatedAt ?? stableGeneratedAt,
     packageJson,
     env: process.env,
+    gatedAttemptEvidence,
   });
 
   await mkdir(dirname(reportPath), { recursive: true });
@@ -42,7 +45,7 @@ async function main() {
   }
 }
 
-export function buildGateStatus({ generatedAt, packageJson, env }) {
+export function buildGateStatus({ generatedAt, packageJson, env, gatedAttemptEvidence = null }) {
   const integrationFlag = envSignal(env, "DARK_FACTORY_REMOTE_INTEGRATION", {
     includeLength: true,
     includeEqualsOne: true,
@@ -60,6 +63,11 @@ export function buildGateStatus({ generatedAt, packageJson, env }) {
   });
   const credentialProvided = directCredential.present || credentialReference.present;
   const gatedTestWillRun = integrationFlag.equalsOne === true && endpoint.present && credentialProvided;
+  const recordedGatedAttempt = normalizeRecordedGatedAttempt(gatedAttemptEvidence);
+  const productionBlockers = collectProductionBlockers({
+    gatedTestWillRun,
+    recordedGatedAttempt,
+  });
 
   return {
     schemaVersion: 1,
@@ -79,23 +87,12 @@ export function buildGateStatus({ generatedAt, packageJson, env }) {
       defaultSkipExpected: !gatedTestWillRun,
       readyForOperatorGatedAttempt: gatedTestWillRun,
       shouldContactRemoteProviderIfGatedTestRuns: gatedTestWillRun,
+      realProviderGatedAttemptResultRecorded: recordedGatedAttempt.recorded,
+      realProviderGatedAttemptPassed: recordedGatedAttempt.passed,
     },
     productionReady: false,
-    productionBlockers: gatedTestWillRun
-      ? [
-          {
-            code: "real_provider_gated_attempt_result_not_recorded",
-            severity: "blocker",
-            message: "Gate inputs are present, but the real provider gated test result has not been recorded.",
-          },
-        ]
-      : [
-          {
-            code: "real_provider_gated_attempt_not_completed",
-            severity: "blocker",
-            message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
-          },
-        ],
+    productionBlockers,
+    recordedGatedAttempt,
     operatorCommands: {
       status: "pnpm gate:provider-status",
       requireReady: "pnpm gate:provider-status -- --require-ready",
@@ -111,6 +108,67 @@ export function buildGateStatus({ generatedAt, packageJson, env }) {
       noResolvedCredentialValues: true,
     },
   };
+}
+
+async function readJsonFile(path) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeRecordedGatedAttempt(evidence) {
+  const passed = evidence?.reportType === "dark-factory-real-provider-gated-attempt-evidence"
+    && evidence?.gatedTest?.passed === true
+    && evidence?.productionDecision?.realProviderGatedAttemptResultRecorded === true
+    && evidence?.boundary?.truthSource === "dark-factory-journal"
+    && evidence?.boundary?.authoritative === false
+    && evidence?.boundary?.terminalStateAdvanced === false
+    && evidence?.boundary?.noResolvedCredentialValues === true;
+  return {
+    recorded: Boolean(evidence),
+    passed,
+    evidence: evidence ? {
+      reportType: evidence.reportType,
+      recordedAt: evidence.recordedAt,
+      attemptKind: evidence.attemptKind,
+      providerBackendKind: evidence.providerBackend?.kind,
+      model: evidence.providerBackend?.model,
+      bridgeEndpointKind: evidence.bridgeEndpoint?.kind,
+      testsPassed: evidence.gatedTest?.testsPassed,
+      testFilesPassed: evidence.gatedTest?.testFilesPassed,
+      credentialValuesRedacted: evidence.boundary?.credentialValuesRedacted === true,
+    } : null,
+  };
+}
+
+function collectProductionBlockers({ gatedTestWillRun, recordedGatedAttempt }) {
+  if (recordedGatedAttempt.passed) {
+    return [
+      {
+        code: "provider_shim_not_operationalized",
+        severity: "blocker",
+        message: "The first gated attempt passed through the local LinghuCall shim, but production install still needs an operationalized provider/shim deployment and monitoring plan.",
+      },
+    ];
+  }
+  if (gatedTestWillRun) {
+    return [
+      {
+        code: "real_provider_gated_attempt_result_not_recorded",
+        severity: "blocker",
+        message: "Gate inputs are present, but the real provider gated test result has not been recorded.",
+      },
+    ];
+  }
+  return [
+    {
+      code: "real_provider_gated_attempt_not_completed",
+      severity: "blocker",
+      message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
+    },
+  ];
 }
 
 function parseArgs(args) {

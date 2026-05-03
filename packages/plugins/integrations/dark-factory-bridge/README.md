@@ -63,9 +63,10 @@ The report distinguishes:
 - `productionReady`: full production install readiness. This remains `false`
   until production blockers are resolved.
 
-Known production blockers currently include real provider gated attempt
-completion, host-managed secret resolver support, and a full UI internal beta
-install flow.
+The first shim-backed real backend gated attempt has passed and is recorded in
+`docs/real-provider-gated-attempt-evidence.json`. Full production install
+remains blocked until the local LinghuCall shim/provider path is operationalized
+with deployment, startup, monitoring, retention, and rollback procedures.
 
 ## Local WebUI preview
 

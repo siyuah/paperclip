@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "reportType": "dark-factory-real-provider-gated-attempt-evidence",
+  "recordedAt": "2026-05-03T12:00:16.000Z",
+  "recordedBy": "operator-supplied-sanitized-output",
+  "packageName": "@paperclipai/plugin-dark-factory-bridge",
+  "packageVersion": "0.1.0",
+  "sourceBranch": "fork-master-product",
+  "sourceCommitBeforeRecording": "6bbe3cac",
+  "attemptKind": "linghucall-shim-backed",
+  "providerBackend": {
+    "kind": "openai-compatible-chat-completions",
+    "model": "gpt-5.5",
+    "directDarkFactoryProviderEndpoint": false,
+    "requiresDarkFactoryExternalRunsShim": true
+  },
+  "bridgeEndpoint": {
+    "kind": "local-dark-factory-external-runs-shim",
+    "host": "127.0.0.1",
+    "port": 9791,
+    "scheme": "http",
+    "pathContract": "dark-factory-v3-external-runs"
+  },
+  "preflight": {
+    "gateStatusCommand": "pnpm gate:provider-status -- --require-ready",
+    "ok": true,
+    "gatedTestWillRun": true,
+    "defaultSkipExpected": false,
+    "readyForOperatorGatedAttempt": true,
+    "productionReadyBeforeResultRecording": false,
+    "productionBlockerBeforeResultRecording": "real_provider_gated_attempt_result_not_recorded"
+  },
+  "gatedTest": {
+    "command": "pnpm test -- tests/remote-gated-integration.spec.ts",
+    "testFile": "tests/remote-gated-integration.spec.ts",
+    "passed": true,
+    "testFilesPassed": 1,
+    "testsPassed": 1,
+    "durationMs": 3590,
+    "hookChain": [
+      "onEnvironmentValidateConfig",
+      "onEnvironmentProbe",
+      "onEnvironmentAcquireLease",
+      "onEnvironmentExecute",
+      "onEnvironmentResumeLease",
+      "onEnvironmentReleaseLease"
+    ],
+    "observedHttpStatusCodes": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/external-runs",
+        "status": 201
+      },
+      {
+        "method": "GET",
+        "path": "/external-runs/{runId}",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/external-runs/{runId}/route-decisions",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/external-runs/{runId}",
+        "status": 200
+      }
+    ]
+  },
+  "nonSensitiveObservedRun": {
+    "runIdPrefix": "df-run-remote-gated",
+    "providerLeaseIdPrefix": "df-remote-lease-df-run-remote-gated"
+  },
+  "boundary": {
+    "truthSource": "dark-factory-journal",
+    "authoritative": false,
+    "terminalStateAdvanced": false,
+    "doesAuthorizeRemoteExecution": false,
+    "noResolvedCredentialValues": true,
+    "credentialValuesRedacted": true,
+    "paperclipTaskIssueMainModelChanged": false
+  },
+  "productionDecision": {
+    "realProviderGatedAttemptResultRecorded": true,
+    "realProviderGatedAttemptPassed": true,
+    "productionReady": false,
+    "remainingProductionBlockers": [
+      {
+        "code": "provider_shim_not_operationalized",
+        "severity": "blocker",
+        "message": "The passing attempt used a local LinghuCall shim. Production install still needs an operationalized provider/shim deployment and monitoring plan."
+      }
+    ]
+  }
+}
