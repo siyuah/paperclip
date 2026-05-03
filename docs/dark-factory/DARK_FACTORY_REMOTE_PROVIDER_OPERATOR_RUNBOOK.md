@@ -69,6 +69,13 @@ remote run.
 
 The real-provider integration test is skipped by default.
 
+For the first real provider attempt, use the dedicated gated-attempt checklist:
+
+- `docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md`
+
+That checklist requires a dry-run guard receipt before setting
+`DARK_FACTORY_REMOTE_INTEGRATION=1`.
+
 Run it only in an operator-controlled environment:
 
 ```bash

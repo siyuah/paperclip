@@ -1332,3 +1332,49 @@ Validation after hardening batch 27:
 
 - targeted UI preview tests passed: 11 tests across 3 files.
 - `pnpm typecheck` passed.
+
+## Hardening Batch 28
+
+Remote provider alpha hardening batch 28 added the manual gate for the first
+real provider attempt.
+
+### First Gated Attempt Runbook
+
+Added `docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md`.
+
+The runbook defines:
+
+- preconditions before any real provider call
+- required boundary assertions
+- operator-only environment variables
+- dry-run guard receipt capture
+- gated integration command
+- failure handling
+- rollback
+- operator evidence template
+- stop conditions
+
+The runbook explicitly requires the dry-run guard receipt before enabling
+`DARK_FACTORY_REMOTE_INTEGRATION=1`.
+
+### Runbook Guard Test
+
+Added `tests/remote-provider-first-gated-attempt-runbook.spec.ts`.
+
+The guard verifies that:
+
+- the runbook requires dry-run guard evidence before the gated integration test
+- the real-provider test remains skipped by default and operator-gated
+- rollback and stop conditions are documented
+- resolved credential values are not documented
+- Journal truth, non-authoritative projection, terminal-state preservation, and
+  non-authorization boundaries are locked in the runbook
+
+Validation after hardening batch 28:
+
+- targeted runbook guard passed: 4 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 22 files passed, 1 gated file skipped, 145 tests passed,
+  1 skipped.
+- `pnpm smoke:ui:browser -- --no-screenshots` passed.
