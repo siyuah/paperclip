@@ -15,6 +15,10 @@ import {
   type FailureClass,
   type ProviderRuntimeImpact,
 } from "./runtime-contract.js";
+import {
+  apiKeySecretRefScheme,
+  isHostManagedSecretRef,
+} from "./remote-provider-host-secret-resolver.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -167,11 +171,19 @@ export function validateHttpCredentialConfig(config: Record<string, unknown>): C
     };
   }
   const envName = envNameFromSecretRef(secretRef);
+  if (isHostManagedSecretRef(secretRef)) {
+    return {
+      ok: false,
+      code: "dark_factory_remote_credential_host_secret_ref_pending_runtime_resolution",
+      message: "apiKeySecretRef uses a host-managed secret reference; the host must inject a resolved credential before a real provider network call",
+      details: { mode: "remote", apiKeySecretRefScheme: apiKeySecretRefScheme(secretRef) },
+    };
+  }
   if (!envName) {
     return {
       ok: false,
       code: "dark_factory_remote_credential_ref_unsupported",
-      message: "apiKeySecretRef must use env:NAME or env://NAME in remote alpha",
+      message: "apiKeySecretRef must use env:NAME, env://NAME, secret://NAME, or host-secret://NAME",
       details: { mode: "remote", apiKeySecretRef: secretRef },
     };
   }

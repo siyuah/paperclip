@@ -47,6 +47,9 @@ import {
   buildRemoteProviderDryRunGuard,
 } from "./remote-provider-dry-run-guard.js";
 import {
+  buildHostSecretResolverContract,
+} from "./remote-provider-host-secret-resolver.js";
+import {
   buildUiSmokePreview,
   uiSmokePreviewScenario,
 } from "./remote-provider-ui-smoke-preview.js";
@@ -191,6 +194,10 @@ const plugin = definePlugin({
 
     ctx.data.register("remote-provider-dry-run-guard", async (params) => {
       return buildRemoteProviderDryRunGuard(params);
+    });
+
+    ctx.data.register("remote-provider-host-secret-resolver-contract", async () => {
+      return buildHostSecretResolverContract();
     });
 
     ctx.data.register("remote-provider-ui-smoke-preview", async (params) => {

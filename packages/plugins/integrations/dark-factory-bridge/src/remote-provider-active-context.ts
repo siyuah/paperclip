@@ -26,6 +26,11 @@ import type {
   RemoteProviderReadinessStatus,
   RemoteProviderReadinessTransitionInput,
 } from "./remote-provider-readiness.js";
+import {
+  apiKeySecretRefScheme,
+  evaluateHostSecretResolverConfig,
+  type RemoteCredentialReferenceScheme,
+} from "./remote-provider-host-secret-resolver.js";
 
 type ProjectionBoundary = {
   source: typeof DARK_FACTORY_PROJECTION_SOURCE;
@@ -41,8 +46,10 @@ export type RemoteCredentialDiagnostics = RemoteCredentialDiagnosticsForReadines
     endpointPresent: boolean;
     apiKeyPresent: boolean;
     apiKeySecretRefPresent: boolean;
-    apiKeySecretRefScheme: "none" | "env" | "env_url" | "unsupported";
+    apiKeySecretRefScheme: RemoteCredentialReferenceScheme;
+    hostManagedSecretRefPresent: boolean;
   };
+  hostSecretResolver: ReturnType<typeof evaluateHostSecretResolverConfig>;
 };
 
 export type RemoteProviderActiveContext = ProjectionBoundary & {
@@ -247,6 +254,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
   const config = recordBody(params.config);
   if (!config) {
     const code = "dark_factory_remote_credential_config_not_supplied";
+    const hostSecretResolver = evaluateHostSecretResolverConfig({});
     return {
       ...projectionBoundary(),
       observationSource: RUNTIME_OBSERVATION_SOURCE,
@@ -260,7 +268,9 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
         apiKeyPresent: false,
         apiKeySecretRefPresent: false,
         apiKeySecretRefScheme: "none",
+        hostManagedSecretRefPresent: false,
       },
+      hostSecretResolver,
       diagnostics: [
         {
           severity: "info",
@@ -276,6 +286,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
 
   const remoteConfig: Record<string, unknown> = { ...config, mode: "remote" };
   const validation = validateHttpCredentialConfig(remoteConfig);
+  const hostSecretResolver = evaluateHostSecretResolverConfig(remoteConfig);
   const apiKeySecretRef = stringField(remoteConfig.apiKeySecretRef);
   const checkedConfig = {
     configSupplied: true,
@@ -284,6 +295,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
     apiKeyPresent: stringField(remoteConfig.apiKey) !== null,
     apiKeySecretRefPresent: apiKeySecretRef !== null,
     apiKeySecretRefScheme: apiKeySecretRefScheme(apiKeySecretRef),
+    hostManagedSecretRefPresent: hostSecretResolver.hostManagedSecretRefPresent,
   };
 
   if (validation.ok) {
@@ -295,6 +307,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
       ok: true,
       credentialSource: validation.credentialSource,
       checkedConfig,
+      hostSecretResolver,
       diagnostics: [
         {
           severity: "info",
@@ -308,18 +321,27 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
     };
   }
 
+  const diagnosticCode = hostSecretResolver.status === "host_managed_reference"
+    ? "dark_factory_remote_credential_host_secret_ref_ready"
+    : validation.code;
+  const diagnosticSeverity = hostSecretResolver.status === "host_managed_reference" ? "info" : "error";
+  const diagnosticMessage = hostSecretResolver.status === "host_managed_reference"
+    ? "Remote credential host-managed secret reference is configured; resolved credential value is owned by the plugin host"
+    : validation.message;
+
   return {
     ...projectionBoundary(),
     observationSource: RUNTIME_OBSERVATION_SOURCE,
     runtimeMode: "remote",
-    ok: false,
-    credentialSource: null,
+    ok: hostSecretResolver.status === "host_managed_reference",
+    credentialSource: hostSecretResolver.status === "host_managed_reference" ? "host_secret_ref" : null,
     checkedConfig,
+    hostSecretResolver,
     diagnostics: [
       {
-        severity: "error",
-        code: validation.code,
-        message: validation.message,
+        severity: diagnosticSeverity,
+        code: diagnosticCode,
+        message: diagnosticMessage,
         details: {
           mode: "remote",
           apiKeySecretRefScheme: checkedConfig.apiKeySecretRefScheme,
@@ -344,10 +366,16 @@ function credentialRemediation(code: string): string[] {
         "Set apiKeySecretRef to env:NAME or env://NAME for remote alpha.",
         "Use inline apiKey only for controlled local testing.",
       ];
+    case "dark_factory_remote_credential_host_secret_ref_ready":
+    case "dark_factory_remote_credential_host_secret_ref_pending_runtime_resolution":
+      return [
+        "The host-managed secret reference is configured and accepted by readiness diagnostics.",
+        "Real network calls still require the plugin host to inject a resolved credential at execution time.",
+      ];
     case "dark_factory_remote_credential_ref_unsupported":
       return [
-        "Replace the unsupported secret reference with env:NAME or env://NAME.",
-        "Wait for a host-managed secret resolver before using secret:// style references.",
+        "Replace the unsupported secret reference with env:NAME, env://NAME, secret://NAME, or host-secret://NAME.",
+        "Use host-managed secret references for internal alpha when the host resolver is available.",
       ];
     case "dark_factory_remote_credential_unresolved":
       return [
@@ -364,13 +392,6 @@ function credentialRemediation(code: string): string[] {
         "Review the remote provider configuration and keep credential values outside plugin data surfaces.",
       ];
   }
-}
-
-function apiKeySecretRefScheme(secretRef: string | null): RemoteCredentialDiagnostics["checkedConfig"]["apiKeySecretRefScheme"] {
-  if (!secretRef) return "none";
-  if (secretRef.startsWith("env://")) return "env_url";
-  if (secretRef.startsWith("env:")) return "env";
-  return "unsupported";
 }
 
 function stringField(value: unknown): string | null {

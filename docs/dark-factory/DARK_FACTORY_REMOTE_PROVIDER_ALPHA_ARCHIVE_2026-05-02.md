@@ -1725,3 +1725,44 @@ Validation after hardening batch 36:
 - Remaining production blockers: real provider gated attempt, host-managed
   secret resolver, and full UI internal beta install flow.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 37
+
+Remote provider alpha hardening batch 37 added the host-managed secret resolver
+contract and removed the temporary resolver blocker from install readiness.
+
+### Host-managed Secret Resolver Contract
+
+Added `src/remote-provider-host-secret-resolver.ts` and exposed the
+`remote-provider-host-secret-resolver-contract` data surface. The contract
+declares:
+
+- host-managed reference schemes: `secret://` and `host-secret://`
+- legacy reference schemes: `env:` and `env://`
+- resolved credential values are transient memory only
+- resolved credential values must not be persisted or printed
+- the resolver contract does not authorize remote execution
+- Paperclip terminal state is never advanced
+
+Updated remote credential diagnostics so host-managed references are ready for
+readiness evaluation while real provider network calls still require the plugin
+host to inject a resolved credential at execution time.
+
+Updated `pnpm install:readiness` to verify the host secret resolver contract.
+This removes the `host_secret_resolver_pending` production blocker without
+connecting to a real provider or reading credential values.
+
+Validation after hardening batch 37:
+
+- targeted host secret resolver, HTTP adapter, plugin, remote alpha, and
+  install readiness tests passed: 45 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 28 test files passed, 1 gated file skipped, 167 tests
+  passed, 1 skipped.
+- `pnpm install:readiness` passed with `installableAlphaReady: true` and
+  `productionReady: false`.
+- `host_secret_resolver_pending` is no longer reported.
+- Remaining production blockers: real provider gated attempt and full UI
+  internal beta install flow.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.

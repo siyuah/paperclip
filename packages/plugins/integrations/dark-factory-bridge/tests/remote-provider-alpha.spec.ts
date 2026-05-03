@@ -131,9 +131,13 @@ describe("Dark Factory remote provider alpha", () => {
       driverKey: driverParams.driverKey,
       config: { mode: "remote", endpoint },
     });
-    const unsupported = await plugin.definition.onEnvironmentValidateConfig?.({
+    const hostManaged = await plugin.definition.onEnvironmentValidateConfig?.({
       driverKey: driverParams.driverKey,
       config: { mode: "remote", endpoint, apiKeySecretRef: "secret://dark-factory/api-key" },
+    });
+    const unsupported = await plugin.definition.onEnvironmentValidateConfig?.({
+      driverKey: driverParams.driverKey,
+      config: { mode: "remote", endpoint, apiKeySecretRef: "vault://dark-factory/api-key" },
     });
     const unresolved = await plugin.definition.onEnvironmentValidateConfig?.({
       driverKey: driverParams.driverKey,
@@ -144,9 +148,13 @@ describe("Dark Factory remote provider alpha", () => {
       ok: false,
       errors: ["apiKey or apiKeySecretRef is required for remote mode"],
     });
+    expect(hostManaged).toEqual({
+      ok: false,
+      errors: ["apiKeySecretRef uses a host-managed secret reference; the host must inject a resolved credential before a real provider network call"],
+    });
     expect(unsupported).toEqual({
       ok: false,
-      errors: ["apiKeySecretRef must use env:NAME or env://NAME in remote alpha"],
+      errors: ["apiKeySecretRef must use env:NAME, env://NAME, secret://NAME, or host-secret://NAME"],
     });
     expect(unresolved).toEqual({
       ok: false,

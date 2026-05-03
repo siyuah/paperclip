@@ -145,7 +145,7 @@ describe("DarkFactoryHttpClient hardening", () => {
     expect(logText).not.toContain("env-resolved-api-key");
   });
 
-  it("ignores unsupported secret reference schemes", async () => {
+  it("accepts host-managed secret references for diagnostics but blocks network use until the host injects a resolved credential", async () => {
     vi.stubEnv("DARK_FACTORY_TEST_API_KEY", "env-resolved-api-key");
     expect(validateHttpCredentialConfig({
       mode: "remote",
@@ -153,13 +153,22 @@ describe("DarkFactoryHttpClient hardening", () => {
       apiKeySecretRef: "secret://dark-factory/api-key",
     })).toMatchObject({
       ok: false,
-      code: "dark_factory_remote_credential_ref_unsupported",
+      code: "dark_factory_remote_credential_host_secret_ref_pending_runtime_resolution",
     });
     expect(() => httpClientFromConfig({
       mode: "remote",
       endpoint: "https://127.0.0.1:9702",
       apiKeySecretRef: "secret://dark-factory/api-key",
-    })).toThrow("apiKeySecretRef must use env:NAME or env://NAME in remote alpha");
+    })).toThrow("host-managed secret reference");
+
+    expect(validateHttpCredentialConfig({
+      mode: "remote",
+      endpoint: "https://127.0.0.1:9702",
+      apiKeySecretRef: "vault://dark-factory/api-key",
+    })).toMatchObject({
+      ok: false,
+      code: "dark_factory_remote_credential_ref_unsupported",
+    });
   });
 
   it("reports missing and unresolved remote credentials before network calls", () => {

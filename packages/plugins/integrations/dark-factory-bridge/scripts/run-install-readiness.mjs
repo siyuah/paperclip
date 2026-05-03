@@ -64,6 +64,12 @@ async function main() {
   checks.push(check("database_namespace", manifest.database?.namespaceSlug === "dark_factory_bridge", "manifest declares production bridge namespace"));
   checks.push(check("migration_file", await exists(join(pluginRoot, "migrations/001_dark_factory_projection.sql")), "database migration file is present"));
   checks.push(check("mock_driver", Array.isArray(manifest.environmentDrivers) && manifest.environmentDrivers.some((driver) => driver.driverKey === "dark-factory-mock"), "dark-factory-mock driver declaration is present"));
+  checks.push(check("host_secret_resolver_contract", await fileContains(join(pluginRoot, "src/remote-provider-host-secret-resolver.ts"), [
+    "secret://",
+    "host-secret://",
+    "shouldPersistResolvedCredentialValues: false",
+    "doesAuthorizeRemoteExecution: false",
+  ]), "host-managed secret resolver contract is present and non-persistent"));
 
   const productionBlockers = collectProductionBlockers({ manifest });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
@@ -180,16 +186,20 @@ function collectProductionBlockers({ manifest }) {
     message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
   });
   blockers.push({
-    code: "host_secret_resolver_pending",
-    severity: "blocker",
-    message: "Remote alpha still relies on env/env:// secret references until host-managed secret resolver is available.",
-  });
-  blockers.push({
     code: "ui_full_internal_beta_not_completed",
     severity: "review",
     message: "UI is ready for controlled preview smoke, but full internal beta installation flow has not been exercised.",
   });
   return blockers;
+}
+
+async function fileContains(path, needles) {
+  try {
+    const text = await readFile(path, "utf8");
+    return needles.every((needle) => text.includes(needle));
+  } catch {
+    return false;
+  }
 }
 
 function isValidInstallPolicy({ installPolicy, packageJson }) {

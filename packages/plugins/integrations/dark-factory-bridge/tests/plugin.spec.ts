@@ -72,6 +72,15 @@ type RemoteCredentialDiagnosticsBody = {
     apiKeyPresent: boolean;
     apiKeySecretRefPresent: boolean;
     apiKeySecretRefScheme: string;
+    hostManagedSecretRefPresent: boolean;
+  };
+  hostSecretResolver: {
+    ok: boolean;
+    status: string;
+    credentialSource: string;
+    hostManagedSecretRefPresent: boolean;
+    shouldPersistResolvedCredentialValues: boolean;
+    doesAuthorizeRemoteExecution: boolean;
   };
   diagnostics: Array<{
     severity: string;
@@ -1103,9 +1112,13 @@ describe("Dark Factory bridge projection plugin", () => {
       companyId,
       config: { mode: "remote", endpoint: "https://dark-factory.example.test" },
     });
-    const unsupported = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
+    const hostManaged = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
       companyId,
       config: { mode: "remote", endpoint: "https://dark-factory.example.test", apiKeySecretRef: "secret://dark-factory/api-key" },
+    });
+    const unsupported = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
+      companyId,
+      config: { mode: "remote", endpoint: "https://dark-factory.example.test", apiKeySecretRef: "vault://dark-factory/api-key" },
     });
     const unresolved = await harness.getData<RemoteCredentialDiagnosticsBody>("remote-credential-diagnostics", {
       companyId,
@@ -1127,6 +1140,7 @@ describe("Dark Factory bridge projection plugin", () => {
         apiKeyPresent: false,
         apiKeySecretRefPresent: false,
         apiKeySecretRefScheme: "none",
+        hostManagedSecretRefPresent: false,
       },
       diagnostics: [
         expect.objectContaining({
@@ -1147,6 +1161,7 @@ describe("Dark Factory bridge projection plugin", () => {
         apiKeyPresent: false,
         apiKeySecretRefPresent: false,
         apiKeySecretRefScheme: "none",
+        hostManagedSecretRefPresent: false,
       },
       diagnostics: [
         expect.objectContaining({
@@ -1159,18 +1174,46 @@ describe("Dark Factory bridge projection plugin", () => {
         }),
       ],
     });
+    expect(hostManaged).toMatchObject({
+      ok: true,
+      credentialSource: "host_secret_ref",
+      checkedConfig: {
+        apiKeySecretRefPresent: true,
+        apiKeySecretRefScheme: "secret_url",
+        hostManagedSecretRefPresent: true,
+      },
+      hostSecretResolver: {
+        ok: true,
+        status: "host_managed_reference",
+        credentialSource: "host_secret_ref",
+        hostManagedSecretRefPresent: true,
+        shouldPersistResolvedCredentialValues: false,
+        doesAuthorizeRemoteExecution: false,
+      },
+      diagnostics: [
+        expect.objectContaining({
+          severity: "info",
+          code: "dark_factory_remote_credential_host_secret_ref_ready",
+          remediation: expect.arrayContaining([
+            expect.stringContaining("host-managed secret reference"),
+            expect.stringContaining("inject a resolved credential"),
+          ]),
+        }),
+      ],
+    });
     expect(unsupported).toMatchObject({
       ok: false,
       checkedConfig: {
         apiKeySecretRefPresent: true,
         apiKeySecretRefScheme: "unsupported",
+        hostManagedSecretRefPresent: false,
       },
       diagnostics: [
         expect.objectContaining({
           code: "dark_factory_remote_credential_ref_unsupported",
           remediation: expect.arrayContaining([
             expect.stringContaining("env:NAME"),
-            expect.stringContaining("host-managed secret resolver"),
+            expect.stringContaining("host resolver"),
           ]),
         }),
       ],
@@ -1180,6 +1223,7 @@ describe("Dark Factory bridge projection plugin", () => {
       checkedConfig: {
         apiKeySecretRefPresent: true,
         apiKeySecretRefScheme: "env",
+        hostManagedSecretRefPresent: false,
       },
       diagnostics: [
         expect.objectContaining({

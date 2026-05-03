@@ -15,8 +15,8 @@ describe("install readiness script", () => {
     expect(source).toContain("productionBlockers");
     expect(source).toContain("manifest_identity_contains_example");
     expect(source).toContain("install_distribution_policy");
+    expect(source).toContain("host_secret_resolver_contract");
     expect(source).toContain("real_provider_gated_attempt_not_completed");
-    expect(source).toContain("host_secret_resolver_pending");
   });
 
   it("writes an alpha-ready report while preserving production blockers", async () => {
@@ -34,7 +34,7 @@ describe("install readiness script", () => {
       });
       expect(summary.productionBlockers).toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "real_provider_gated_attempt_not_completed" }),
-        expect.objectContaining({ code: "host_secret_resolver_pending" }),
+        expect.objectContaining({ code: "ui_full_internal_beta_not_completed" }),
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "database_namespace_contains_poc" }),
@@ -44,6 +44,9 @@ describe("install readiness script", () => {
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "package_private_publish_policy_pending" }),
+      ]));
+      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "host_secret_resolver_pending" }),
       ]));
 
       const report = JSON.parse(await readFile(reportPath, "utf8"));
@@ -73,6 +76,7 @@ describe("install readiness script", () => {
         expect.objectContaining({ id: "ui_pointer", status: "pass" }),
         expect.objectContaining({ id: "mock_driver", status: "pass" }),
         expect.objectContaining({ id: "install_distribution_policy", status: "pass" }),
+        expect.objectContaining({ id: "host_secret_resolver_contract", status: "pass" }),
       ]));
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {
