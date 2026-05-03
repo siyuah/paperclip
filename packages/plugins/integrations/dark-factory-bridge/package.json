@@ -10,6 +10,7 @@
     "build:rollup": "rollup -c",
     "dev": "node ./esbuild.config.mjs --watch",
     "dev:ui": "paperclip-plugin-dev-server --root . --ui-dir dist/ui --port 4178",
+    "packet:first-provider": "tsx scripts/generate-first-provider-session-packet.mjs",
     "preflight:first-provider": "tsx scripts/run-first-provider-preflight.mjs",
     "smoke:ui:browser": "tsx scripts/run-ui-smoke-preview-browser.mjs",
     "test": "vitest run --config ./vitest.config.ts",

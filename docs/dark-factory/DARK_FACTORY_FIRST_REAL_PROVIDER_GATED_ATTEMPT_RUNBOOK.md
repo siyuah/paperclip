@@ -15,10 +15,12 @@ Before any real provider attempt:
 
 1. Confirm the bridge plugin branch is the intended fork branch.
 2. Run `pnpm preflight:first-provider` and archive the generated evidence JSON.
-3. Confirm the generated evidence says `gatedIntegrationDefaultSkip: true`.
-4. Confirm the provider endpoint is trusted and operator-controlled.
-5. Confirm the API key is only present in the operator shell environment.
-6. Confirm the settings UI dry-run guard shows a receipt for the target hook.
+3. Run `pnpm packet:first-provider` and archive the generated operator session
+   packet.
+4. Confirm the generated evidence says `gatedIntegrationDefaultSkip: true`.
+5. Confirm the provider endpoint is trusted and operator-controlled.
+6. Confirm the API key is only present in the operator shell environment.
+7. Confirm the settings UI dry-run guard shows a receipt for the target hook.
 
 Do not continue if any precondition fails.
 
@@ -70,6 +72,18 @@ pnpm preflight:first-provider
 The command writes `output/dark-factory-first-provider-preflight/evidence.json`.
 Archive that file with operator notes after confirming it contains no resolved
 credential values.
+
+Generate the operator session packet from that evidence before setting any
+real-provider environment variables:
+
+```bash
+pnpm packet:first-provider
+```
+
+The command writes `output/dark-factory-first-provider-session/SESSION_PACKET.md`.
+Archive that packet with the operator review notes. The packet intentionally
+omits raw command output tails and contains only check summaries, boundary
+assertions, and human fill-in fields.
 
 In the generated evidence and Dark Factory Bridge settings preview, verify:
 

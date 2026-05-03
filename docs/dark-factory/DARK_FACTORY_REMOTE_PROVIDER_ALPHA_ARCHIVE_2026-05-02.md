@@ -1421,3 +1421,51 @@ Validation after hardening batch 29:
 - `pnpm smoke:ui:browser -- --no-screenshots` passed.
 - `pnpm preflight:first-provider` passed and generated local evidence JSON.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 30
+
+Remote provider alpha hardening batch 30 added a first-provider operator session
+packet generator.
+
+### Operator Session Packet Script
+
+Added `scripts/generate-first-provider-session-packet.mjs` and the package
+script `pnpm packet:first-provider`.
+
+The script reads the local preflight evidence JSON and writes
+`output/dark-factory-first-provider-session/SESSION_PACKET.md`.
+
+The packet includes:
+
+- evidence path, generated time, branch, commit, and schema version
+- readiness assessment and failed-reason list
+- check summary table
+- boundary assertion table
+- dry-run summary
+- operator fill-in fields
+- stop conditions
+
+The packet intentionally omits raw command output tails. It is a human review
+artifact only and does not authorize remote execution.
+
+Boundary expectations:
+
+- Dark Factory Journal remains truth source.
+- `authoritative: false`.
+- `terminalStateAdvanced: false`.
+- `doesAuthorizeRemoteExecution: false`.
+- `shouldContactRemoteProviderDuringDryRun: false`.
+- no resolved credential values.
+
+Validation after hardening batch 30:
+
+- targeted session packet script test passed: 4 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 24 test files passed, 1 gated file skipped, 153 tests
+  passed, 1 skipped.
+- `pnpm preflight:first-provider` passed and generated local evidence JSON.
+- `pnpm packet:first-provider` passed and generated
+  `output/dark-factory-first-provider-session/SESSION_PACKET.md` with
+  `readyForGatedAttempt: true`.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.

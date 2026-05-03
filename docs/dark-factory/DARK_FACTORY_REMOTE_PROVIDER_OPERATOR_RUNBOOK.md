@@ -79,6 +79,11 @@ That checklist requires a dry-run guard receipt before setting
 Use `pnpm preflight:first-provider` to generate the local operator evidence JSON
 before setting real-provider environment variables.
 
+Use `pnpm packet:first-provider` after preflight to generate the Markdown
+operator session packet. The packet is the human review artifact for the first
+provider attempt and must contain only endpoint host references, credential
+reference names, check summaries, and boundary assertions.
+
 Run it only in an operator-controlled environment:
 
 ```bash
