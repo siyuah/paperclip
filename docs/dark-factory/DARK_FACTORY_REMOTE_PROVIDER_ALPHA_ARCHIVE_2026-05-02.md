@@ -2135,3 +2135,50 @@ Boundary compliance:
 - Missing supervised evidence does not fail alpha install readiness: yes
 - Missing supervised evidence continues to block production readiness: yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 46
+
+Remote provider alpha hardening batch 46 added a Paperclip-side recorder for
+the supervised shim gated attempt.
+
+### Supervised Evidence Recorder
+
+Added package script:
+
+```bash
+pnpm evidence:supervised-shim-gate -- --input /path/to/SUPERVISED_VERIFIER.json
+```
+
+The input must be the sanitized JSON output from
+`tools/verify_linghucall_provider_shim_supervised.py --include-paperclip-gate`
+in the `123` repository. The recorder fails closed unless the report shows:
+
+- the systemd user service is active
+- the operator env file and bridge key file are private
+- `/api/health` is ready
+- Paperclip provider-status gate passed
+- Paperclip `tests/remote-gated-integration.spec.ts` passed
+- the source verifier did not read or print credential values
+
+The output is the plugin evidence file:
+
+- `packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json`
+
+The evidence still sets `productionReady: false`; once it exists and validates,
+the next blocker becomes `production_deployment_plan_not_recorded`.
+
+Validation after hardening batch 46:
+
+- supervised evidence recorder tests passed.
+- install readiness and alpha handoff tests still pass with the supervised
+  evidence file absent.
+- production readiness remains blocked by
+  `supervised_shim_gated_attempt_not_recorded` until operator evidence exists.
+
+Boundary compliance:
+
+- Recorder accepts sanitized verifier JSON only: yes
+- Recorder rejects reports without the Paperclip gated test: yes
+- Recorder output remains non-authoritative: yes
+- No resolved credential value is recorded: yes
+- Dark Factory Journal remains truth source: yes

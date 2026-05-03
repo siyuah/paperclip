@@ -108,6 +108,22 @@ gated attempt and operationalization assets are recorded separately as:
 - `packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json`
 - `packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json`
 
+After the LinghuCall shim is installed and started as the supervised systemd
+user service, generate the final supervised evidence from the sanitized verifier
+JSON:
+
+```bash
+cd /home/siyuah/workspace/paperclip_upstream/packages/plugins/integrations/dark-factory-bridge
+pnpm evidence:supervised-shim-gate -- \
+  --input /path/to/SUPERVISED_VERIFIER.json
+pnpm install:readiness -- --skip-build
+```
+
+The recorder writes
+`docs/supervised-shim-gated-attempt-evidence.json` and fails closed unless the
+source verifier shows the service, healthcheck, provider-status gate, and
+remote gated integration test all passed. It does not accept raw credentials.
+
 Run it only in an operator-controlled environment:
 
 ```bash

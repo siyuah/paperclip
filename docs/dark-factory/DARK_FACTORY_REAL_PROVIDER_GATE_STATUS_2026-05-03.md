@@ -110,9 +110,11 @@ The required sequence is:
 2. Run
    `/home/siyuah/workspace/123/tools/verify_linghucall_provider_shim_supervised.py --include-paperclip-gate --require-pass`
    from an operator shell that contains the bridge-facing key reference.
-3. Archive only the sanitized verifier result as
+3. Convert the sanitized verifier result into plugin evidence with
+   `pnpm evidence:supervised-shim-gate -- --input /path/to/SUPERVISED_VERIFIER.json`.
+4. Archive the generated
    `packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json`.
-4. Keep `supervised_shim_gated_attempt_not_recorded` active until that evidence
+5. Keep `supervised_shim_gated_attempt_not_recorded` active until that evidence
    exists and passes the install-readiness validator.
 
 The supervised verifier contract was added in `123` commit `65e3058`; Paperclip

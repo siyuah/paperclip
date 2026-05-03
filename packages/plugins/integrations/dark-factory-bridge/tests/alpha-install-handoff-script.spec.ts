@@ -16,6 +16,7 @@ describe("alpha install handoff script", () => {
     expect(source).toContain("real_provider_gated_attempt_evidence");
     expect(source).toContain("linghucall_shim_operationalization_evidence");
     expect(source).toContain("supervised_shim_gated_attempt_evidence");
+    expect(source).toContain("supervised-shim-gated-attempt-evidence.json");
     expect(source).toContain("supervised_shim_gated_attempt_not_recorded");
     expect(source).toContain("production_deployment_plan_not_recorded");
   });

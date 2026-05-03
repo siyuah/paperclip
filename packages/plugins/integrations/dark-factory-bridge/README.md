@@ -73,6 +73,16 @@ attempt evidence is expected at
 `docs/supervised-shim-gated-attempt-evidence.json` after the operator starts the
 systemd user service and reruns the gated test.
 
+Generate that final evidence from the sanitized supervised verifier output:
+
+```bash
+pnpm evidence:supervised-shim-gate -- --input /path/to/SUPERVISED_VERIFIER.json
+```
+
+The recorder fails closed unless the source verifier report shows the systemd
+user service, healthcheck, provider-status gate, and remote gated integration
+test all passed.
+
 ## Local WebUI preview
 
 For direct browser inspection, run:
