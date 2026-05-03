@@ -1766,3 +1766,43 @@ Validation after hardening batch 37:
 - Remaining production blockers: real provider gated attempt and full UI
   internal beta install flow.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 38
+
+Remote provider alpha hardening batch 38 added machine-readable UI internal
+beta install evidence and removed the UI beta readiness blocker from install
+readiness.
+
+### UI Beta Install Evidence
+
+Added `scripts/generate-ui-beta-install-evidence.mjs`, package script
+`pnpm evidence:ui-beta`, and checked-in evidence file
+`docs/ui-beta-install-evidence.json`.
+
+The evidence verifies:
+
+- dashboard, issue detail, and settings UI slots are declared
+- settings UI is wired to `remote-provider-ui-smoke-preview`
+- settings UI renders scenario controls and boundary fields
+- standalone browser harness contains all preview scenarios
+- live browser runner is available for Chromium/CDP smoke
+- preview payloads preserve non-authoritative Journal boundary
+- dry-run guards never contact a provider or authorize remote execution
+
+Updated `pnpm install:readiness` to require the UI beta evidence file. This
+removes the `ui_full_internal_beta_not_completed` production blocker while
+remaining offline and projection-only.
+
+Validation after hardening batch 38:
+
+- targeted UI beta evidence, install readiness, browser harness, and settings
+  panel tests passed: 8 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 29 test files passed, 1 gated file skipped, 169 tests
+  passed, 1 skipped.
+- `pnpm install:readiness` passed with `installableAlphaReady: true` and
+  `productionReady: false`.
+- `ui_full_internal_beta_not_completed` is no longer reported.
+- Remaining production blocker: real provider gated attempt.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.

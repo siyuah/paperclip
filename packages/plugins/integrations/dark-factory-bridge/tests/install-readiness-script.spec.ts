@@ -16,6 +16,7 @@ describe("install readiness script", () => {
     expect(source).toContain("manifest_identity_contains_example");
     expect(source).toContain("install_distribution_policy");
     expect(source).toContain("host_secret_resolver_contract");
+    expect(source).toContain("ui_beta_install_evidence");
     expect(source).toContain("real_provider_gated_attempt_not_completed");
   });
 
@@ -34,7 +35,6 @@ describe("install readiness script", () => {
       });
       expect(summary.productionBlockers).toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "real_provider_gated_attempt_not_completed" }),
-        expect.objectContaining({ code: "ui_full_internal_beta_not_completed" }),
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "database_namespace_contains_poc" }),
@@ -47,6 +47,9 @@ describe("install readiness script", () => {
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "host_secret_resolver_pending" }),
+      ]));
+      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "ui_full_internal_beta_not_completed" }),
       ]));
 
       const report = JSON.parse(await readFile(reportPath, "utf8"));
@@ -77,6 +80,7 @@ describe("install readiness script", () => {
         expect.objectContaining({ id: "mock_driver", status: "pass" }),
         expect.objectContaining({ id: "install_distribution_policy", status: "pass" }),
         expect.objectContaining({ id: "host_secret_resolver_contract", status: "pass" }),
+        expect.objectContaining({ id: "ui_beta_install_evidence", status: "pass" }),
       ]));
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {

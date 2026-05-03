@@ -10,6 +10,7 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const pluginRoot = resolve(scriptDir, "..");
 const repoRoot = resolve(pluginRoot, "../../../..");
 const defaultOutDir = join(repoRoot, "output/dark-factory-install-readiness");
+const uiBetaEvidencePath = join(pluginRoot, "docs/ui-beta-install-evidence.json");
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -70,6 +71,8 @@ async function main() {
     "shouldPersistResolvedCredentialValues: false",
     "doesAuthorizeRemoteExecution: false",
   ]), "host-managed secret resolver contract is present and non-persistent"));
+  const uiBetaEvidence = await readJsonFile(uiBetaEvidencePath);
+  checks.push(check("ui_beta_install_evidence", isValidUiBetaEvidence({ uiBetaEvidence, packageJson, manifest }), "UI internal beta install evidence is present and boundary-safe"));
 
   const productionBlockers = collectProductionBlockers({ manifest });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
@@ -91,6 +94,7 @@ async function main() {
       ui: relativeToPlugin(uiDir),
       migration: "migrations/001_dark_factory_projection.sql",
       installDistributionPolicy: "docs/install-distribution-policy.json",
+      uiBetaInstallEvidence: "docs/ui-beta-install-evidence.json",
     },
     installDistributionPolicy: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -185,12 +189,15 @@ function collectProductionBlockers({ manifest }) {
     severity: "blocker",
     message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
   });
-  blockers.push({
-    code: "ui_full_internal_beta_not_completed",
-    severity: "review",
-    message: "UI is ready for controlled preview smoke, but full internal beta installation flow has not been exercised.",
-  });
   return blockers;
+}
+
+async function readJsonFile(path) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
 }
 
 async function fileContains(path, needles) {
@@ -214,6 +221,25 @@ function isValidInstallPolicy({ installPolicy, packageJson }) {
     && installPolicy?.boundary?.terminalStateAdvanced === false
     && installPolicy?.boundary?.doesAuthorizeRemoteExecution === false
     && installPolicy?.boundary?.noResolvedCredentialValues === true;
+}
+
+function isValidUiBetaEvidence({ uiBetaEvidence, packageJson, manifest }) {
+  const expectedScenarios = ["healthy", "warning_latency", "blocked_failures", "stale_readiness"];
+  return uiBetaEvidence?.schemaVersion === 1
+    && uiBetaEvidence?.reportType === "dark-factory-ui-beta-install-evidence"
+    && uiBetaEvidence?.packageName === packageJson.name
+    && uiBetaEvidence?.manifestId === manifest.id
+    && uiBetaEvidence?.uiInternalBetaReady === true
+    && Array.isArray(uiBetaEvidence?.checks)
+    && uiBetaEvidence.checks.every((item) => item?.status === "pass")
+    && Array.isArray(uiBetaEvidence?.scenarios)
+    && expectedScenarios.every((scenario) => uiBetaEvidence.scenarios.some((item) => item?.scenario === scenario))
+    && uiBetaEvidence?.boundary?.truthSource === "dark-factory-journal"
+    && uiBetaEvidence?.boundary?.authoritative === false
+    && uiBetaEvidence?.boundary?.terminalStateAdvanced === false
+    && uiBetaEvidence?.boundary?.doesAuthorizeRemoteExecution === false
+    && uiBetaEvidence?.boundary?.shouldContactRemoteProvider === false
+    && uiBetaEvidence?.boundary?.noResolvedCredentialValues === true;
 }
 
 function check(id, ok, message) {

@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "reportType": "dark-factory-ui-beta-install-evidence",
+  "generatedAt": "2026-05-03T00:00:00.000Z",
+  "packageName": "@paperclipai/plugin-dark-factory-bridge",
+  "manifestId": "paperclipai.dark-factory-bridge",
+  "uiInternalBetaReady": true,
+  "checks": [
+    {
+      "id": "ui_slot_dashboard",
+      "ok": true,
+      "status": "pass",
+      "message": "dashboard widget slot is declared"
+    },
+    {
+      "id": "ui_slot_detail",
+      "ok": true,
+      "status": "pass",
+      "message": "issue detail tab slot is declared"
+    },
+    {
+      "id": "ui_slot_settings",
+      "ok": true,
+      "status": "pass",
+      "message": "settings page slot is declared"
+    },
+    {
+      "id": "settings_preview_data_key",
+      "ok": true,
+      "status": "pass",
+      "message": "settings UI reads smoke preview data"
+    },
+    {
+      "id": "settings_scenario_selector",
+      "ok": true,
+      "status": "pass",
+      "message": "settings UI exposes scenario selector"
+    },
+    {
+      "id": "settings_boundary_fields",
+      "ok": true,
+      "status": "pass",
+      "message": "settings UI renders boundary fields"
+    },
+    {
+      "id": "browser_harness_scenarios",
+      "ok": true,
+      "status": "pass",
+      "message": "standalone browser harness includes all scenarios"
+    },
+    {
+      "id": "browser_runner_cdp",
+      "ok": true,
+      "status": "pass",
+      "message": "live browser runner is available for Chromium/CDP smoke"
+    },
+    {
+      "id": "preview_boundaries",
+      "ok": true,
+      "status": "pass",
+      "message": "preview payloads preserve non-authoritative Journal boundary"
+    },
+    {
+      "id": "preview_scenarios",
+      "ok": true,
+      "status": "pass",
+      "message": "preview scenarios are deterministic and complete"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario": "healthy",
+      "previewStatus": "ready",
+      "readinessStatus": "ready",
+      "nextSafeHook": "onEnvironmentExecute",
+      "dryRunGuardDecisions": {
+        "onEnvironmentValidateConfig": "allowed",
+        "onEnvironmentProbe": "allowed",
+        "onEnvironmentAcquireLease": "allowed",
+        "onEnvironmentExecute": "allowed"
+      },
+      "truthSource": "dark-factory-journal",
+      "authoritative": false,
+      "terminalStateAdvanced": false
+    },
+    {
+      "scenario": "warning_latency",
+      "previewStatus": "needs_attention",
+      "readinessStatus": "needs_attention",
+      "nextSafeHook": "onEnvironmentProbe",
+      "dryRunGuardDecisions": {
+        "onEnvironmentValidateConfig": "allowed",
+        "onEnvironmentProbe": "review_required",
+        "onEnvironmentAcquireLease": "blocked",
+        "onEnvironmentExecute": "blocked"
+      },
+      "truthSource": "dark-factory-journal",
+      "authoritative": false,
+      "terminalStateAdvanced": false
+    },
+    {
+      "scenario": "blocked_failures",
+      "previewStatus": "blocked",
+      "readinessStatus": "blocked",
+      "nextSafeHook": "onEnvironmentProbe",
+      "dryRunGuardDecisions": {
+        "onEnvironmentValidateConfig": "allowed",
+        "onEnvironmentProbe": "review_required",
+        "onEnvironmentAcquireLease": "blocked",
+        "onEnvironmentExecute": "blocked"
+      },
+      "truthSource": "dark-factory-journal",
+      "authoritative": false,
+      "terminalStateAdvanced": false
+    },
+    {
+      "scenario": "stale_readiness",
+      "previewStatus": "needs_attention",
+      "readinessStatus": "needs_attention",
+      "nextSafeHook": "onEnvironmentProbe",
+      "dryRunGuardDecisions": {
+        "onEnvironmentValidateConfig": "allowed",
+        "onEnvironmentProbe": "review_required",
+        "onEnvironmentAcquireLease": "blocked",
+        "onEnvironmentExecute": "blocked"
+      },
+      "truthSource": "dark-factory-journal",
+      "authoritative": false,
+      "terminalStateAdvanced": false
+    }
+  ],
+  "artifacts": {
+    "uiSource": "src/ui/index.tsx",
+    "browserHarness": "src/ui-smoke-preview-browser-harness.ts",
+    "browserRunner": "scripts/run-ui-smoke-preview-browser.mjs"
+  },
+  "boundary": {
+    "truthSource": "dark-factory-journal",
+    "authoritative": false,
+    "terminalStateAdvanced": false,
+    "doesAuthorizeRemoteExecution": false,
+    "shouldContactRemoteProvider": false,
+    "noResolvedCredentialValues": true
+  }
+}
