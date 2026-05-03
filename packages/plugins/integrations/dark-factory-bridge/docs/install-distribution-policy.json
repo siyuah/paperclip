@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "policyType": "dark-factory-bridge-install-distribution",
+  "packageName": "@paperclipai/plugin-dark-factory-bridge",
+  "distributionMode": "fork-local-workspace",
+  "packagePrivateExpected": true,
+  "npmPublish": false,
+  "allowedInstallSources": [
+    "paperclip fork branch fork-master-product",
+    "paperclip monorepo workspace package"
+  ],
+  "operatorSummary": "Install from the maintained fork/workspace only during internal alpha. Do not publish this package to npm until upstream contribution or registry policy is separately approved.",
+  "boundary": {
+    "truthSource": "dark-factory-journal",
+    "authoritative": false,
+    "terminalStateAdvanced": false,
+    "doesAuthorizeRemoteExecution": false,
+    "noResolvedCredentialValues": true
+  }
+}

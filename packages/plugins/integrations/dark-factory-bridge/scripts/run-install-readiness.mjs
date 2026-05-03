@@ -41,6 +41,7 @@ async function main() {
   }
 
   const packageJson = JSON.parse(await readFile(join(pluginRoot, "package.json"), "utf8"));
+  const installPolicy = await readInstallPolicy();
   const manifestPath = resolve(pluginRoot, packageJson.paperclipPlugin?.manifest ?? "");
   const workerPath = resolve(pluginRoot, packageJson.paperclipPlugin?.worker ?? "");
   const uiDir = resolve(pluginRoot, packageJson.paperclipPlugin?.ui ?? "");
@@ -49,7 +50,8 @@ async function main() {
   const manifestParse = pluginManifestV1Schema.safeParse(manifest);
 
   checks.push(check("package_name", packageJson.name === "@paperclipai/plugin-dark-factory-bridge", "package name is product integration package name"));
-  checks.push(check("package_private", packageJson.private === true, "package remains private until publish policy is decided"));
+  checks.push(check("package_private", packageJson.private === true, "package remains private for fork-local workspace distribution"));
+  checks.push(check("install_distribution_policy", isValidInstallPolicy({ installPolicy, packageJson }), "fork-local install distribution policy is present and matches package privacy"));
   checks.push(check("manifest_pointer", await exists(manifestPath), "paperclipPlugin.manifest points to built manifest"));
   checks.push(check("worker_pointer", await exists(workerPath), "paperclipPlugin.worker points to built worker"));
   checks.push(check("ui_pointer", await exists(join(uiDir, "index.js")), "paperclipPlugin.ui points to built UI entry"));
@@ -63,7 +65,7 @@ async function main() {
   checks.push(check("migration_file", await exists(join(pluginRoot, "migrations/001_dark_factory_projection.sql")), "database migration file is present"));
   checks.push(check("mock_driver", Array.isArray(manifest.environmentDrivers) && manifest.environmentDrivers.some((driver) => driver.driverKey === "dark-factory-mock"), "dark-factory-mock driver declaration is present"));
 
-  const productionBlockers = collectProductionBlockers({ manifest, packageJson });
+  const productionBlockers = collectProductionBlockers({ manifest });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
   const productionReady = installableAlphaReady && productionBlockers.length === 0;
   const report = {
@@ -82,6 +84,12 @@ async function main() {
       worker: relativeToPlugin(workerPath),
       ui: relativeToPlugin(uiDir),
       migration: "migrations/001_dark_factory_projection.sql",
+      installDistributionPolicy: "docs/install-distribution-policy.json",
+    },
+    installDistributionPolicy: {
+      distributionMode: installPolicy?.distributionMode ?? null,
+      packagePrivateExpected: installPolicy?.packagePrivateExpected ?? null,
+      npmPublish: installPolicy?.npmPublish ?? null,
     },
     boundary: {
       truthSource: "dark-factory-journal",
@@ -109,6 +117,14 @@ async function main() {
 
   if (!installableAlphaReady && !options.allowNotReady) {
     process.exit(2);
+  }
+}
+
+async function readInstallPolicy() {
+  try {
+    return JSON.parse(await readFile(join(pluginRoot, "docs/install-distribution-policy.json"), "utf8"));
+  } catch {
+    return null;
   }
 }
 
@@ -149,20 +165,13 @@ function parseArgs(args) {
   return parsed;
 }
 
-function collectProductionBlockers({ manifest, packageJson }) {
+function collectProductionBlockers({ manifest }) {
   const blockers = [];
   if (/example/i.test(manifest.id) || /example/i.test(manifest.displayName)) {
     blockers.push({
       code: "manifest_identity_contains_example",
       severity: "blocker",
       message: "Manifest id/displayName still carries example wording; rename before production install.",
-    });
-  }
-  if (packageJson.private === true) {
-    blockers.push({
-      code: "package_private_publish_policy_pending",
-      severity: "review",
-      message: "Package is private; publish/install distribution policy is not finalized.",
     });
   }
   blockers.push({
@@ -181,6 +190,20 @@ function collectProductionBlockers({ manifest, packageJson }) {
     message: "UI is ready for controlled preview smoke, but full internal beta installation flow has not been exercised.",
   });
   return blockers;
+}
+
+function isValidInstallPolicy({ installPolicy, packageJson }) {
+  return installPolicy?.schemaVersion === 1
+    && installPolicy?.policyType === "dark-factory-bridge-install-distribution"
+    && installPolicy?.packageName === packageJson.name
+    && installPolicy?.distributionMode === "fork-local-workspace"
+    && installPolicy?.packagePrivateExpected === packageJson.private
+    && installPolicy?.npmPublish === false
+    && installPolicy?.boundary?.truthSource === "dark-factory-journal"
+    && installPolicy?.boundary?.authoritative === false
+    && installPolicy?.boundary?.terminalStateAdvanced === false
+    && installPolicy?.boundary?.doesAuthorizeRemoteExecution === false
+    && installPolicy?.boundary?.noResolvedCredentialValues === true;
 }
 
 function check(id, ok, message) {

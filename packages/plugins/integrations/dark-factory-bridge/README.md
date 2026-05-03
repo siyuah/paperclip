@@ -41,6 +41,11 @@ Local validation used for this evidence should include direct plugin `pnpm typec
 
 ## Install readiness gate
 
+This fork keeps `@paperclipai/plugin-dark-factory-bridge` as a private
+workspace package. Internal alpha installs should consume it from the maintained
+fork/workspace, not from npm. The machine-readable policy lives at
+`docs/install-distribution-policy.json` and is checked by `pnpm install:readiness`.
+
 Use the install readiness gate before any controlled internal install:
 
 ```bash
@@ -58,6 +63,6 @@ The report distinguishes:
 - `productionReady`: full production install readiness. This remains `false`
   until production blockers are resolved.
 
-Known production blockers currently include manifest/database identity cleanup,
-real provider gated attempt completion, host-managed secret resolver support,
-and a full UI internal beta install flow.
+Known production blockers currently include real provider gated attempt
+completion, host-managed secret resolver support, and a full UI internal beta
+install flow.

@@ -14,6 +14,7 @@ describe("install readiness script", () => {
     expect(source).toContain("productionReady");
     expect(source).toContain("productionBlockers");
     expect(source).toContain("manifest_identity_contains_example");
+    expect(source).toContain("install_distribution_policy");
     expect(source).toContain("real_provider_gated_attempt_not_completed");
     expect(source).toContain("host_secret_resolver_pending");
   });
@@ -41,6 +42,9 @@ describe("install readiness script", () => {
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "manifest_identity_contains_example" }),
       ]));
+      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "package_private_publish_policy_pending" }),
+      ]));
 
       const report = JSON.parse(await readFile(reportPath, "utf8"));
       expect(report).toMatchObject({
@@ -50,6 +54,11 @@ describe("install readiness script", () => {
         manifestId: "paperclipai.dark-factory-bridge",
         installableAlphaReady: true,
         productionReady: false,
+        installDistributionPolicy: {
+          distributionMode: "fork-local-workspace",
+          packagePrivateExpected: true,
+          npmPublish: false,
+        },
         boundary: {
           truthSource: "dark-factory-journal",
           authoritative: false,
@@ -63,6 +72,7 @@ describe("install readiness script", () => {
         expect.objectContaining({ id: "worker_pointer", status: "pass" }),
         expect.objectContaining({ id: "ui_pointer", status: "pass" }),
         expect.objectContaining({ id: "mock_driver", status: "pass" }),
+        expect.objectContaining({ id: "install_distribution_policy", status: "pass" }),
       ]));
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {

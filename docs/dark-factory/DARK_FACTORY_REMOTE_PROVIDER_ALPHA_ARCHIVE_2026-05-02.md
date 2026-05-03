@@ -1687,3 +1687,41 @@ Validation after hardening batch 35:
   attempt, host-managed secret resolver, and full UI internal beta install
   flow.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 36
+
+Remote provider alpha hardening batch 36 resolved the package install
+distribution policy blocker for the fork-local product integration path.
+
+### Fork-local Install Distribution Policy
+
+Added `docs/install-distribution-policy.json` inside the bridge plugin package.
+The policy records that the package remains private and is installed from the
+maintained fork/workspace during internal alpha, not published to npm.
+
+Updated `pnpm install:readiness` to verify:
+
+- policy file exists and has schema version 1
+- package name matches `@paperclipai/plugin-dark-factory-bridge`
+- distribution mode is `fork-local-workspace`
+- `packagePrivateExpected` matches `package.json` `private`
+- `npmPublish` is false
+- policy boundary remains non-authoritative and does not authorize remote
+  execution
+
+This removes the `package_private_publish_policy_pending` production blocker
+without changing package privacy.
+
+Validation after hardening batch 36:
+
+- targeted install readiness script test passed: 2 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 27 test files passed, 1 gated file skipped, 163 tests
+  passed, 1 skipped.
+- `pnpm install:readiness` passed with `installableAlphaReady: true` and
+  `productionReady: false`.
+- `package_private_publish_policy_pending` is no longer reported.
+- Remaining production blockers: real provider gated attempt, host-managed
+  secret resolver, and full UI internal beta install flow.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
