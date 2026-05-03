@@ -45,7 +45,7 @@ describe("install readiness script", () => {
         productionReady: false,
       });
       expect(summary.productionBlockers).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "supervised_shim_gated_attempt_not_recorded" }),
+        expect.objectContaining({ code: "production_cutover_result_not_recorded" }),
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "provider_shim_not_operationalized" }),
@@ -67,6 +67,9 @@ describe("install readiness script", () => {
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "ui_full_internal_beta_not_completed" }),
+      ]));
+      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "supervised_shim_gated_attempt_not_recorded" }),
       ]));
 
       const report = JSON.parse(await readFile(reportPath, "utf8"));

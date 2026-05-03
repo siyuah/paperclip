@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "reportType": "linghucall-supervised-shim-gated-attempt-evidence",
+  "recordedAt": "2026-05-03T00:00:00.000Z",
+  "packageName": "@paperclipai/plugin-dark-factory-bridge",
+  "sourceReport": {
+    "reportType": "linghucall-provider-shim-supervised-attempt",
+    "checkedAt": "2026-05-03T13:28:53Z",
+    "status": "pass",
+    "endpoint": "http://127.0.0.1:9791",
+    "serviceName": "linghucall-provider-shim.service"
+  },
+  "supervisedService": {
+    "serviceName": "linghucall-provider-shim.service",
+    "active": true,
+    "operatorEnvFilePrivate": true,
+    "bridgeKeyFilePrivate": true
+  },
+  "healthcheck": {
+    "ok": true,
+    "endpointHost": "127.0.0.1:9791",
+    "status": "ready",
+    "protocolReleaseTag": "v3.0-agent-control-r1",
+    "providerKind": "linghucall_openai_compatible",
+    "providerCredentialValueRedacted": true
+  },
+  "paperclipGate": {
+    "attempted": true,
+    "providerStatusPassed": true,
+    "remoteGatedIntegrationPassed": true
+  },
+  "productionDecision": {
+    "supervisedShimGatedAttemptRecorded": true,
+    "supervisedShimGatedAttemptPassed": true,
+    "productionReady": false,
+    "remainingProductionBlockers": [
+      {
+        "code": "production_deployment_plan_not_recorded",
+        "severity": "blocker",
+        "message": "The supervised shim gated attempt passed, but production deployment, monitoring, rollback, and retention evidence has not yet been recorded."
+      }
+    ]
+  },
+  "boundary": {
+    "truthSource": "dark-factory-journal",
+    "authoritative": false,
+    "terminalStateAdvanced": false,
+    "noResolvedCredentialValues": true,
+    "credentialValuesRedacted": true,
+    "sourceVerifierNoCredentialValuesRead": true,
+    "sourceVerifierNoCredentialValuesPrinted": true
+  }
+}
