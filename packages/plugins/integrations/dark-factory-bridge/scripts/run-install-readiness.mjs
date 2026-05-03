@@ -11,6 +11,7 @@ const pluginRoot = resolve(scriptDir, "..");
 const repoRoot = resolve(pluginRoot, "../../../..");
 const defaultOutDir = join(repoRoot, "output/dark-factory-install-readiness");
 const uiBetaEvidencePath = join(pluginRoot, "docs/ui-beta-install-evidence.json");
+const alphaInstallHandoffPath = join(pluginRoot, "docs/alpha-install-handoff-manifest.json");
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -73,6 +74,8 @@ async function main() {
   ]), "host-managed secret resolver contract is present and non-persistent"));
   const uiBetaEvidence = await readJsonFile(uiBetaEvidencePath);
   checks.push(check("ui_beta_install_evidence", isValidUiBetaEvidence({ uiBetaEvidence, packageJson, manifest }), "UI internal beta install evidence is present and boundary-safe"));
+  const alphaInstallHandoff = await readJsonFile(alphaInstallHandoffPath);
+  checks.push(check("alpha_install_handoff_manifest", isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest }), "alpha install handoff manifest is present and keeps production gate explicit"));
 
   const productionBlockers = collectProductionBlockers({ manifest });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
@@ -95,6 +98,7 @@ async function main() {
       migration: "migrations/001_dark_factory_projection.sql",
       installDistributionPolicy: "docs/install-distribution-policy.json",
       uiBetaInstallEvidence: "docs/ui-beta-install-evidence.json",
+      alphaInstallHandoff: "docs/alpha-install-handoff-manifest.json",
     },
     installDistributionPolicy: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -240,6 +244,26 @@ function isValidUiBetaEvidence({ uiBetaEvidence, packageJson, manifest }) {
     && uiBetaEvidence?.boundary?.doesAuthorizeRemoteExecution === false
     && uiBetaEvidence?.boundary?.shouldContactRemoteProvider === false
     && uiBetaEvidence?.boundary?.noResolvedCredentialValues === true;
+}
+
+function isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest }) {
+  return alphaInstallHandoff?.schemaVersion === 1
+    && alphaInstallHandoff?.manifestType === "dark-factory-alpha-install-handoff"
+    && alphaInstallHandoff?.packageName === packageJson.name
+    && alphaInstallHandoff?.manifestId === manifest.id
+    && alphaInstallHandoff?.installableAlphaReady === true
+    && alphaInstallHandoff?.productionReady === false
+    && Array.isArray(alphaInstallHandoff?.productionBlockers)
+    && alphaInstallHandoff.productionBlockers.some((blocker) => blocker?.code === "real_provider_gated_attempt_not_completed")
+    && alphaInstallHandoff?.installDistribution?.distributionMode === "fork-local-workspace"
+    && alphaInstallHandoff?.installDistribution?.npmPublish === false
+    && alphaInstallHandoff?.uiBetaEvidence?.uiInternalBetaReady === true
+    && alphaInstallHandoff?.boundary?.truthSource === "dark-factory-journal"
+    && alphaInstallHandoff?.boundary?.authoritative === false
+    && alphaInstallHandoff?.boundary?.terminalStateAdvanced === false
+    && alphaInstallHandoff?.boundary?.doesAuthorizeRemoteExecution === false
+    && alphaInstallHandoff?.boundary?.shouldContactRemoteProvider === false
+    && alphaInstallHandoff?.boundary?.noResolvedCredentialValues === true;
 }
 
 function check(id, ok, message) {

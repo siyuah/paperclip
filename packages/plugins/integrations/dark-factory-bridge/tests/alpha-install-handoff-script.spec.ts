@@ -5,27 +5,22 @@ import { spawn } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import packageJson from "../package.json" with { type: "json" };
 
-describe("install readiness script", () => {
-  it("is exposed as a package script and distinguishes alpha readiness from production readiness", async () => {
-    const source = await readFile("scripts/run-install-readiness.mjs", "utf8");
+describe("alpha install handoff script", () => {
+  it("is exposed as a package script and keeps the real provider gate explicit", async () => {
+    const source = await readFile("scripts/generate-alpha-install-handoff.mjs", "utf8");
 
-    expect(packageJson.scripts["install:readiness"]).toBe("tsx scripts/run-install-readiness.mjs");
+    expect(packageJson.scripts["handoff:alpha-install"]).toBe("tsx scripts/generate-alpha-install-handoff.mjs");
+    expect(source).toContain("dark-factory-alpha-install-handoff");
     expect(source).toContain("installableAlphaReady");
-    expect(source).toContain("productionReady");
-    expect(source).toContain("productionBlockers");
-    expect(source).toContain("manifest_identity_contains_example");
-    expect(source).toContain("install_distribution_policy");
-    expect(source).toContain("host_secret_resolver_contract");
-    expect(source).toContain("ui_beta_install_evidence");
-    expect(source).toContain("alpha_install_handoff_manifest");
+    expect(source).toContain("productionReady: false");
     expect(source).toContain("real_provider_gated_attempt_not_completed");
   });
 
-  it("writes an alpha-ready report while preserving production blockers", async () => {
-    const outDir = await mkdtemp(join(tmpdir(), "df-install-readiness-"));
+  it("writes deterministic boundary-safe alpha install handoff evidence", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "df-alpha-install-handoff-"));
     try {
-      const reportPath = join(outDir, "INSTALL_READINESS.json");
-      const result = await run(["pnpm", "install:readiness", "--", "--report", reportPath]);
+      const reportPath = join(outDir, "ALPHA_INSTALL_HANDOFF.json");
+      const result = await run(["pnpm", "handoff:alpha-install", "--", "--report", reportPath]);
 
       expect(result.exitCode).toBe(0);
       const summary = parseLastJsonObject(result.stdout);
@@ -33,57 +28,47 @@ describe("install readiness script", () => {
         ok: true,
         installableAlphaReady: true,
         productionReady: false,
+        failedChecks: [],
       });
       expect(summary.productionBlockers).toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "real_provider_gated_attempt_not_completed" }),
-      ]));
-      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "database_namespace_contains_poc" }),
-      ]));
-      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "manifest_identity_contains_example" }),
-      ]));
-      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "package_private_publish_policy_pending" }),
-      ]));
-      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "host_secret_resolver_pending" }),
-      ]));
-      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "ui_full_internal_beta_not_completed" }),
       ]));
 
       const report = JSON.parse(await readFile(reportPath, "utf8"));
       expect(report).toMatchObject({
         schemaVersion: 1,
-        reportType: "dark-factory-install-readiness",
+        manifestType: "dark-factory-alpha-install-handoff",
+        generatedAt: "2026-05-03T00:00:00.000Z",
         packageName: "@paperclipai/plugin-dark-factory-bridge",
         manifestId: "paperclipai.dark-factory-bridge",
         installableAlphaReady: true,
         productionReady: false,
-        installDistributionPolicy: {
+        installDistribution: {
           distributionMode: "fork-local-workspace",
           packagePrivateExpected: true,
           npmPublish: false,
+        },
+        uiBetaEvidence: {
+          uiInternalBetaReady: true,
+          scenarioCount: 4,
         },
         boundary: {
           truthSource: "dark-factory-journal",
           authoritative: false,
           terminalStateAdvanced: false,
           doesAuthorizeRemoteExecution: false,
+          shouldContactRemoteProvider: false,
           noResolvedCredentialValues: true,
         },
       });
       expect(report.checks).toEqual(expect.arrayContaining([
-        expect.objectContaining({ id: "manifest_schema", status: "pass" }),
-        expect.objectContaining({ id: "worker_pointer", status: "pass" }),
-        expect.objectContaining({ id: "ui_pointer", status: "pass" }),
-        expect.objectContaining({ id: "mock_driver", status: "pass" }),
+        expect.objectContaining({ id: "package_name", status: "pass" }),
+        expect.objectContaining({ id: "manifest_identity", status: "pass" }),
         expect.objectContaining({ id: "install_distribution_policy", status: "pass" }),
-        expect.objectContaining({ id: "host_secret_resolver_contract", status: "pass" }),
-        expect.objectContaining({ id: "ui_beta_install_evidence", status: "pass" }),
-        expect.objectContaining({ id: "alpha_install_handoff_manifest", status: "pass" }),
+        expect.objectContaining({ id: "ui_beta_evidence", status: "pass" }),
+        expect.objectContaining({ id: "final_gate_status", status: "pass" }),
       ]));
+      expect(report.artifacts.finalRealProviderGateStatus).toBe("docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {
       await rm(outDir, { recursive: true, force: true });

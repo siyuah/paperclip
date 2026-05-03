@@ -12,6 +12,7 @@
     "dev:ui": "paperclip-plugin-dev-server --root . --ui-dir dist/ui --port 4178",
     "bundle:first-provider": "tsx scripts/generate-first-provider-handoff-manifest.mjs",
     "evidence:ui-beta": "tsx scripts/generate-ui-beta-install-evidence.mjs",
+    "handoff:alpha-install": "tsx scripts/generate-alpha-install-handoff.mjs",
     "install:readiness": "tsx scripts/run-install-readiness.mjs",
     "packet:first-provider": "tsx scripts/generate-first-provider-session-packet.mjs",
     "preflight:first-provider": "tsx scripts/run-first-provider-preflight.mjs",

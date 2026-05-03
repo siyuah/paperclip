@@ -1854,3 +1854,49 @@ Boundary compliance:
 - `authoritative: false` remains required on all bridge outputs: yes
 - `terminalStateAdvanced: false` remains required on all bridge outputs: yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 40
+
+Remote provider alpha hardening batch 40 added a machine-readable alpha install
+handoff manifest for controlled internal installation.
+
+### Alpha Install Handoff Manifest
+
+Added `scripts/generate-alpha-install-handoff.mjs`, package script
+`pnpm handoff:alpha-install`, and checked-in evidence file
+`docs/alpha-install-handoff-manifest.json`.
+
+The handoff manifest records:
+
+- package name and version
+- manifest id and source branch
+- fork-local install distribution policy
+- UI beta evidence summary and scenario list
+- plugin entrypoints and install artifacts
+- final real provider gate status artifact
+- explicit `productionReady: false`
+- explicit `real_provider_gated_attempt_not_completed` production blocker
+
+Updated `pnpm install:readiness` to verify the alpha install handoff manifest.
+This keeps the internal install handoff complete while preserving the final
+real-provider production blocker.
+
+Validation after hardening batch 40:
+
+- `pnpm handoff:alpha-install` generated the checked-in handoff manifest.
+- targeted alpha handoff and install readiness tests passed.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed.
+- `pnpm install:readiness -- --skip-build` passed with
+  `installableAlphaReady: true` and `productionReady: false`.
+
+Boundary compliance:
+
+- Alpha install handoff is offline only: yes
+- No real provider request was attempted: yes
+- No endpoint or credential value was printed: yes
+- No production blocker was bypassed: yes
+- `authoritative: false` remains required on all bridge outputs: yes
+- `terminalStateAdvanced: false` remains required on all bridge outputs: yes
+- Dark Factory Journal remains truth source: yes

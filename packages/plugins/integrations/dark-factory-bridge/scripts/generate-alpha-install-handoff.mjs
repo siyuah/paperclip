@@ -1,0 +1,188 @@
+#!/usr/bin/env node
+
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const pluginRoot = resolve(scriptDir, "..");
+const repoRoot = resolve(pluginRoot, "../../../..");
+const defaultReportPath = join(pluginRoot, "docs/alpha-install-handoff-manifest.json");
+const stableGeneratedAt = "2026-05-03T00:00:00.000Z";
+
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const reportPath = resolve(options.reportPath ?? defaultReportPath);
+
+  const packageJson = JSON.parse(await readFile(join(pluginRoot, "package.json"), "utf8"));
+  const manifestPath = resolve(pluginRoot, packageJson.paperclipPlugin?.manifest ?? "");
+  const manifestModule = await import(`${pathToFileURL(manifestPath).href}?t=${Date.now()}`);
+  const manifest = manifestModule.default;
+  const installPolicy = await readJson(join(pluginRoot, "docs/install-distribution-policy.json"));
+  const uiBetaEvidence = await readJson(join(pluginRoot, "docs/ui-beta-install-evidence.json"));
+  const finalGateStatusPath = join(repoRoot, "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
+  const finalGateStatusText = await readOptionalText(finalGateStatusPath);
+
+  const checks = [
+    check("package_name", packageJson.name === "@paperclipai/plugin-dark-factory-bridge", "package name is product bridge package"),
+    check("package_private", packageJson.private === true, "package remains private for fork-local internal alpha install"),
+    check("manifest_identity", manifest.id === "paperclipai.dark-factory-bridge" && manifest.displayName === "Dark Factory Bridge", "manifest uses product identity"),
+    check("database_namespace", manifest.database?.namespaceSlug === "dark_factory_bridge", "database namespace is product namespace"),
+    check("environment_driver", Array.isArray(manifest.environmentDrivers) && manifest.environmentDrivers.some((driver) => driver.driverKey === "dark-factory-mock"), "environment driver declaration is present"),
+    check("install_distribution_policy", installPolicy?.distributionMode === "fork-local-workspace" && installPolicy?.npmPublish === false, "fork-local install distribution policy is present"),
+    check("ui_beta_evidence", uiBetaEvidence?.uiInternalBetaReady === true, "UI beta install evidence is present and ready"),
+    check("final_gate_status", finalGateStatusText.includes("real_provider_gated_attempt_not_completed") && finalGateStatusText.includes("productionReady: false"), "final real provider gate status is archived"),
+    check("boundary_policy", hasBoundary(installPolicy?.boundary) && hasBoundary(uiBetaEvidence?.boundary), "policy and UI evidence preserve non-authoritative Journal boundary"),
+  ];
+
+  const report = {
+    schemaVersion: 1,
+    manifestType: "dark-factory-alpha-install-handoff",
+    generatedAt: options.generatedAt ?? stableGeneratedAt,
+    packageName: packageJson.name,
+    packageVersion: packageJson.version,
+    manifestId: manifest.id,
+    sourceBranch: "fork-master-product",
+    installableAlphaReady: checks.every((item) => item.ok),
+    productionReady: false,
+    productionBlockers: [
+      {
+        code: "real_provider_gated_attempt_not_completed",
+        severity: "blocker",
+        message: "Real provider gated attempt has not been run with an operator-controlled endpoint.",
+      },
+    ],
+    checks,
+    installDistribution: {
+      distributionMode: installPolicy?.distributionMode ?? null,
+      packagePrivateExpected: installPolicy?.packagePrivateExpected ?? null,
+      npmPublish: installPolicy?.npmPublish ?? null,
+      allowedInstallSources: installPolicy?.allowedInstallSources ?? [],
+    },
+    uiBetaEvidence: {
+      uiInternalBetaReady: uiBetaEvidence?.uiInternalBetaReady === true,
+      scenarioCount: Array.isArray(uiBetaEvidence?.scenarios) ? uiBetaEvidence.scenarios.length : 0,
+      scenarios: Array.isArray(uiBetaEvidence?.scenarios) ? uiBetaEvidence.scenarios.map((scenario) => scenario.scenario) : [],
+    },
+    pluginEntrypoints: {
+      manifest: relativeToRepo(manifestPath),
+      worker: relativeToRepo(resolve(pluginRoot, packageJson.paperclipPlugin?.worker ?? "")),
+      ui: relativeToRepo(resolve(pluginRoot, packageJson.paperclipPlugin?.ui ?? "")),
+    },
+    artifacts: {
+      packageJson: relativeToRepo(join(pluginRoot, "package.json")),
+      manifestSource: relativeToRepo(join(pluginRoot, "src/manifest.ts")),
+      workerSource: relativeToRepo(join(pluginRoot, "src/worker.ts")),
+      migration: relativeToRepo(join(pluginRoot, "migrations/001_dark_factory_projection.sql")),
+      installDistributionPolicy: relativeToRepo(join(pluginRoot, "docs/install-distribution-policy.json")),
+      uiBetaInstallEvidence: relativeToRepo(join(pluginRoot, "docs/ui-beta-install-evidence.json")),
+      finalRealProviderGateStatus: relativeToRepo(finalGateStatusPath),
+      firstProviderRunbook: "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md",
+    },
+    operatorNotes: [
+      "Install from the fork-local workspace/package during controlled alpha.",
+      "Do not claim productionReady until the real provider gated attempt passes.",
+      "Do not put resolved credential values in docs, logs, screenshots, or committed files.",
+      "Use the first-provider gated attempt runbook for the final production gate.",
+    ],
+    boundary: {
+      truthSource: "dark-factory-journal",
+      authoritative: false,
+      terminalStateAdvanced: false,
+      doesAuthorizeRemoteExecution: false,
+      shouldContactRemoteProvider: false,
+      noResolvedCredentialValues: true,
+    },
+  };
+
+  await mkdir(dirname(reportPath), { recursive: true });
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+
+  console.log(JSON.stringify({
+    ok: report.installableAlphaReady,
+    reportPath,
+    installableAlphaReady: report.installableAlphaReady,
+    productionReady: report.productionReady,
+    productionBlockers: report.productionBlockers,
+    failedChecks: checks.filter((item) => !item.ok).map((item) => item.id),
+  }, null, 2));
+
+  if (!report.installableAlphaReady && !options.allowNotReady) {
+    process.exit(2);
+  }
+}
+
+function parseArgs(args) {
+  const parsed = {
+    allowNotReady: false,
+  };
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--") {
+      continue;
+    }
+    if (arg === "--report") {
+      parsed.reportPath = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--generated-at") {
+      parsed.generatedAt = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--allow-not-ready") {
+      parsed.allowNotReady = true;
+      continue;
+    }
+    if (arg === "--help" || arg === "-h") {
+      console.log("Usage: pnpm handoff:alpha-install [--report PATH] [--generated-at ISO] [--allow-not-ready]");
+      process.exit(0);
+    }
+    throw new Error(`Unknown argument: ${arg}`);
+  }
+  return parsed;
+}
+
+async function readJson(path) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+async function readOptionalText(path) {
+  try {
+    await access(path);
+    return readFile(path, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function hasBoundary(value) {
+  return value?.truthSource === "dark-factory-journal"
+    && value?.authoritative === false
+    && value?.terminalStateAdvanced === false
+    && value?.doesAuthorizeRemoteExecution === false
+    && value?.noResolvedCredentialValues === true;
+}
+
+function check(id, ok, message) {
+  return {
+    id,
+    ok,
+    status: ok ? "pass" : "fail",
+    message,
+  };
+}
+
+function relativeToRepo(path) {
+  return path.startsWith(repoRoot) ? path.slice(repoRoot.length + 1) : path;
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

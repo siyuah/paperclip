@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "manifestType": "dark-factory-alpha-install-handoff",
+  "generatedAt": "2026-05-03T00:00:00.000Z",
+  "packageName": "@paperclipai/plugin-dark-factory-bridge",
+  "packageVersion": "0.1.0",
+  "manifestId": "paperclipai.dark-factory-bridge",
+  "sourceBranch": "fork-master-product",
+  "installableAlphaReady": true,
+  "productionReady": false,
+  "productionBlockers": [
+    {
+      "code": "real_provider_gated_attempt_not_completed",
+      "severity": "blocker",
+      "message": "Real provider gated attempt has not been run with an operator-controlled endpoint."
+    }
+  ],
+  "checks": [
+    {
+      "id": "package_name",
+      "ok": true,
+      "status": "pass",
+      "message": "package name is product bridge package"
+    },
+    {
+      "id": "package_private",
+      "ok": true,
+      "status": "pass",
+      "message": "package remains private for fork-local internal alpha install"
+    },
+    {
+      "id": "manifest_identity",
+      "ok": true,
+      "status": "pass",
+      "message": "manifest uses product identity"
+    },
+    {
+      "id": "database_namespace",
+      "ok": true,
+      "status": "pass",
+      "message": "database namespace is product namespace"
+    },
+    {
+      "id": "environment_driver",
+      "ok": true,
+      "status": "pass",
+      "message": "environment driver declaration is present"
+    },
+    {
+      "id": "install_distribution_policy",
+      "ok": true,
+      "status": "pass",
+      "message": "fork-local install distribution policy is present"
+    },
+    {
+      "id": "ui_beta_evidence",
+      "ok": true,
+      "status": "pass",
+      "message": "UI beta install evidence is present and ready"
+    },
+    {
+      "id": "final_gate_status",
+      "ok": true,
+      "status": "pass",
+      "message": "final real provider gate status is archived"
+    },
+    {
+      "id": "boundary_policy",
+      "ok": true,
+      "status": "pass",
+      "message": "policy and UI evidence preserve non-authoritative Journal boundary"
+    }
+  ],
+  "installDistribution": {
+    "distributionMode": "fork-local-workspace",
+    "packagePrivateExpected": true,
+    "npmPublish": false,
+    "allowedInstallSources": [
+      "paperclip fork branch fork-master-product",
+      "paperclip monorepo workspace package"
+    ]
+  },
+  "uiBetaEvidence": {
+    "uiInternalBetaReady": true,
+    "scenarioCount": 4,
+    "scenarios": [
+      "healthy",
+      "warning_latency",
+      "blocked_failures",
+      "stale_readiness"
+    ]
+  },
+  "pluginEntrypoints": {
+    "manifest": "packages/plugins/integrations/dark-factory-bridge/dist/manifest.js",
+    "worker": "packages/plugins/integrations/dark-factory-bridge/dist/worker.js",
+    "ui": "packages/plugins/integrations/dark-factory-bridge/dist/ui"
+  },
+  "artifacts": {
+    "packageJson": "packages/plugins/integrations/dark-factory-bridge/package.json",
+    "manifestSource": "packages/plugins/integrations/dark-factory-bridge/src/manifest.ts",
+    "workerSource": "packages/plugins/integrations/dark-factory-bridge/src/worker.ts",
+    "migration": "packages/plugins/integrations/dark-factory-bridge/migrations/001_dark_factory_projection.sql",
+    "installDistributionPolicy": "packages/plugins/integrations/dark-factory-bridge/docs/install-distribution-policy.json",
+    "uiBetaInstallEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/ui-beta-install-evidence.json",
+    "finalRealProviderGateStatus": "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md",
+    "firstProviderRunbook": "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md"
+  },
+  "operatorNotes": [
+    "Install from the fork-local workspace/package during controlled alpha.",
+    "Do not claim productionReady until the real provider gated attempt passes.",
+    "Do not put resolved credential values in docs, logs, screenshots, or committed files.",
+    "Use the first-provider gated attempt runbook for the final production gate."
+  ],
+  "boundary": {
+    "truthSource": "dark-factory-journal",
+    "authoritative": false,
+    "terminalStateAdvanced": false,
+    "doesAuthorizeRemoteExecution": false,
+    "shouldContactRemoteProvider": false,
+    "noResolvedCredentialValues": true
+  }
+}
