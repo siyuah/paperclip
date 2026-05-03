@@ -94,6 +94,17 @@ report. The verifier rechecks artifact hashes, command order, handoff
 constraints, and boundary assertions before the operator enables real-provider
 environment variables.
 
+For controlled internal install readiness, run:
+
+```bash
+pnpm install:readiness
+```
+
+The report must show `installableAlphaReady: true`. It may still show
+`productionReady: false` until manifest identity, namespace naming,
+host-managed secret resolver, real provider gated attempt, and full UI beta
+install blockers are resolved.
+
 Run it only in an operator-controlled environment:
 
 ```bash

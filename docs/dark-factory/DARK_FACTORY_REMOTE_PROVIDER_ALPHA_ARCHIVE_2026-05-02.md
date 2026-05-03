@@ -1571,3 +1571,52 @@ Validation after hardening batch 32:
   `output/dark-factory-first-provider-handoff/VERIFY_REPORT.json` with
   `ok: true`.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 33
+
+Remote provider alpha hardening batch 33 added an install readiness gate.
+
+### Install Readiness Script
+
+Added `scripts/run-install-readiness.mjs` and the package script
+`pnpm install:readiness`.
+
+The script runs the plugin build unless `--skip-build` is passed, then verifies:
+
+- package name and private publish state
+- `paperclipPlugin` manifest/worker/UI pointers
+- built `dist/manifest.js`, `dist/worker.js`, and `dist/ui/index.js`
+- built manifest schema
+- manifest worker/UI entrypoints
+- environment driver capability and `dark-factory-mock` driver declaration
+- API routes
+- UI slots
+- database namespace declaration
+- migration file presence
+
+The report writes
+`output/dark-factory-install-readiness/INSTALL_READINESS.json` and explicitly
+separates:
+
+- `installableAlphaReady`: controlled alpha/internal install readiness
+- `productionReady`: full production install readiness
+
+Current production blockers are intentionally preserved in the report:
+
+- manifest id/displayName still carry example wording
+- database namespace still carries `poc` wording
+- package publish/install distribution policy is pending
+- real provider gated attempt is not complete
+- host-managed secret resolver is pending
+- full UI internal beta install flow has not been exercised
+
+Validation after hardening batch 33:
+
+- targeted install readiness script test passed: 2 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 27 test files passed, 1 gated file skipped, 163 tests
+  passed, 1 skipped.
+- `pnpm install:readiness` passed with `installableAlphaReady: true` and
+  `productionReady: false`.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.

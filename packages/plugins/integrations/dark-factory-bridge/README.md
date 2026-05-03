@@ -38,3 +38,26 @@ Evidence boundaries:
 - The UI displays provider state, runtime impact, operator action, and terminal-state invariants beside the projection disclaimer.
 
 Local validation used for this evidence should include direct plugin `pnpm typecheck`, `pnpm build`, and `pnpm test` from this package directory.
+
+## Install readiness gate
+
+Use the install readiness gate before any controlled internal install:
+
+```bash
+pnpm install:readiness
+```
+
+The command writes
+`output/dark-factory-install-readiness/INSTALL_READINESS.json`.
+
+The report distinguishes:
+
+- `installableAlphaReady`: built plugin artifacts, manifest schema, entrypoints,
+  UI slots, API routes, environment driver declaration, and migration file are
+  present for controlled alpha/internal install checks.
+- `productionReady`: full production install readiness. This remains `false`
+  until production blockers are resolved.
+
+Known production blockers currently include manifest/database identity cleanup,
+real provider gated attempt completion, host-managed secret resolver support,
+and a full UI internal beta install flow.
