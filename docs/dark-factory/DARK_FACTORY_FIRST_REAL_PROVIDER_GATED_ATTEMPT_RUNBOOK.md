@@ -18,11 +18,14 @@ Before any real provider attempt:
 3. Run `pnpm packet:first-provider` and archive the generated operator session
    packet.
 4. Run `pnpm bundle:first-provider` and archive the generated handoff manifest.
-5. Confirm the generated evidence says `gatedIntegrationDefaultSkip: true`.
-6. Confirm the generated handoff manifest says `readyForGatedAttempt: true`.
-7. Confirm the provider endpoint is trusted and operator-controlled.
-8. Confirm the API key is only present in the operator shell environment.
-9. Confirm the settings UI dry-run guard shows a receipt for the target hook.
+5. Run `pnpm verify:first-provider` and archive the generated verification
+   report.
+6. Confirm the generated evidence says `gatedIntegrationDefaultSkip: true`.
+7. Confirm the generated handoff manifest says `readyForGatedAttempt: true`.
+8. Confirm the generated verification report says `ok: true`.
+9. Confirm the provider endpoint is trusted and operator-controlled.
+10. Confirm the API key is only present in the operator shell environment.
+11. Confirm the settings UI dry-run guard shows a receipt for the target hook.
 
 Do not continue if any precondition fails.
 
@@ -99,6 +102,17 @@ records artifact paths, SHA-256 hashes, required command order, stop
 conditions, and boundary assertions without embedding raw command output tails
 or resolved credential values.
 
+Verify the handoff bundle after generating the manifest:
+
+```bash
+pnpm verify:first-provider
+```
+
+The command writes `output/dark-factory-first-provider-handoff/VERIFY_REPORT.json`.
+Archive that report with the evidence JSON, session packet, and handoff
+manifest. The report rechecks artifact hashes, required command order, handoff
+constraints, and boundary assertions.
+
 In the generated evidence and Dark Factory Bridge settings preview, verify:
 
 | Field | Required value |
@@ -126,6 +140,8 @@ Before setting those variables, `pnpm preflight:first-provider` must report
 
 Also confirm `pnpm packet:first-provider` and `pnpm bundle:first-provider` both
 report `readyForGatedAttempt: true`.
+
+Finally confirm `pnpm verify:first-provider` reports `ok: true`.
 
 ```bash
 pnpm test -- tests/remote-gated-integration.spec.ts

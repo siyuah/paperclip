@@ -1519,3 +1519,55 @@ Validation after hardening batch 31:
   `output/dark-factory-first-provider-handoff/MANIFEST.json` with
   `readyForGatedAttempt: true`.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 32
+
+Remote provider alpha hardening batch 32 added a first-provider handoff verifier.
+
+### Handoff Verifier Script
+
+Added `scripts/verify-first-provider-handoff.mjs` and the package script
+`pnpm verify:first-provider`.
+
+The script reads:
+
+- `output/dark-factory-first-provider-preflight/evidence.json`
+- `output/dark-factory-first-provider-session/SESSION_PACKET.md`
+- `output/dark-factory-first-provider-handoff/MANIFEST.json`
+
+It writes:
+
+- `output/dark-factory-first-provider-handoff/VERIFY_REPORT.json`
+
+The verifier checks:
+
+- manifest schema/type
+- manifest readiness
+- evidence and session packet SHA-256 hashes
+- artifact paths
+- gated integration default skip
+- required offline command order
+- session packet readiness/truth markers
+- absence of raw command output tails in the manifest
+- operator handoff constraints
+- boundary assertions
+
+The verification report is an offline review artifact. It does not contact a
+provider and does not authorize remote execution.
+
+Validation after hardening batch 32:
+
+- targeted handoff verifier script test passed: 4 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 26 test files passed, 1 gated file skipped, 161 tests
+  passed, 1 skipped.
+- `pnpm preflight:first-provider` passed and generated local evidence JSON.
+- `pnpm packet:first-provider` passed and generated session packet with
+  `readyForGatedAttempt: true`.
+- `pnpm bundle:first-provider` passed and generated handoff manifest with
+  `readyForGatedAttempt: true`.
+- `pnpm verify:first-provider` passed and generated
+  `output/dark-factory-first-provider-handoff/VERIFY_REPORT.json` with
+  `ok: true`.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.

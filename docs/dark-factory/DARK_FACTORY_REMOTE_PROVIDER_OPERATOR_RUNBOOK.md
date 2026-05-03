@@ -89,6 +89,11 @@ manifest. The manifest binds the evidence JSON and session packet by SHA-256,
 records required command order, and restates stop conditions without embedding
 raw command output tails.
 
+Use `pnpm verify:first-provider` after the manifest to generate the verification
+report. The verifier rechecks artifact hashes, command order, handoff
+constraints, and boundary assertions before the operator enables real-provider
+environment variables.
+
 Run it only in an operator-controlled environment:
 
 ```bash
