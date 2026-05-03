@@ -182,3 +182,96 @@ When new Paperclip pages or plugin surfaces are added:
 4. Verify in browser-harness after rebuild or dev-server restart.
 
 If upstream later adds native i18n, this display layer should be replaced with the upstream mechanism rather than expanded indefinitely.
+
+## Browser-Harness Full-Page Final Pass
+
+Date: 2026-05-04
+
+This final pass used browser-harness against the live local Paperclip WebUI at
+`http://127.0.0.1:3100` after the fork-only zh-CN display layer was expanded.
+
+Coverage:
+
+- Full audit seed/discovery run: 76 routes earlier in the pass, then final
+  stable run over 67 reachable routes after reconnecting browser-harness.
+- Targeted final route sweep: 16 high-traffic and previously problematic routes:
+  dashboard, live runs, company settings, environments, access, invites,
+  agent creation, routines, costs, activity, issue detail, profile, general
+  settings, instance access, plugin manager, and adapters.
+- DOM language confirmed as `zh-CN` on all targeted pages.
+
+Browser-harness fixes completed in this pass:
+
+- Main shell and route navigation: dashboard, inbox, work, projects, agents,
+  company, org, skills, costs, activity, settings, board.
+- Dashboard and live-run copy: no-agent state, run counters, issue status,
+  active/recent section, priority/status charts, success rate, and run activity.
+- Company settings: appearance, hiring, company packages, import/export move
+  notice, danger zone, access grants/actions, invite roles, and join-request
+  queue copy.
+- Agent creation: model labels, low-cost profile description, runtime policy,
+  environment variables, optional company skills, and CEO helper text.
+- Routines: empty state, new routine controls, recent runs, routine count, and
+  recurring workflow explanation.
+- Costs: period controls, inference spend, budget, usage, debit/credit/net,
+  provider/biller tabs, finance ledger, and empty states.
+- Activity and issue detail: event action labels, relative time labels, issue
+  conversation empty state, related-work labels, reviewer/approver labels, and
+  Dark Factory projection label cleanup.
+- Instance settings: profile, general preferences, backup retention, feedback
+  sharing, access, heartbeats, plugins, and adapters.
+
+Final browser-harness targeted result:
+
+- 16/16 targeted high-traffic routes opened successfully.
+- All targeted routes reported `document.documentElement.lang === "zh-CN"`.
+- No targeted ordinary UI label remained in the tracked bad-string list after
+  the final fixes. The tracked list included `WORK`, `PROJECTS`, `COMPANY
+  PACKAGES`, `公司 PACKAGES`, `最近 TASKS`, `主色 MODEL`, `活跃 / RECENT`,
+  `1 open, 0`, `created company`, `plugin installed`, `Enable Environments in
+  instance`, `启用环境 in instance`, and `No routines yet. Use`.
+
+Allowed remaining English categories:
+
+- Product and provider names: Paperclip, Dark Factory, OpenClaw, Claude,
+  OpenAI-compatible names, built-in adapter IDs.
+- Protocol and machine values: `primary_execution`, `execution_model`,
+  `role_based_runtime_selection`, `observed`, `degraded`, `needs_approval`,
+  Journal cursors, receipt IDs, run IDs, package names, and hook/field names.
+- User or seed data: email addresses such as `local@paperclip.local`, company
+  and issue names containing English by design.
+- Code-like or documentation content: bundled skill markdown, plugin package
+  descriptions, command snippets, JSON field names, and values inside `code`,
+  `pre`, `kbd`, `textarea`, or raw log contexts.
+
+Implementation notes:
+
+- The zh-CN layer remains centralized in `ui/src/lib/zhCnLocalization.ts`.
+- It now performs delayed post-install rescans and hash/popstate rescans to catch
+  React route transitions and lazy-loaded panels.
+- The `Alpha` translation was made idempotent (`测试阶段`) to avoid repeated
+  `Alpha 阶段 阶段...` expansion across repeated DOM scans.
+- The walker still skips code-like nodes to avoid corrupting protocol values,
+  command snippets, and logs.
+
+Verification additions:
+
+- `ui/src/lib/zhCnLocalization.test.ts` now covers browser-harness-discovered
+  settings, dashboard, costs, adapters, access, company settings, invite flows,
+  routines, dynamic mixed Chinese/English sentences, and idempotency cases.
+- Latest focused unit verification: 8/8 tests passed.
+- Browser-harness targeted final verification was recorded in
+  `C:\Users\76914\AppData\Local\Temp\paperclip-localization-targeted-final-3.json`.
+
+Final full-page browser-harness rerun after the last two cleanup fixes:
+
+- 52/52 reachable pages and subpages opened successfully in-process through
+  browser-harness.
+- 52/52 reported `document.documentElement.lang === "zh-CN"`.
+- 0 tracked ordinary UI English/mixed-language residuals remained.
+- Fixed final residuals:
+  - `最近 Tasks` / `最近 TASKS` on the dashboard.
+  - Split-node company settings sentence:
+    `导入 and export have moved to dedicated pages accessible from the 组织 Chart header.`
+- Final evidence file:
+  `C:\Users\76914\AppData\Local\Temp\paperclip-localization-final-full-sweep-20260504-after-fix.json`.
