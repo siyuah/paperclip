@@ -16,6 +16,7 @@ const realProviderGatedAttemptEvidencePath = join(pluginRoot, "docs/real-provide
 const linghuCallShimOperationalizationEvidencePath = join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json");
 const supervisedShimGatedAttemptEvidencePath = join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json");
 const productionDeploymentPlanEvidencePath = join(pluginRoot, "docs/production-deployment-plan-evidence.json");
+const productionCutoverResultEvidencePath = join(pluginRoot, "docs/production-cutover-result-evidence.json");
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -88,8 +89,10 @@ async function main() {
   checks.push(check("supervised_shim_gated_attempt_evidence", supervisedShimGatedAttemptEvidence === null || isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptEvidence, packageJson }), "optional supervised shim gated attempt evidence is absent or boundary-safe"));
   const productionDeploymentPlanEvidence = await readJsonFile(productionDeploymentPlanEvidencePath);
   checks.push(check("production_deployment_plan_evidence", productionDeploymentPlanEvidence === null || isValidProductionDeploymentPlanEvidence({ productionDeploymentPlanEvidence, packageJson }), "optional production deployment plan evidence is absent or boundary-safe"));
+  const productionCutoverResultEvidence = await readJsonFile(productionCutoverResultEvidencePath);
+  checks.push(check("production_cutover_result_evidence", productionCutoverResultEvidence === null || isValidProductionCutoverResultEvidence({ productionCutoverResultEvidence, packageJson }), "optional production cutover result evidence is absent or boundary-safe"));
 
-  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence });
+  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence, productionCutoverResultEvidence });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
   const productionReady = installableAlphaReady && productionBlockers.length === 0;
   const report = {
@@ -115,6 +118,7 @@ async function main() {
       linghuCallShimOperationalizationEvidence: "docs/linghucall-shim-operationalization-evidence.json",
       supervisedShimGatedAttemptEvidence: "docs/supervised-shim-gated-attempt-evidence.json",
       productionDeploymentPlanEvidence: "docs/production-deployment-plan-evidence.json",
+      productionCutoverResultEvidence: "docs/production-cutover-result-evidence.json",
     },
     installDistributionPolicy: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -195,7 +199,7 @@ function parseArgs(args) {
   return parsed;
 }
 
-function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence }) {
+function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence, productionCutoverResultEvidence }) {
   const blockers = [];
   if (/example/i.test(manifest.id) || /example/i.test(manifest.displayName)) {
     blockers.push({
@@ -208,6 +212,9 @@ function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence,
     if (isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence })) {
       if (isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptEvidence })) {
         if (isValidProductionDeploymentPlanEvidence({ productionDeploymentPlanEvidence })) {
+          if (isValidProductionCutoverResultEvidence({ productionCutoverResultEvidence })) {
+            return blockers;
+          }
           blockers.push({
             code: "production_cutover_result_not_recorded",
             severity: "blocker",
@@ -390,6 +397,28 @@ function isValidProductionDeploymentPlanEvidence({ productionDeploymentPlanEvide
     && productionDeploymentPlanEvidence?.boundary?.noResolvedCredentialValues === true
     && productionDeploymentPlanEvidence?.boundary?.doesInstallService === false
     && productionDeploymentPlanEvidence?.boundary?.doesStartService === false;
+}
+
+function isValidProductionCutoverResultEvidence({ productionCutoverResultEvidence, packageJson } = {}) {
+  return productionCutoverResultEvidence?.schemaVersion === 1
+    && productionCutoverResultEvidence?.reportType === "dark-factory-production-cutover-result-evidence"
+    && (!packageJson || productionCutoverResultEvidence?.packageName === packageJson.name)
+    && productionCutoverResultEvidence?.productionDecision?.productionCutoverResultRecorded === true
+    && productionCutoverResultEvidence?.productionDecision?.productionCutoverPassed === true
+    && productionCutoverResultEvidence?.productionDecision?.productionReady === true
+    && Array.isArray(productionCutoverResultEvidence?.productionDecision?.remainingProductionBlockers)
+    && productionCutoverResultEvidence.productionDecision.remainingProductionBlockers.length === 0
+    && productionCutoverResultEvidence?.gates?.supervisedShimGatePassed === true
+    && productionCutoverResultEvidence?.gates?.productionPlanValidated === true
+    && productionCutoverResultEvidence?.gates?.installReadinessPassed === true
+    && productionCutoverResultEvidence?.gates?.postCutoverHealthReady === true
+    && productionCutoverResultEvidence?.gates?.rollbackPlanVerified === true
+    && productionCutoverResultEvidence?.gates?.journalBackupRecorded === true
+    && productionCutoverResultEvidence?.boundary?.truthSource === "dark-factory-journal"
+    && productionCutoverResultEvidence?.boundary?.authoritative === false
+    && productionCutoverResultEvidence?.boundary?.terminalStateAdvanced === false
+    && productionCutoverResultEvidence?.boundary?.noResolvedCredentialValues === true
+    && productionCutoverResultEvidence?.boundary?.credentialValuesRedacted === true;
 }
 
 function check(id, ok, message) {

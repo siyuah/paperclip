@@ -24,6 +24,7 @@ async function main() {
   const linghuCallShimOperationalizationEvidence = await readJson(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json"));
   const supervisedShimGatedAttemptEvidence = await readJson(join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json"));
   const productionDeploymentPlanEvidence = await readJson(join(pluginRoot, "docs/production-deployment-plan-evidence.json"));
+  const productionCutoverResultEvidence = await readJson(join(pluginRoot, "docs/production-cutover-result-evidence.json"));
   const finalGateStatusPath = join(repoRoot, "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
   const finalGateStatusText = await readOptionalText(finalGateStatusPath);
 
@@ -40,10 +41,11 @@ async function main() {
     check("linghucall_shim_operationalization_evidence", isValidLinghuCallShimOperationalizationEvidence(linghuCallShimOperationalizationEvidence), "LinghuCall shim operationalization evidence is present and boundary-safe"),
     check("supervised_shim_gated_attempt_evidence", supervisedShimGatedAttemptEvidence === null || isValidSupervisedShimGatedAttemptEvidence(supervisedShimGatedAttemptEvidence), "optional supervised shim gated attempt evidence is absent or boundary-safe"),
     check("production_deployment_plan_evidence", productionDeploymentPlanEvidence === null || isValidProductionDeploymentPlanEvidence(productionDeploymentPlanEvidence), "optional production deployment plan evidence is absent or boundary-safe"),
+    check("production_cutover_result_evidence", productionCutoverResultEvidence === null || isValidProductionCutoverResultEvidence(productionCutoverResultEvidence), "optional production cutover result evidence is absent or boundary-safe"),
     check("boundary_policy", hasBoundary(installPolicy?.boundary) && hasBoundary(uiBetaEvidence?.boundary), "policy and UI evidence preserve non-authoritative Journal boundary"),
   ];
 
-  const productionBlockers = collectProductionBlockers(supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence);
+  const productionBlockers = collectProductionBlockers(supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence, productionCutoverResultEvidence);
 
   const report = {
     schemaVersion: 1,
@@ -84,6 +86,7 @@ async function main() {
       linghuCallShimOperationalizationEvidence: relativeToRepo(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json")),
       supervisedShimGatedAttemptEvidence: relativeToRepo(join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json")),
       productionDeploymentPlanEvidence: relativeToRepo(join(pluginRoot, "docs/production-deployment-plan-evidence.json")),
+      productionCutoverResultEvidence: relativeToRepo(join(pluginRoot, "docs/production-cutover-result-evidence.json")),
       finalRealProviderGateStatus: relativeToRepo(finalGateStatusPath),
       firstProviderRunbook: "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md",
     },
@@ -251,9 +254,33 @@ function isValidProductionDeploymentPlanEvidence(value) {
     && value?.boundary?.doesStartService === false;
 }
 
-function collectProductionBlockers(supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence) {
+function isValidProductionCutoverResultEvidence(value) {
+  return value?.schemaVersion === 1
+    && value?.reportType === "dark-factory-production-cutover-result-evidence"
+    && value?.productionDecision?.productionCutoverResultRecorded === true
+    && value?.productionDecision?.productionCutoverPassed === true
+    && value?.productionDecision?.productionReady === true
+    && Array.isArray(value?.productionDecision?.remainingProductionBlockers)
+    && value.productionDecision.remainingProductionBlockers.length === 0
+    && value?.gates?.supervisedShimGatePassed === true
+    && value?.gates?.productionPlanValidated === true
+    && value?.gates?.installReadinessPassed === true
+    && value?.gates?.postCutoverHealthReady === true
+    && value?.gates?.rollbackPlanVerified === true
+    && value?.gates?.journalBackupRecorded === true
+    && value?.boundary?.truthSource === "dark-factory-journal"
+    && value?.boundary?.authoritative === false
+    && value?.boundary?.terminalStateAdvanced === false
+    && value?.boundary?.noResolvedCredentialValues === true
+    && value?.boundary?.credentialValuesRedacted === true;
+}
+
+function collectProductionBlockers(supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence, productionCutoverResultEvidence) {
   if (isValidSupervisedShimGatedAttemptEvidence(supervisedShimGatedAttemptEvidence)) {
     if (isValidProductionDeploymentPlanEvidence(productionDeploymentPlanEvidence)) {
+      if (isValidProductionCutoverResultEvidence(productionCutoverResultEvidence)) {
+        return [];
+      }
       return [
         {
           code: "production_cutover_result_not_recorded",

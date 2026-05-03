@@ -94,6 +94,17 @@ deployment, monitoring, rollback, and retention plan. It still does not claim
 production readiness; it only prepares the next evidence layer after the
 supervised gate passes.
 
+After an actual production cutover has completed, convert the sanitized cutover
+result into final readiness evidence:
+
+```bash
+pnpm evidence:production-cutover -- --input /path/to/CUTOVER_RESULT.json
+```
+
+The cutover recorder fails closed unless the source report says the supervised
+gate, production plan, install readiness, post-cutover healthcheck, rollback
+plan, and Journal backup all passed.
+
 ## Local WebUI preview
 
 For direct browser inspection, run:

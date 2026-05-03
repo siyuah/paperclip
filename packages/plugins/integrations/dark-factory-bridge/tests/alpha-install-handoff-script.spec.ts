@@ -19,6 +19,8 @@ describe("alpha install handoff script", () => {
     expect(source).toContain("supervised-shim-gated-attempt-evidence.json");
     expect(source).toContain("production_deployment_plan_evidence");
     expect(source).toContain("production-deployment-plan-evidence.json");
+    expect(source).toContain("production_cutover_result_evidence");
+    expect(source).toContain("production-cutover-result-evidence.json");
     expect(source).toContain("supervised_shim_gated_attempt_not_recorded");
     expect(source).toContain("production_deployment_plan_not_recorded");
     expect(source).toContain("production_cutover_result_not_recorded");
@@ -79,11 +81,13 @@ describe("alpha install handoff script", () => {
         expect.objectContaining({ id: "linghucall_shim_operationalization_evidence", status: "pass" }),
         expect.objectContaining({ id: "supervised_shim_gated_attempt_evidence", status: "pass" }),
         expect.objectContaining({ id: "production_deployment_plan_evidence", status: "pass" }),
+        expect.objectContaining({ id: "production_cutover_result_evidence", status: "pass" }),
       ]));
       expect(report.artifacts.realProviderGatedAttemptEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json");
       expect(report.artifacts.linghuCallShimOperationalizationEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json");
       expect(report.artifacts.supervisedShimGatedAttemptEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json");
       expect(report.artifacts.productionDeploymentPlanEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/production-deployment-plan-evidence.json");
+      expect(report.artifacts.productionCutoverResultEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/production-cutover-result-evidence.json");
       expect(report.artifacts.finalRealProviderGateStatus).toBe("docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {

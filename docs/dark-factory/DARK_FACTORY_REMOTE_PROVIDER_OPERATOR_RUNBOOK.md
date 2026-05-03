@@ -137,6 +137,20 @@ evidence and this plan both validate, the next blocker becomes
 `production_cutover_result_not_recorded`; the bridge still does not claim
 production readiness until the actual cutover result is recorded.
 
+After a real cutover, archive the final sanitized result through:
+
+```bash
+pnpm evidence:production-cutover -- \
+  --input /path/to/CUTOVER_RESULT.json
+pnpm install:readiness -- --skip-build
+```
+
+The cutover recorder writes `docs/production-cutover-result-evidence.json` and
+fails closed unless the source report confirms supervised gate, production
+plan, install readiness, post-cutover health, rollback plan, and Journal backup
+all passed. The source report must be sanitized and must not contain credential
+values.
+
 Run it only in an operator-controlled environment:
 
 ```bash

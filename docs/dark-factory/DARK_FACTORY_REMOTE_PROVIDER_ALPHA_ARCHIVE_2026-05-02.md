@@ -2237,3 +2237,51 @@ Boundary compliance:
 - No service is installed or started: yes
 - No resolved credential value is recorded: yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 48
+
+Remote provider alpha hardening batch 48 added the final production cutover
+result evidence recorder.
+
+### Production Cutover Result Recorder
+
+Added package script:
+
+```bash
+pnpm evidence:production-cutover -- --input /path/to/CUTOVER_RESULT.json
+```
+
+The input must be a sanitized operator cutover result report. The recorder
+fails closed unless the report confirms:
+
+- supervised shim gate passed
+- production plan validated
+- install readiness passed
+- post-cutover health is ready
+- rollback plan was verified
+- Journal backup was recorded
+- no resolved credential values are present
+
+The output is:
+
+- `packages/plugins/integrations/dark-factory-bridge/docs/production-cutover-result-evidence.json`
+
+Install readiness now recognizes this final optional evidence. Production
+readiness becomes true only after supervised evidence, production plan evidence,
+and production cutover result evidence all validate. The file is intentionally
+absent until a real cutover is performed.
+
+Validation after hardening batch 48:
+
+- production cutover result recorder tests passed.
+- alpha handoff and install readiness tests still pass with cutover evidence
+  absent.
+- production readiness remains blocked until live supervised/cutover evidence
+  is supplied.
+
+Boundary compliance:
+
+- Cutover recorder accepts sanitized reports only: yes
+- Missing cutover evidence does not affect current alpha readiness: yes
+- No resolved credential value is recorded: yes
+- Dark Factory Journal remains truth source: yes

@@ -89,6 +89,12 @@
       "message": "optional production deployment plan evidence is absent or boundary-safe"
     },
     {
+      "id": "production_cutover_result_evidence",
+      "ok": true,
+      "status": "pass",
+      "message": "optional production cutover result evidence is absent or boundary-safe"
+    },
+    {
       "id": "boundary_policy",
       "ok": true,
       "status": "pass",
@@ -130,6 +136,7 @@
     "linghuCallShimOperationalizationEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json",
     "supervisedShimGatedAttemptEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json",
     "productionDeploymentPlanEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/production-deployment-plan-evidence.json",
+    "productionCutoverResultEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/production-cutover-result-evidence.json",
     "finalRealProviderGateStatus": "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md",
     "firstProviderRunbook": "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md"
   },

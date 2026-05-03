@@ -15,6 +15,7 @@
     "evidence:ui-beta": "tsx scripts/generate-ui-beta-install-evidence.mjs",
     "evidence:supervised-shim-gate": "tsx scripts/generate-supervised-shim-gated-attempt-evidence.mjs",
     "evidence:production-plan": "tsx scripts/generate-production-deployment-plan-evidence.mjs",
+    "evidence:production-cutover": "tsx scripts/generate-production-cutover-result-evidence.mjs",
     "gate:provider-status": "tsx scripts/generate-real-provider-gate-status.mjs",
     "handoff:alpha-install": "tsx scripts/generate-alpha-install-handoff.mjs",
     "install:readiness": "tsx scripts/run-install-readiness.mjs",
