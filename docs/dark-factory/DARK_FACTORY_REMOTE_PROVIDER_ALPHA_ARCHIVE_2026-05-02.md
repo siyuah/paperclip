@@ -1166,7 +1166,7 @@ Added
 `packages/plugins/integrations/dark-factory-bridge/docs/remote-provider-previous-evidence-storage-contract.sql`.
 
 The file defines the future table shape for
-`dark_factory_bridge_poc.remote_provider_previous_evidence`, including:
+`dark_factory_bridge.remote_provider_previous_evidence`, including:
 
 - storage key
 - readiness status and next safe hook
@@ -1603,7 +1603,6 @@ separates:
 
 Current production blockers are intentionally preserved in the report:
 
-- database namespace still carries `poc` wording
 - package publish/install distribution policy is pending
 - real provider gated attempt is not complete
 - host-managed secret resolver is pending
@@ -1636,8 +1635,9 @@ identity:
 This removes the `manifest_identity_contains_example` production blocker from
 `pnpm install:readiness`.
 
-The database namespace remains `dark_factory_bridge_poc` and is intentionally
-left as a production blocker until a namespace migration plan is defined.
+The database namespace remained `dark_factory_bridge_poc` after this batch and
+was intentionally left as a production blocker until a namespace migration plan
+could be defined.
 
 Validation after hardening batch 34:
 
@@ -1652,4 +1652,38 @@ Validation after hardening batch 34:
 - Remaining production blockers: database namespace `poc`, package publish
   policy, real provider gated attempt, host-managed secret resolver, and full
   UI internal beta install flow.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 35
+
+Remote provider alpha hardening batch 35 cleared the database namespace
+production blocker.
+
+### Product Database Namespace
+
+Updated the bridge plugin namespace from `dark_factory_bridge_poc` to
+`dark_factory_bridge` across:
+
+- manifest `database.namespaceSlug`
+- migration schema/table/index references
+- previous evidence storage SQL contract
+- plugin tests
+- install readiness checks
+
+This removes the `database_namespace_contains_poc` production blocker from
+`pnpm install:readiness`.
+
+Validation after hardening batch 35:
+
+- targeted install readiness and plugin manifest tests passed: 24 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 27 test files passed, 1 gated file skipped, 163 tests
+  passed, 1 skipped.
+- `pnpm install:readiness` passed with `installableAlphaReady: true` and
+  `productionReady: false`.
+- `database_namespace_contains_poc` is no longer reported.
+- Remaining production blockers: package publish policy, real provider gated
+  attempt, host-managed secret resolver, and full UI internal beta install
+  flow.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.

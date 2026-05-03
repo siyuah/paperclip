@@ -24,7 +24,7 @@ const manifest: PaperclipPluginManifestV1 = {
     ui: "./dist/ui"
   },
   database: {
-    namespaceSlug: "dark_factory_bridge_poc",
+    namespaceSlug: "dark_factory_bridge",
     migrationsDir: "migrations",
     coreReadTables: ["issues"]
   },

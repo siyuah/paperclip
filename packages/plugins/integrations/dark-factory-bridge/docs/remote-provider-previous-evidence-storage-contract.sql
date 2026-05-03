@@ -10,7 +10,7 @@
 -- - Does not advance Paperclip terminal state.
 -- - Dark Factory Journal remains truth source.
 
-CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.remote_provider_previous_evidence (
+CREATE TABLE IF NOT EXISTS dark_factory_bridge.remote_provider_previous_evidence (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
@@ -41,11 +41,11 @@ CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.remote_provider_previous_evid
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_poc_remote_provider_previous_evidence_storage_key_idx
-  ON dark_factory_bridge_poc.remote_provider_previous_evidence (company_id, storage_key);
+CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_remote_provider_previous_evidence_storage_key_idx
+  ON dark_factory_bridge.remote_provider_previous_evidence (company_id, storage_key);
 
-CREATE INDEX IF NOT EXISTS dark_factory_bridge_poc_remote_provider_previous_evidence_issue_idx
-  ON dark_factory_bridge_poc.remote_provider_previous_evidence (company_id, issue_id, environment_id);
+CREATE INDEX IF NOT EXISTS dark_factory_bridge_remote_provider_previous_evidence_issue_idx
+  ON dark_factory_bridge.remote_provider_previous_evidence (company_id, issue_id, environment_id);
 
-CREATE INDEX IF NOT EXISTS dark_factory_bridge_poc_remote_provider_previous_evidence_receipt_idx
-  ON dark_factory_bridge_poc.remote_provider_previous_evidence (company_id, readiness_receipt_digest);
+CREATE INDEX IF NOT EXISTS dark_factory_bridge_remote_provider_previous_evidence_receipt_idx
+  ON dark_factory_bridge.remote_provider_previous_evidence (company_id, readiness_receipt_digest);

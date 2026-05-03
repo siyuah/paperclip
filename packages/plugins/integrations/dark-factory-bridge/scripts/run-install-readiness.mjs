@@ -59,7 +59,7 @@ async function main() {
   checks.push(check("environment_driver_capability", Array.isArray(manifest.capabilities) && manifest.capabilities.includes("environment.drivers.register"), "manifest registers environment driver capability"));
   checks.push(check("api_routes", Array.isArray(manifest.apiRoutes) && manifest.apiRoutes.length >= 5, "manifest exposes expected bridge API routes"));
   checks.push(check("ui_slots", Array.isArray(manifest.ui?.slots) && manifest.ui.slots.length >= 3, "manifest exposes dashboard, detail, and settings UI slots"));
-  checks.push(check("database_namespace", manifest.database?.namespaceSlug === "dark_factory_bridge_poc", "manifest declares bridge namespace"));
+  checks.push(check("database_namespace", manifest.database?.namespaceSlug === "dark_factory_bridge", "manifest declares production bridge namespace"));
   checks.push(check("migration_file", await exists(join(pluginRoot, "migrations/001_dark_factory_projection.sql")), "database migration file is present"));
   checks.push(check("mock_driver", Array.isArray(manifest.environmentDrivers) && manifest.environmentDrivers.some((driver) => driver.driverKey === "dark-factory-mock"), "dark-factory-mock driver declaration is present"));
 
@@ -156,13 +156,6 @@ function collectProductionBlockers({ manifest, packageJson }) {
       code: "manifest_identity_contains_example",
       severity: "blocker",
       message: "Manifest id/displayName still carries example wording; rename before production install.",
-    });
-  }
-  if (/poc/i.test(manifest.database?.namespaceSlug ?? "")) {
-    blockers.push({
-      code: "database_namespace_contains_poc",
-      severity: "blocker",
-      message: "Database namespace still carries poc wording; rename or migration plan needed before production install.",
     });
   }
   if (packageJson.private === true) {

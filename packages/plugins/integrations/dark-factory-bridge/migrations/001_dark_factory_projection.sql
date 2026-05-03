@@ -1,11 +1,11 @@
--- Dark Factory bridge projection POC namespace tables.
+-- Dark Factory bridge projection namespace tables.
 -- These tables intentionally store only derived projection/cache/cursor/receipt data.
-CREATE SCHEMA IF NOT EXISTS dark_factory_bridge_poc;
+CREATE SCHEMA IF NOT EXISTS dark_factory_bridge;
 
 -- They do not store secrets, tokens, provider credentials, or authoritative Dark Factory Journal records.
 -- The Dark Factory Journal remains the truth source; this plugin namespace is not a second truth source.
 
-CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.projection_cache (
+CREATE TABLE IF NOT EXISTS dark_factory_bridge.projection_cache (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
@@ -28,10 +28,10 @@ CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.projection_cache (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_poc_projection_cache_issue_idx
-  ON dark_factory_bridge_poc.projection_cache (company_id, issue_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_projection_cache_issue_idx
+  ON dark_factory_bridge.projection_cache (company_id, issue_id);
 
-CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.journal_cursors (
+CREATE TABLE IF NOT EXISTS dark_factory_bridge.journal_cursors (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
@@ -48,10 +48,10 @@ CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.journal_cursors (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_poc_journal_cursors_company_issue_unique
-  ON dark_factory_bridge_poc.journal_cursors (company_id, issue_id);
+CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_journal_cursors_company_issue_unique
+  ON dark_factory_bridge.journal_cursors (company_id, issue_id);
 
-CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.callback_receipts (
+CREATE TABLE IF NOT EXISTS dark_factory_bridge.callback_receipts (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
@@ -66,10 +66,10 @@ CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.callback_receipts (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_poc_callback_receipts_idempotency_idx
-  ON dark_factory_bridge_poc.callback_receipts (company_id, idempotency_key);
+CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_callback_receipts_idempotency_idx
+  ON dark_factory_bridge.callback_receipts (company_id, idempotency_key);
 
-CREATE TABLE IF NOT EXISTS dark_factory_bridge_poc.rehydrate_requests (
+CREATE TABLE IF NOT EXISTS dark_factory_bridge.rehydrate_requests (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,

@@ -211,7 +211,7 @@ describe("Dark Factory bridge projection plugin", () => {
     expect(parsed).toMatchObject({
       id: "paperclipai.dark-factory-bridge",
       database: {
-        namespaceSlug: "dark_factory_bridge_poc",
+        namespaceSlug: "dark_factory_bridge",
         migrationsDir: "migrations",
         coreReadTables: ["issues"],
       },
@@ -509,8 +509,8 @@ describe("Dark Factory bridge projection plugin", () => {
   it("keeps journal cursor rows unique per company and issue in the plugin namespace migration", async () => {
     const migration = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../migrations/001_dark_factory_projection.sql", import.meta.url), "utf8"));
 
-    expect(migration).toContain("CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_poc_journal_cursors_company_issue_unique");
-    expect(migration).toContain("ON dark_factory_bridge_poc.journal_cursors (company_id, issue_id)");
+    expect(migration).toContain("CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_journal_cursors_company_issue_unique");
+    expect(migration).toContain("ON dark_factory_bridge.journal_cursors (company_id, issue_id)");
   });
 
 
@@ -548,7 +548,7 @@ describe("Dark Factory bridge projection plugin", () => {
   it("keeps migration namespace explicit and forbids authoritative journal or secret storage", async () => {
     const migration = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../migrations/001_dark_factory_projection.sql", import.meta.url), "utf8"));
 
-    expect(migration).toContain("CREATE SCHEMA IF NOT EXISTS dark_factory_bridge_poc");
+    expect(migration).toContain("CREATE SCHEMA IF NOT EXISTS dark_factory_bridge");
     expect(migration).toContain("projection/cache/cursor/receipt data");
     expect(migration).toMatch(/CHECK \(authoritative IS false\)/);
     expect(migration).not.toMatch(/\b(api_key|password_hash|access_token|refresh_token|connection_string)\b/i);

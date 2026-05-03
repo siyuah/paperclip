@@ -32,9 +32,11 @@ describe("install readiness script", () => {
         productionReady: false,
       });
       expect(summary.productionBlockers).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "database_namespace_contains_poc" }),
         expect.objectContaining({ code: "real_provider_gated_attempt_not_completed" }),
         expect.objectContaining({ code: "host_secret_resolver_pending" }),
+      ]));
+      expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: "database_namespace_contains_poc" }),
       ]));
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "manifest_identity_contains_example" }),
