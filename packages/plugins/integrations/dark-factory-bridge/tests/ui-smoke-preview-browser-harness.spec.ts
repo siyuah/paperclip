@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import packageJson from "../package.json" with { type: "json" };
 import {
   buildUiSmokePreviewBrowserHarness,
 } from "../src/ui-smoke-preview-browser-harness.js";
@@ -55,5 +56,19 @@ describe("UI smoke preview browser harness", () => {
     expect(script).toContain("smoke-result.json");
     expect(script).toContain("dark-factory-journal");
     expect(script).not.toContain("ui-smoke-preview-placeholder-not-a-secret");
+  });
+
+  it("serves the direct local WebUI preview separately from the host bundle server", () => {
+    const script = readFileSync(
+      resolve(process.cwd(), "scripts/serve-ui-smoke-preview.mjs"),
+      "utf8",
+    );
+
+    expect(packageJson.scripts["dev:ui"]).toBe("tsx scripts/serve-ui-smoke-preview.mjs");
+    expect(packageJson.scripts["dev:ui:bundle"]).toBe("paperclip-plugin-dev-server --root . --ui-dir dist/ui --port 4178");
+    expect(script).toContain("Content-Type\", \"text/html; charset=utf-8");
+    expect(script).toContain("Dark Factory bridge UI preview listening");
+    expect(script).toContain("For Paperclip host bundle serving, use: pnpm dev:ui:bundle");
+    expect(script).toContain("buildUiSmokePreviewBrowserHarness");
   });
 });

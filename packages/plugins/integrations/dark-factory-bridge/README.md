@@ -66,3 +66,24 @@ The report distinguishes:
 Known production blockers currently include real provider gated attempt
 completion, host-managed secret resolver support, and a full UI internal beta
 install flow.
+
+## Local WebUI preview
+
+For direct browser inspection, run:
+
+```bash
+pnpm dev:ui
+```
+
+This serves the standalone Dark Factory bridge WebUI preview at
+`http://127.0.0.1:4178/`. It renders deterministic local preview scenarios and
+does not connect to a provider.
+
+The built plugin UI bundle remains available for Paperclip host integration:
+
+```bash
+pnpm dev:ui:bundle
+```
+
+That bundle server returns `dist/ui/index.js` at `/` for host loading and is
+not intended as a direct browser page.

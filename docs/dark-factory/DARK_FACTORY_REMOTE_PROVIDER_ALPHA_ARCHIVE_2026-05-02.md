@@ -1943,3 +1943,51 @@ Boundary compliance:
 - Production blocker remains active until the gated test result is recorded:
   yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 42
+
+Remote provider alpha hardening batch 42 fixed the direct browser WebUI preview
+entrypoint for the bridge plugin.
+
+### Direct WebUI Preview Entrypoint
+
+Browser-harness inspection found that `http://127.0.0.1:4178/` was serving the
+built plugin host bundle (`dist/ui/index.js`) with `Content-Type:
+text/javascript`. That is valid for Paperclip host loading, but it is the wrong
+surface for direct browser inspection and appeared as raw source in the browser.
+
+Added `scripts/serve-ui-smoke-preview.mjs` and changed package scripts so:
+
+- `pnpm dev:ui` serves the standalone HTML WebUI preview at
+  `http://127.0.0.1:4178/`.
+- `pnpm dev:ui:bundle` preserves the original Paperclip host bundle server for
+  integration loading.
+
+The direct preview writes and serves
+`output/dark-factory-bridge-ui-preview/index.html`, renders the deterministic
+local preview scenarios, and keeps the same non-authoritative Journal boundary.
+It does not connect to a provider.
+
+Validation after hardening batch 42:
+
+- `pnpm dev:ui -- --once` generated the standalone preview artifact.
+- `curl -I http://127.0.0.1:4178/` returned `Content-Type:
+  text/html; charset=utf-8`.
+- `browser-harness` opened `http://127.0.0.1:4178/` and verified the rendered
+  title, body text, scenario selector, readiness fields, Journal truth source,
+  `Authoritative: no`, and `Terminal advanced: no`.
+- Screenshot evidence was captured at
+  `C:/Users/76914/Desktop/dark-factory-ui-preview-4178-fixed.png`.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 31 files passed, 1 gated file skipped, 176 tests passed,
+  1 skipped.
+- `pnpm smoke:ui:browser -- --no-screenshots` passed all four preview scenarios.
+
+Boundary compliance:
+
+- Direct WebUI preview is local/offline only: yes
+- No real provider request was attempted: yes
+- `authoritative: false` remains required on preview outputs: yes
+- `terminalStateAdvanced: false` remains required on preview outputs: yes
+- Dark Factory Journal remains truth source: yes
