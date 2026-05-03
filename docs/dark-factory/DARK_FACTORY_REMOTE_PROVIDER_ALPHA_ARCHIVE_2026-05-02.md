@@ -1900,3 +1900,46 @@ Boundary compliance:
 - `authoritative: false` remains required on all bridge outputs: yes
 - `terminalStateAdvanced: false` remains required on all bridge outputs: yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 41
+
+Remote provider alpha hardening batch 41 added a redacted real-provider gate
+status diagnostic for operators.
+
+### Real Provider Gate Status Diagnostic
+
+Added `scripts/generate-real-provider-gate-status.mjs` and package script
+`pnpm gate:provider-status`.
+
+The diagnostic writes
+`output/dark-factory-real-provider-gate-status/GATE_STATUS.json` and reports
+only:
+
+- whether `DARK_FACTORY_REMOTE_INTEGRATION` is present and equals `1`
+- whether a provider endpoint is present, plus its string length
+- whether a direct credential value is present, without its length
+- whether a credential reference is present, plus its string length
+- whether `tests/remote-gated-integration.spec.ts` will run or skip
+- whether the next production blocker is missing inputs or missing recorded
+  gated-test result
+
+The diagnostic does not contact a provider. It intentionally keeps
+`productionReady: false`; it can only say whether the operator shell is ready
+to run the gated test, not whether the provider attempt passed.
+
+Validation after hardening batch 41:
+
+- targeted real provider gate status tests passed: 4 tests.
+- the default local status command reported `gatedTestWillRun: false` and
+  `defaultSkipExpected: true`.
+
+Boundary compliance:
+
+- Gate status diagnostic is offline only: yes
+- No real provider request was attempted: yes
+- Endpoint value is redacted: yes
+- Credential value is redacted and length is omitted: yes
+- Diagnostic does not authorize remote execution: yes
+- Production blocker remains active until the gated test result is recorded:
+  yes
+- Dark Factory Journal remains truth source: yes
