@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { pluginManifestV1Schema } from "@paperclipai/shared";
 import { createTestHarness } from "@paperclipai/plugin-sdk/testing";
@@ -516,10 +518,10 @@ describe("Dark Factory bridge projection plugin", () => {
   });
 
   it("keeps journal cursor rows unique per company and issue in the plugin namespace migration", async () => {
-    const migration = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../migrations/001_dark_factory_projection.sql", import.meta.url), "utf8"));
+    const migration = await readFile(new URL("../migrations/001_dark_factory_projection.sql", import.meta.url), "utf8");
 
-    expect(migration).toContain("CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_journal_cursors_company_issue_unique");
-    expect(migration).toContain("ON dark_factory_bridge.journal_cursors (company_id, issue_id)");
+    expect(migration).toContain("CONSTRAINT dark_factory_bridge_journal_cursors_company_issue_unique UNIQUE (company_id, issue_id)");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS plugin_dark_factory_bridge_a197d0c9b7.journal_cursors");
   });
 
 
@@ -555,16 +557,41 @@ describe("Dark Factory bridge projection plugin", () => {
   });
 
   it("keeps migration namespace explicit and forbids authoritative journal or secret storage", async () => {
-    const migration = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../migrations/001_dark_factory_projection.sql", import.meta.url), "utf8"));
+    const migration = await readFile(new URL("../migrations/001_dark_factory_projection.sql", import.meta.url), "utf8");
 
-    expect(migration).toContain("CREATE SCHEMA IF NOT EXISTS dark_factory_bridge");
+    expect(migration).not.toMatch(/CREATE\s+SCHEMA/i);
+    expect(migration).toContain("Paperclip host derives this schema");
+    expect(migration).toContain("plugin_dark_factory_bridge_a197d0c9b7");
     expect(migration).toContain("projection/cache/cursor/receipt data");
     expect(migration).toMatch(/CHECK \(authoritative IS false\)/);
     expect(migration).not.toMatch(/\b(api_key|password_hash|access_token|refresh_token|connection_string)\b/i);
   });
 
+  it("keeps plugin migration compatible with Paperclip host namespace validation", async () => {
+    const {
+      derivePluginDatabaseNamespace,
+      validatePluginMigrationStatement,
+    } = await import(resolve(process.cwd(), "../../../../server/src/services/plugin-database.ts"));
+    const migration = await readFile(new URL("../migrations/001_dark_factory_projection.sql", import.meta.url), "utf8");
+    const namespace = derivePluginDatabaseNamespace(manifest.id, manifest.database?.namespaceSlug);
+    const statements = migration
+      .replace(/^--.*$/gm, "")
+      .split(";")
+      .map((statement) => statement.trim())
+      .filter(Boolean);
+
+    expect(namespace).toBe("plugin_dark_factory_bridge_a197d0c9b7");
+    for (const statement of statements) {
+      expect(() => validatePluginMigrationStatement(
+        statement,
+        namespace,
+        manifest.database?.coreReadTables ?? [],
+      )).not.toThrow();
+    }
+  });
+
   it("documents Phase 2 as a product-branch draft without stale CI or HEAD claims", async () => {
-    const draft = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../../../../../docs/dark-factory/DARK_FACTORY_BRIDGE_PHASE2_PR_DRAFT.md", import.meta.url), "utf8"));
+    const draft = await readFile(new URL("../../../../../docs/dark-factory/DARK_FACTORY_BRIDGE_PHASE2_PR_DRAFT.md", import.meta.url), "utf8");
 
     expect(draft).toContain("Branch: dark-factory-product-main");
     expect(draft).toContain("Status: product-branch draft only");

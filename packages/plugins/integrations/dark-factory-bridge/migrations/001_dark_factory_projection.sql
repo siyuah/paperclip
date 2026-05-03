@@ -1,11 +1,13 @@
 -- Dark Factory bridge projection namespace tables.
 -- These tables intentionally store only derived projection/cache/cursor/receipt data.
-CREATE SCHEMA IF NOT EXISTS dark_factory_bridge;
+-- Paperclip host derives this schema from plugin key `paperclipai.dark-factory-bridge`
+-- and manifest database.namespaceSlug `dark_factory_bridge`, then creates it
+-- before applying plugin migrations.
 
 -- They do not store secrets, tokens, provider credentials, or authoritative Dark Factory Journal records.
 -- The Dark Factory Journal remains the truth source; this plugin namespace is not a second truth source.
 
-CREATE TABLE IF NOT EXISTS dark_factory_bridge.projection_cache (
+CREATE TABLE IF NOT EXISTS plugin_dark_factory_bridge_a197d0c9b7.projection_cache (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
@@ -25,13 +27,11 @@ CREATE TABLE IF NOT EXISTS dark_factory_bridge.projection_cache (
   authoritative boolean NOT NULL DEFAULT false CHECK (authoritative IS false),
   last_updated_at timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT dark_factory_bridge_projection_cache_issue_unique UNIQUE (company_id, issue_id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_projection_cache_issue_idx
-  ON dark_factory_bridge.projection_cache (company_id, issue_id);
-
-CREATE TABLE IF NOT EXISTS dark_factory_bridge.journal_cursors (
+CREATE TABLE IF NOT EXISTS plugin_dark_factory_bridge_a197d0c9b7.journal_cursors (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
@@ -45,13 +45,11 @@ CREATE TABLE IF NOT EXISTS dark_factory_bridge.journal_cursors (
   monotonic boolean NOT NULL DEFAULT true,
   gap_detected boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT dark_factory_bridge_journal_cursors_company_issue_unique UNIQUE (company_id, issue_id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_journal_cursors_company_issue_unique
-  ON dark_factory_bridge.journal_cursors (company_id, issue_id);
-
-CREATE TABLE IF NOT EXISTS dark_factory_bridge.callback_receipts (
+CREATE TABLE IF NOT EXISTS plugin_dark_factory_bridge_a197d0c9b7.callback_receipts (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
@@ -63,13 +61,11 @@ CREATE TABLE IF NOT EXISTS dark_factory_bridge.callback_receipts (
   receipt_status text NOT NULL,
   terminal_state_advanced boolean NOT NULL DEFAULT false,
   payload jsonb NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT dark_factory_bridge_callback_receipts_idempotency_unique UNIQUE (company_id, idempotency_key)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS dark_factory_bridge_callback_receipts_idempotency_idx
-  ON dark_factory_bridge.callback_receipts (company_id, idempotency_key);
-
-CREATE TABLE IF NOT EXISTS dark_factory_bridge.rehydrate_requests (
+CREATE TABLE IF NOT EXISTS plugin_dark_factory_bridge_a197d0c9b7.rehydrate_requests (
   id text PRIMARY KEY,
   company_id text NOT NULL,
   issue_id text NOT NULL,
