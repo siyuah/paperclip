@@ -84,6 +84,11 @@ operator session packet. The packet is the human review artifact for the first
 provider attempt and must contain only endpoint host references, credential
 reference names, check summaries, and boundary assertions.
 
+Use `pnpm bundle:first-provider` after the packet to generate the handoff
+manifest. The manifest binds the evidence JSON and session packet by SHA-256,
+records required command order, and restates stop conditions without embedding
+raw command output tails.
+
 Run it only in an operator-controlled environment:
 
 ```bash

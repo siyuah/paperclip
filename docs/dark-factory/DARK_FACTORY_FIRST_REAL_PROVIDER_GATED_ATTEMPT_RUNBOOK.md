@@ -17,10 +17,12 @@ Before any real provider attempt:
 2. Run `pnpm preflight:first-provider` and archive the generated evidence JSON.
 3. Run `pnpm packet:first-provider` and archive the generated operator session
    packet.
-4. Confirm the generated evidence says `gatedIntegrationDefaultSkip: true`.
-5. Confirm the provider endpoint is trusted and operator-controlled.
-6. Confirm the API key is only present in the operator shell environment.
-7. Confirm the settings UI dry-run guard shows a receipt for the target hook.
+4. Run `pnpm bundle:first-provider` and archive the generated handoff manifest.
+5. Confirm the generated evidence says `gatedIntegrationDefaultSkip: true`.
+6. Confirm the generated handoff manifest says `readyForGatedAttempt: true`.
+7. Confirm the provider endpoint is trusted and operator-controlled.
+8. Confirm the API key is only present in the operator shell environment.
+9. Confirm the settings UI dry-run guard shows a receipt for the target hook.
 
 Do not continue if any precondition fails.
 
@@ -85,6 +87,18 @@ Archive that packet with the operator review notes. The packet intentionally
 omits raw command output tails and contains only check summaries, boundary
 assertions, and human fill-in fields.
 
+Generate the handoff manifest after the packet:
+
+```bash
+pnpm bundle:first-provider
+```
+
+The command writes `output/dark-factory-first-provider-handoff/MANIFEST.json`.
+Archive that manifest with the evidence JSON and session packet. The manifest
+records artifact paths, SHA-256 hashes, required command order, stop
+conditions, and boundary assertions without embedding raw command output tails
+or resolved credential values.
+
 In the generated evidence and Dark Factory Bridge settings preview, verify:
 
 | Field | Required value |
@@ -109,6 +123,9 @@ reference are supplied.
 
 Before setting those variables, `pnpm preflight:first-provider` must report
 `gatedIntegrationDefaultSkip: true`.
+
+Also confirm `pnpm packet:first-provider` and `pnpm bundle:first-provider` both
+report `readyForGatedAttempt: true`.
 
 ```bash
 pnpm test -- tests/remote-gated-integration.spec.ts

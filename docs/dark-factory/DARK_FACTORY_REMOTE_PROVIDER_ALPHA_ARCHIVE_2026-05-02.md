@@ -1469,3 +1469,53 @@ Validation after hardening batch 30:
   `output/dark-factory-first-provider-session/SESSION_PACKET.md` with
   `readyForGatedAttempt: true`.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 31
+
+Remote provider alpha hardening batch 31 added a first-provider handoff manifest
+generator.
+
+### Handoff Manifest Script
+
+Added `scripts/generate-first-provider-handoff-manifest.mjs` and the package
+script `pnpm bundle:first-provider`.
+
+The script reads:
+
+- `output/dark-factory-first-provider-preflight/evidence.json`
+- `output/dark-factory-first-provider-session/SESSION_PACKET.md`
+
+It writes:
+
+- `output/dark-factory-first-provider-handoff/MANIFEST.json`
+
+The manifest records:
+
+- evidence and session packet paths
+- SHA-256 hashes for both artifacts
+- source branch, commit, and evidence generation time
+- required command order
+- check summaries
+- dry-run summary
+- stop conditions
+- operator handoff constraints
+- boundary assertions
+
+The manifest intentionally does not embed raw command output tails or resolved
+credential values. It is a handoff index and readiness summary only; it does
+not authorize remote execution.
+
+Validation after hardening batch 31:
+
+- targeted handoff manifest script test passed: 4 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 25 test files passed, 1 gated file skipped, 157 tests
+  passed, 1 skipped.
+- `pnpm preflight:first-provider` passed and generated local evidence JSON.
+- `pnpm packet:first-provider` passed and generated session packet with
+  `readyForGatedAttempt: true`.
+- `pnpm bundle:first-provider` passed and generated
+  `output/dark-factory-first-provider-handoff/MANIFEST.json` with
+  `readyForGatedAttempt: true`.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
