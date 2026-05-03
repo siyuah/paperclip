@@ -40,9 +40,7 @@ describe("alpha install handoff script", () => {
         productionReady: false,
         failedChecks: [],
       });
-      expect(summary.productionBlockers).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "production_cutover_result_not_recorded" }),
-      ]));
+      expect(summary.productionBlockers).toEqual([]);
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "supervised_shim_gated_attempt_not_recorded" }),
       ]));

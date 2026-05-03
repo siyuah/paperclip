@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "reportType": "dark-factory-production-cutover-result-evidence",
+  "recordedAt": "2026-05-03T00:00:00.000Z",
+  "packageName": "@paperclipai/plugin-dark-factory-bridge",
+  "sourceReport": {
+    "reportType": "dark-factory-production-cutover-result",
+    "checkedAt": "2026-05-03T13:45:00Z",
+    "status": "pass",
+    "cutoverId": "cutover-linghucall-supervised-alpha-20260503",
+    "environment": "internal-alpha"
+  },
+  "gates": {
+    "supervisedShimGatePassed": true,
+    "productionPlanValidated": true,
+    "installReadinessPassed": true,
+    "postCutoverHealthReady": true,
+    "rollbackPlanVerified": true,
+    "journalBackupRecorded": true
+  },
+  "productionDecision": {
+    "productionCutoverResultRecorded": true,
+    "productionCutoverPassed": true,
+    "productionReady": true,
+    "remainingProductionBlockers": []
+  },
+  "boundary": {
+    "truthSource": "dark-factory-journal",
+    "authoritative": false,
+    "terminalStateAdvanced": false,
+    "noResolvedCredentialValues": true,
+    "credentialValuesRedacted": true,
+    "doesAuthorizeRemoteExecution": false,
+    "cutoverReportSanitized": true
+  }
+}

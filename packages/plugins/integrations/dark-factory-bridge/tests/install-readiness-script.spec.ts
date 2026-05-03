@@ -31,7 +31,7 @@ describe("install readiness script", () => {
     expect(source).toContain("production_cutover_result_not_recorded");
   });
 
-  it("writes an alpha-ready report while preserving production blockers", async () => {
+  it("writes a production-ready report after cutover evidence is recorded", async () => {
     const outDir = await mkdtemp(join(tmpdir(), "df-install-readiness-"));
     try {
       const reportPath = join(outDir, "INSTALL_READINESS.json");
@@ -42,11 +42,9 @@ describe("install readiness script", () => {
       expect(summary).toMatchObject({
         ok: true,
         installableAlphaReady: true,
-        productionReady: false,
+        productionReady: true,
       });
-      expect(summary.productionBlockers).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: "production_cutover_result_not_recorded" }),
-      ]));
+      expect(summary.productionBlockers).toEqual([]);
       expect(summary.productionBlockers).not.toEqual(expect.arrayContaining([
         expect.objectContaining({ code: "provider_shim_not_operationalized" }),
       ]));
@@ -79,7 +77,7 @@ describe("install readiness script", () => {
         packageName: "@paperclipai/plugin-dark-factory-bridge",
         manifestId: "paperclipai.dark-factory-bridge",
         installableAlphaReady: true,
-        productionReady: false,
+        productionReady: true,
         installDistributionPolicy: {
           distributionMode: "fork-local-workspace",
           packagePrivateExpected: true,
