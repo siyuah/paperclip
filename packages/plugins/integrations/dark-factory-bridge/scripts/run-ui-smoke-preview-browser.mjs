@@ -103,13 +103,13 @@ async function main() {
       scenarioResults.push({
         scenario,
         expectedStatus,
-        actualStatus: pageState.fields["Preview status"],
-        readiness: pageState.fields.Readiness,
-        nextSafeHook: pageState.fields["Next safe hook"],
-        breakerState: pageState.fields["Breaker state"],
-        truthSource: pageState.fields["Truth source"],
-        authoritative: pageState.fields.Authoritative,
-        terminalAdvanced: pageState.fields["Terminal advanced"],
+        actualStatus: pageState.fields["预览状态"],
+        readiness: pageState.fields["就绪状态"],
+        nextSafeHook: pageState.fields["下一安全 hook"],
+        breakerState: pageState.fields["熔断器状态"],
+        truthSource: pageState.fields["事实来源"],
+        authoritative: pageState.fields["是否权威"],
+        terminalAdvanced: pageState.fields["是否推进终态"],
         badgeCount: pageState.badges.length,
       });
     }
@@ -267,12 +267,12 @@ function assertPageState(pageState, scenario, expectedStatus) {
   const fields = pageState.fields;
   const checks = [
     [pageState.scenario === scenario, `scenario selector should be ${scenario}`],
-    [fields["Preview status"] === expectedStatus, `${scenario} preview status should be ${expectedStatus}`],
-    [fields["Truth source"] === "dark-factory-journal", `${scenario} truth source should remain Journal`],
-    [fields.Authoritative === "no", `${scenario} must remain non-authoritative`],
-    [fields["Terminal advanced"] === "no", `${scenario} must not advance terminal state`],
-    [typeof fields["Next safe hook"] === "string" && fields["Next safe hook"].length > 0, `${scenario} should render next safe hook`],
-    [typeof fields["Breaker state"] === "string" && fields["Breaker state"].length > 0, `${scenario} should render breaker state`],
+    [fields["预览状态"] === expectedStatus, `${scenario} preview status should be ${expectedStatus}`],
+    [fields["事实来源"] === "dark-factory-journal", `${scenario} truth source should remain Journal`],
+    [fields["是否权威"] === "否", `${scenario} must remain non-authoritative`],
+    [fields["是否推进终态"] === "否", `${scenario} must not advance terminal state`],
+    [typeof fields["下一安全 hook"] === "string" && fields["下一安全 hook"].length > 0, `${scenario} should render next safe hook`],
+    [typeof fields["熔断器状态"] === "string" && fields["熔断器状态"].length > 0, `${scenario} should render breaker state`],
     [Array.isArray(pageState.badges) && pageState.badges.includes("journal-truth-source"), `${scenario} should render Journal truth badge`],
   ];
   const failed = checks.find(([ok]) => !ok);

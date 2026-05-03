@@ -10,7 +10,21 @@ import {
 } from "@paperclipai/plugin-sdk/ui";
 import type React from "react";
 
-const DISCLAIMER = "Projection only — Dark Factory Journal remains truth source";
+const DISCLAIMER = "仅显示投影 - Dark Factory Journal 仍是唯一事实来源";
+const NONE_TEXT = "无";
+const UNKNOWN_TEXT = "未知";
+
+function yesNo(value: boolean): string {
+  return value ? "是" : "否";
+}
+
+function optionalText(value: string | number | null | undefined): string | number {
+  return value ?? NONE_TEXT;
+}
+
+function optionalUnknownText(value: string | number | null | undefined): string | number {
+  return value ?? UNKNOWN_TEXT;
+}
 
 type ProjectionSummary = {
   source: "dark-factory-projection";
@@ -287,10 +301,10 @@ type UiSmokePreview = {
 };
 
 const uiSmokePreviewScenarios: Array<{ value: UiSmokePreviewScenario; label: string }> = [
-  { value: "healthy", label: "Healthy" },
-  { value: "warning_latency", label: "Warning latency" },
-  { value: "blocked_failures", label: "Blocked failures" },
-  { value: "stale_readiness", label: "Stale readiness" },
+  { value: "healthy", label: "健康" },
+  { value: "warning_latency", label: "延迟告警" },
+  { value: "blocked_failures", label: "失败阻断" },
+  { value: "stale_readiness", label: "就绪状态过期" },
 ];
 
 const panelStyle = {
@@ -349,7 +363,7 @@ const errorStyle = {
 } satisfies React.CSSProperties;
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown error";
+  return error instanceof Error ? error.message : "未知错误";
 }
 
 function Disclaimer() {
@@ -365,18 +379,18 @@ function ProjectionRows({ data }: { data: ProjectionSummary }) {
   const projection = data.projection;
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <div style={rowStyle}><span>Linked Run id</span><code>{projection.linkedRunId}</code></div>
-      <div style={rowStyle}><span>Journal cursor</span><code>{projection.journalCursorMetadata.journalCursor}</code></div>
-      <div style={rowStyle}><span>Source journal ref</span><code>{projection.journalCursorMetadata.sourceJournalRef}</code></div>
-      <div style={rowStyle}><span>Last sequence</span><strong>{projection.lastSequenceNo}</strong></div>
-      <div style={rowStyle}><span>Projection status</span><strong>{projection.projectionStatus}</strong></div>
-      <div style={rowStyle}><span>Callback receipt</span><code>{projection.callbackReceiptId}</code></div>
-      <div style={rowStyle}><span>Receipt status</span><strong>{projection.callbackReceipt.status}</strong></div>
+      <div style={rowStyle}><span>关联 Run ID</span><code>{projection.linkedRunId}</code></div>
+      <div style={rowStyle}><span>Journal 游标</span><code>{projection.journalCursorMetadata.journalCursor}</code></div>
+      <div style={rowStyle}><span>来源 Journal 引用</span><code>{projection.journalCursorMetadata.sourceJournalRef}</code></div>
+      <div style={rowStyle}><span>最后序号</span><strong>{projection.lastSequenceNo}</strong></div>
+      <div style={rowStyle}><span>投影状态</span><strong>{projection.projectionStatus}</strong></div>
+      <div style={rowStyle}><span>回调 receipt</span><code>{projection.callbackReceiptId}</code></div>
+      <div style={rowStyle}><span>receipt 状态</span><strong>{projection.callbackReceipt.status}</strong></div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <Badge label="degraded" active={projection.flags.degraded} reason={projection.degradedReason} />
-        <Badge label="blocked" active={projection.flags.blocked} reason={projection.blockedReason} />
-        <Badge label="stale" active={projection.flags.stale} reason={projection.staleReason} />
-        <Badge label="needs approval" active={projection.flags.needsApproval} />
+        <Badge label="降级" active={projection.flags.degraded} reason={projection.degradedReason} />
+        <Badge label="阻断" active={projection.flags.blocked} reason={projection.blockedReason} />
+        <Badge label="过期" active={projection.flags.stale} reason={projection.staleReason} />
+        <Badge label="需要审批" active={projection.flags.needsApproval} />
       </div>
     </div>
   );
@@ -385,25 +399,25 @@ function ProjectionRows({ data }: { data: ProjectionSummary }) {
 function ProviderHealthRows({ data }: { data: ProjectionSummary }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <div style={rowStyle}><span>Provider role</span><code>{data.providerHealth.providerRole}</code></div>
-      <div style={rowStyle}><span>Model role</span><code>{data.providerHealth.modelRole}</code></div>
-      <div style={rowStyle}><span>Model policy</span><code>{data.providerHealth.modelSelection.policy}</code></div>
-      <div style={rowStyle}><span>Concrete model protocol MUST</span><strong>{data.providerHealth.modelSelection.protocolMustSpecifyConcreteModel ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Breaker state</span><strong>{data.providerHealth.breakerState}</strong></div>
-      <div style={rowStyle}><span>Provider state</span><strong>{data.providerHealth.providerState}</strong></div>
-      <div style={rowStyle}><span>Runtime impact</span><strong>{data.runtimeImpact.mode} / {data.runtimeImpact.severity}</strong></div>
-      <div style={rowStyle}><span>Operator action</span><code>{data.runtimeImpact.operatorAction}</code></div>
-      <div style={rowStyle}><span>Paperclip terminal state</span><strong>{data.runtimeImpact.paperclipTerminalState}</strong></div>
-      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.runtimeImpact.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>Provider 角色</span><code>{data.providerHealth.providerRole}</code></div>
+      <div style={rowStyle}><span>模型角色</span><code>{data.providerHealth.modelRole}</code></div>
+      <div style={rowStyle}><span>模型策略</span><code>{data.providerHealth.modelSelection.policy}</code></div>
+      <div style={rowStyle}><span>协议必须指定具体模型</span><strong>{yesNo(data.providerHealth.modelSelection.protocolMustSpecifyConcreteModel)}</strong></div>
+      <div style={rowStyle}><span>熔断器状态</span><strong>{data.providerHealth.breakerState}</strong></div>
+      <div style={rowStyle}><span>Provider 状态</span><strong>{data.providerHealth.providerState}</strong></div>
+      <div style={rowStyle}><span>运行时影响</span><strong>{data.runtimeImpact.mode} / {data.runtimeImpact.severity}</strong></div>
+      <div style={rowStyle}><span>操作员动作</span><code>{data.runtimeImpact.operatorAction}</code></div>
+      <div style={rowStyle}><span>Paperclip 终态</span><strong>{data.runtimeImpact.paperclipTerminalState}</strong></div>
+      <div style={rowStyle}><span>是否推进终态</span><strong>{yesNo(data.runtimeImpact.terminalStateAdvanced)}</strong></div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <Badge label="provider degraded" active={data.providerHealth.degraded} reason={data.providerHealth.degradedReason} />
-        <Badge label="provider blocked" active={data.providerHealth.blocked} reason={data.providerHealth.blockedReason} />
-        <Badge label="fallback" active={data.providerHealth.fallbackTriggered} reason={data.providerHealth.fallbackReason} />
+        <Badge label="Provider 降级" active={data.providerHealth.degraded} reason={data.providerHealth.degradedReason} />
+        <Badge label="Provider 阻断" active={data.providerHealth.blocked} reason={data.providerHealth.blockedReason} />
+        <Badge label="已触发 fallback" active={data.providerHealth.fallbackTriggered} reason={data.providerHealth.fallbackReason} />
       </div>
-      <div style={rowStyle}><span>Last updated</span><code>{data.providerHealth.lastUpdatedAt}</code></div>
-      <div style={rowStyle}><span>Last success</span><code>{data.providerHealth.lastSuccessAt ?? "none"}</code></div>
-      <div style={rowStyle}><span>Last failure</span><code>{data.providerHealth.lastFailureAt ?? "none"}</code></div>
-      <div style={rowStyle}><span>Open reason</span><code>{data.providerHealth.openReason ?? "none"}</code></div>
+      <div style={rowStyle}><span>最后更新</span><code>{data.providerHealth.lastUpdatedAt}</code></div>
+      <div style={rowStyle}><span>最后成功</span><code>{optionalText(data.providerHealth.lastSuccessAt)}</code></div>
+      <div style={rowStyle}><span>最后失败</span><code>{optionalText(data.providerHealth.lastFailureAt)}</code></div>
+      <div style={rowStyle}><span>打开原因</span><code>{optionalText(data.providerHealth.openReason)}</code></div>
     </div>
   );
 }
@@ -412,18 +426,18 @@ function RemoteObservabilityRows({ data }: { data: RemoteObservabilitySnapshot }
   const snapshot = data.snapshot;
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      <strong>Remote Provider Observability</strong>
-      <div style={rowStyle}><span>Sampled observations</span><strong>{data.sampledObservationCount}</strong></div>
-      <div style={rowStyle}><span>Requests</span><strong>{snapshot.requestCount}</strong></div>
-      <div style={rowStyle}><span>Success / failure</span><strong>{snapshot.successCount} / {snapshot.failureCount}</strong></div>
-      <div style={rowStyle}><span>Retries</span><strong>{snapshot.retryCount}</strong></div>
-      <div style={rowStyle}><span>Retryable failures</span><strong>{snapshot.retryableFailureCount}</strong></div>
-      <div style={rowStyle}><span>Average latency</span><strong>{snapshot.averageLatencyMs}ms</strong></div>
-      <div style={rowStyle}><span>Max latency</span><strong>{snapshot.maxLatencyMs}ms</strong></div>
-      <div style={rowStyle}><span>Cursor lag</span><strong>{snapshot.cursorLag ?? "unknown"}</strong></div>
-      <div style={rowStyle}><span>Latest cursor</span><code>{snapshot.latestJournalCursor ?? "none"}</code></div>
-      <div style={rowStyle}><span>Latest error</span><code>{snapshot.latestErrorCode ?? "none"}</code></div>
-      <div style={rowStyle}><span>Failure classes</span><code>{Object.entries(snapshot.failureClassCounts).map(([key, value]) => `${key}:${value}`).join(" ")}</code></div>
+      <strong>远程 Provider 可观测性</strong>
+      <div style={rowStyle}><span>采样观测数</span><strong>{data.sampledObservationCount}</strong></div>
+      <div style={rowStyle}><span>请求数</span><strong>{snapshot.requestCount}</strong></div>
+      <div style={rowStyle}><span>成功 / 失败</span><strong>{snapshot.successCount} / {snapshot.failureCount}</strong></div>
+      <div style={rowStyle}><span>重试次数</span><strong>{snapshot.retryCount}</strong></div>
+      <div style={rowStyle}><span>可重试失败</span><strong>{snapshot.retryableFailureCount}</strong></div>
+      <div style={rowStyle}><span>平均延迟</span><strong>{snapshot.averageLatencyMs}ms</strong></div>
+      <div style={rowStyle}><span>最大延迟</span><strong>{snapshot.maxLatencyMs}ms</strong></div>
+      <div style={rowStyle}><span>游标滞后</span><strong>{optionalUnknownText(snapshot.cursorLag)}</strong></div>
+      <div style={rowStyle}><span>最新游标</span><code>{optionalText(snapshot.latestJournalCursor)}</code></div>
+      <div style={rowStyle}><span>最新错误</span><code>{optionalText(snapshot.latestErrorCode)}</code></div>
+      <div style={rowStyle}><span>失败分类</span><code>{Object.entries(snapshot.failureClassCounts).map(([key, value]) => `${key}:${value}`).join(" ")}</code></div>
       {data.alerts.length > 0 ? (
         <div style={{ display: "grid", gap: 6 }}>
           {data.alerts.map((alert) => (
@@ -433,9 +447,9 @@ function RemoteObservabilityRows({ data }: { data: RemoteObservabilitySnapshot }
           ))}
         </div>
       ) : (
-        <div style={noticeStyle}>No remote provider alert candidates in the current sampled window.</div>
+        <div style={noticeStyle}>当前采样窗口内没有远程 Provider 告警候选。</div>
       )}
-      <div style={rowStyle}><span>Terminal advanced</span><strong>{snapshot.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>是否推进终态</span><strong>{yesNo(snapshot.terminalStateAdvanced)}</strong></div>
     </div>
   );
 }
@@ -443,14 +457,14 @@ function RemoteObservabilityRows({ data }: { data: RemoteObservabilitySnapshot }
 function RemoteCredentialDiagnosticsRows({ data }: { data: RemoteCredentialDiagnostics }) {
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      <strong>Remote Credential Diagnostics</strong>
-      <div style={rowStyle}><span>Status</span><strong>{data.ok ? "ready" : "needs attention"}</strong></div>
-      <div style={rowStyle}><span>Credential source</span><code>{data.credentialSource ?? "none"}</code></div>
-      <div style={rowStyle}><span>Config supplied</span><strong>{data.checkedConfig.configSupplied ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Endpoint configured</span><strong>{data.checkedConfig.endpointPresent ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Inline key configured</span><strong>{data.checkedConfig.apiKeyPresent ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Secret ref configured</span><strong>{data.checkedConfig.apiKeySecretRefPresent ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Secret ref scheme</span><code>{data.checkedConfig.apiKeySecretRefScheme}</code></div>
+      <strong>远程凭据诊断</strong>
+      <div style={rowStyle}><span>状态</span><strong>{data.ok ? "ready" : "needs attention"}</strong></div>
+      <div style={rowStyle}><span>凭据来源</span><code>{optionalText(data.credentialSource)}</code></div>
+      <div style={rowStyle}><span>已提供配置</span><strong>{yesNo(data.checkedConfig.configSupplied)}</strong></div>
+      <div style={rowStyle}><span>已配置 endpoint</span><strong>{yesNo(data.checkedConfig.endpointPresent)}</strong></div>
+      <div style={rowStyle}><span>已配置内联 key</span><strong>{yesNo(data.checkedConfig.apiKeyPresent)}</strong></div>
+      <div style={rowStyle}><span>已配置 secret 引用</span><strong>{yesNo(data.checkedConfig.apiKeySecretRefPresent)}</strong></div>
+      <div style={rowStyle}><span>secret 引用 scheme</span><code>{data.checkedConfig.apiKeySecretRefScheme}</code></div>
       <div style={{ display: "grid", gap: 6 }}>
         {data.diagnostics.map((diagnostic) => (
           <div key={diagnostic.code} role="status" style={diagnostic.severity === "error" ? errorStyle : noticeStyle}>
@@ -465,7 +479,7 @@ function RemoteCredentialDiagnosticsRows({ data }: { data: RemoteCredentialDiagn
           </div>
         ))}
       </div>
-      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>是否推进终态</span><strong>{yesNo(data.terminalStateAdvanced)}</strong></div>
     </div>
   );
 }
@@ -473,18 +487,18 @@ function RemoteCredentialDiagnosticsRows({ data }: { data: RemoteCredentialDiagn
 function RemoteBreakerRows({ data }: { data: RemoteBreakerEvaluation }) {
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      <strong>Remote Circuit Breaker</strong>
-      <div style={rowStyle}><span>State</span><strong>{data.breakerState}</strong></div>
-      <div style={rowStyle}><span>Previous state</span><strong>{data.previousBreakerState}</strong></div>
-      <div style={rowStyle}><span>Consecutive failures</span><strong>{data.consecutiveFailures}</strong></div>
-      <div style={rowStyle}><span>Half-open successes</span><strong>{data.consecutiveHalfOpenSuccesses}</strong></div>
-      <div style={rowStyle}><span>Last failure class</span><code>{data.lastFailureClass}</code></div>
-      <div style={rowStyle}><span>Open reason</span><code>{data.openReason ?? "none"}</code></div>
-      <div style={rowStyle}><span>Opened at</span><code>{data.openedAt ?? "none"}</code></div>
-      <div style={rowStyle}><span>Cooldown until</span><code>{data.cooldownUntil ?? "none"}</code></div>
-      <div style={rowStyle}><span>Runtime impact</span><strong>{data.runtimeImpact.mode} / {data.runtimeImpact.severity}</strong></div>
-      <div style={rowStyle}><span>Operator action</span><code>{data.runtimeImpact.operatorAction}</code></div>
-      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <strong>远程熔断器</strong>
+      <div style={rowStyle}><span>当前状态</span><strong>{data.breakerState}</strong></div>
+      <div style={rowStyle}><span>上一状态</span><strong>{data.previousBreakerState}</strong></div>
+      <div style={rowStyle}><span>连续失败</span><strong>{data.consecutiveFailures}</strong></div>
+      <div style={rowStyle}><span>半开成功</span><strong>{data.consecutiveHalfOpenSuccesses}</strong></div>
+      <div style={rowStyle}><span>最后失败分类</span><code>{data.lastFailureClass}</code></div>
+      <div style={rowStyle}><span>打开原因</span><code>{optionalText(data.openReason)}</code></div>
+      <div style={rowStyle}><span>打开时间</span><code>{optionalText(data.openedAt)}</code></div>
+      <div style={rowStyle}><span>冷却到</span><code>{optionalText(data.cooldownUntil)}</code></div>
+      <div style={rowStyle}><span>运行时影响</span><strong>{data.runtimeImpact.mode} / {data.runtimeImpact.severity}</strong></div>
+      <div style={rowStyle}><span>操作员动作</span><code>{data.runtimeImpact.operatorAction}</code></div>
+      <div style={rowStyle}><span>是否推进终态</span><strong>{yesNo(data.terminalStateAdvanced)}</strong></div>
     </div>
   );
 }
@@ -492,28 +506,28 @@ function RemoteBreakerRows({ data }: { data: RemoteBreakerEvaluation }) {
 function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      <strong>Remote Provider Readiness</strong>
+      <strong>远程 Provider 就绪状态</strong>
       <div style={data.readinessStatus === "blocked" ? errorStyle : data.readinessStatus === "needs_attention" ? noticeStyle : undefined}>
         {data.summary}
       </div>
-      <div style={rowStyle}><span>Status</span><strong>{data.readinessStatus}</strong></div>
-      <div style={rowStyle}><span>Credential ok</span><strong>{data.credentialOk ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Breaker state</span><strong>{data.breakerState}</strong></div>
-      <div style={rowStyle}><span>Sampled observations</span><strong>{data.sampledObservationCount}</strong></div>
-      <div style={rowStyle}><span>Alert count</span><strong>{data.alertCount}</strong></div>
-      <div style={rowStyle}><span>Recommended action</span><code>{data.recommendedAction}</code></div>
-      <div style={rowStyle}><span>Next safe hook</span><code>{data.nextSafeHook}</code></div>
-      <div style={rowStyle}><span>Checked at</span><code>{data.checkedAt}</code></div>
-      <div style={rowStyle}><span>Readiness receipt</span><code>{data.readinessReceipt.receiptId}</code></div>
-      <div style={rowStyle}><span>Evidence digest</span><code>{data.readinessReceipt.digestAlgorithm}:{data.readinessReceipt.digest}</code></div>
-      <div style={rowStyle}><span>Authorizes remote execution</span><strong>{data.readinessReceipt.doesAuthorizeRemoteExecution ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Transition</span><strong>{data.readinessTransition.transitionKind}</strong></div>
-      <div style={rowStyle}><span>Transition summary</span><code>{data.readinessTransition.summary}</code></div>
-      <div style={rowStyle}><span>Previous status</span><code>{data.readinessTransition.previousStatus ?? "none"}</code></div>
-      <div style={rowStyle}><span>Current status</span><code>{data.readinessTransition.currentStatus}</code></div>
-      <div style={rowStyle}><span>Previous hook</span><code>{data.readinessTransition.previousNextSafeHook ?? "none"}</code></div>
-      <div style={rowStyle}><span>Current hook</span><code>{data.readinessTransition.currentNextSafeHook}</code></div>
-      <div style={rowStyle}><span>Receipt changed</span><strong>{data.readinessTransition.receiptChanged ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>状态</span><strong>{data.readinessStatus}</strong></div>
+      <div style={rowStyle}><span>凭据正常</span><strong>{yesNo(data.credentialOk)}</strong></div>
+      <div style={rowStyle}><span>熔断器状态</span><strong>{data.breakerState}</strong></div>
+      <div style={rowStyle}><span>采样观测数</span><strong>{data.sampledObservationCount}</strong></div>
+      <div style={rowStyle}><span>告警数</span><strong>{data.alertCount}</strong></div>
+      <div style={rowStyle}><span>建议动作</span><code>{data.recommendedAction}</code></div>
+      <div style={rowStyle}><span>下一安全 hook</span><code>{data.nextSafeHook}</code></div>
+      <div style={rowStyle}><span>检查时间</span><code>{data.checkedAt}</code></div>
+      <div style={rowStyle}><span>就绪 receipt</span><code>{data.readinessReceipt.receiptId}</code></div>
+      <div style={rowStyle}><span>证据 digest</span><code>{data.readinessReceipt.digestAlgorithm}:{data.readinessReceipt.digest}</code></div>
+      <div style={rowStyle}><span>授权远程执行</span><strong>{yesNo(data.readinessReceipt.doesAuthorizeRemoteExecution)}</strong></div>
+      <div style={rowStyle}><span>状态转换</span><strong>{data.readinessTransition.transitionKind}</strong></div>
+      <div style={rowStyle}><span>转换摘要</span><code>{data.readinessTransition.summary}</code></div>
+      <div style={rowStyle}><span>上一状态</span><code>{optionalText(data.readinessTransition.previousStatus)}</code></div>
+      <div style={rowStyle}><span>当前状态</span><code>{data.readinessTransition.currentStatus}</code></div>
+      <div style={rowStyle}><span>上一 hook</span><code>{optionalText(data.readinessTransition.previousNextSafeHook)}</code></div>
+      <div style={rowStyle}><span>当前 hook</span><code>{data.readinessTransition.currentNextSafeHook}</code></div>
+      <div style={rowStyle}><span>receipt 已变化</span><strong>{yesNo(data.readinessTransition.receiptChanged)}</strong></div>
       <div style={{ display: "grid", gap: 6 }}>
         {data.preflightPlan.map((step) => (
           <div key={step.code} role="status" style={step.status === "blocked" ? errorStyle : step.status === "review_required" ? noticeStyle : undefined}>
@@ -521,7 +535,7 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
             <div><code>{step.hook}</code></div>
             <div>{step.message}</div>
             {step.blockingCodes.length > 0 ? (
-              <div>Blocking codes <code>{step.blockingCodes.join(", ")}</code></div>
+              <div>阻断代码 <code>{step.blockingCodes.join(", ")}</code></div>
             ) : null}
           </div>
         ))}
@@ -531,7 +545,7 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
           <div key={item.code} role="status" style={item.status === "fail" ? errorStyle : item.status === "warn" ? noticeStyle : undefined}>
             <div>{item.label}: {item.status}</div>
             <div>{item.message}</div>
-            <div>Required before <code>{item.requiredBefore}</code></div>
+            <div>要求早于 <code>{item.requiredBefore}</code></div>
           </div>
         ))}
       </div>
@@ -549,7 +563,7 @@ function RemoteReadinessRows({ data }: { data: RemoteProviderReadiness }) {
           </div>
         ))}
       </div>
-      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>是否推进终态</span><strong>{yesNo(data.terminalStateAdvanced)}</strong></div>
     </div>
   );
 }
@@ -566,9 +580,9 @@ function UiSmokePreviewRows({
   return (
     <div style={{ display: "grid", gap: 8, borderTop: "1px solid #e5e7eb", paddingTop: 10 }}>
       <div style={rowStyle}>
-        <strong>UI Smoke Preview</strong>
+        <strong>UI 烟雾预览</strong>
         <label>
-          <span style={{ marginRight: 6 }}>Scenario</span>
+          <span style={{ marginRight: 6 }}>场景</span>
           <select
             style={selectStyle}
             value={scenario}
@@ -583,31 +597,31 @@ function UiSmokePreviewRows({
       <div style={data.previewStatus === "blocked" ? errorStyle : data.previewStatus === "needs_attention" ? noticeStyle : undefined}>
         {data.readiness.summary}
       </div>
-      <div style={rowStyle}><span>Preview status</span><strong>{data.previewStatus}</strong></div>
-      <div style={rowStyle}><span>Host context</span><code>{data.hostContextId}</code></div>
-      <div style={rowStyle}><span>Readiness</span><strong>{data.readiness.readinessStatus}</strong></div>
-      <div style={rowStyle}><span>Next safe hook</span><code>{data.readiness.nextSafeHook}</code></div>
-      <div style={rowStyle}><span>Breaker state</span><strong>{data.breakerEvaluation.breakerState}</strong></div>
-      <div style={rowStyle}><span>Sampled observations</span><strong>{data.observability.sampledObservationCount}</strong></div>
-      <div style={rowStyle}><span>Max latency</span><strong>{data.observability.snapshot.maxLatencyMs}ms</strong></div>
-      <div style={rowStyle}><span>Cursor lag</span><strong>{data.observability.snapshot.cursorLag ?? "unknown"}</strong></div>
-      <div style={rowStyle}><span>Alerts</span><strong>{data.observability.alerts.length}</strong></div>
-      <div style={rowStyle}><span>Credential source</span><code>{data.credentialDiagnostics.credentialSource ?? "none"}</code></div>
-      <div style={rowStyle}><span>Dry-run guard receipt</span><code>{data.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute")?.receiptId ?? "none"}</code></div>
-      <div style={rowStyle}><span>Truth source</span><code>{data.truthSource}</code></div>
-      <div style={rowStyle}><span>Authoritative</span><strong>{data.authoritative ? "yes" : "no"}</strong></div>
-      <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <div style={rowStyle}><span>预览状态</span><strong>{data.previewStatus}</strong></div>
+      <div style={rowStyle}><span>Host 上下文</span><code>{data.hostContextId}</code></div>
+      <div style={rowStyle}><span>就绪状态</span><strong>{data.readiness.readinessStatus}</strong></div>
+      <div style={rowStyle}><span>下一安全 hook</span><code>{data.readiness.nextSafeHook}</code></div>
+      <div style={rowStyle}><span>熔断器状态</span><strong>{data.breakerEvaluation.breakerState}</strong></div>
+      <div style={rowStyle}><span>采样观测数</span><strong>{data.observability.sampledObservationCount}</strong></div>
+      <div style={rowStyle}><span>最大延迟</span><strong>{data.observability.snapshot.maxLatencyMs}ms</strong></div>
+      <div style={rowStyle}><span>游标滞后</span><strong>{optionalUnknownText(data.observability.snapshot.cursorLag)}</strong></div>
+      <div style={rowStyle}><span>告警数</span><strong>{data.observability.alerts.length}</strong></div>
+      <div style={rowStyle}><span>凭据来源</span><code>{optionalText(data.credentialDiagnostics.credentialSource)}</code></div>
+      <div style={rowStyle}><span>Dry-run guard receipt</span><code>{optionalText(data.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute")?.receiptId)}</code></div>
+      <div style={rowStyle}><span>事实来源</span><code>{data.truthSource}</code></div>
+      <div style={rowStyle}><span>是否权威</span><strong>{yesNo(data.authoritative)}</strong></div>
+      <div style={rowStyle}><span>是否推进终态</span><strong>{yesNo(data.terminalStateAdvanced)}</strong></div>
       <div style={{ display: "grid", gap: 6 }}>
-        <strong>Remote Provider Dry-Run Guard</strong>
+        <strong>远程 Provider Dry-run 防护</strong>
         {data.dryRunGuards.map((guard) => (
           <div key={guard.targetHook} role="status" style={guard.decision === "blocked" ? errorStyle : guard.decision === "review_required" ? noticeStyle : undefined}>
             <div style={rowStyle}><span>{guard.targetHook}</span><strong>{guard.decision}</strong></div>
-            <div style={rowStyle}><span>Preflight status</span><code>{guard.matchedPreflightStatus}</code></div>
-            <div style={rowStyle}><span>Should contact provider</span><strong>{guard.shouldContactRemoteProvider ? "yes" : "no"}</strong></div>
-            <div style={rowStyle}><span>Authorizes execution</span><strong>{guard.doesAuthorizeRemoteExecution ? "yes" : "no"}</strong></div>
+            <div style={rowStyle}><span>预检状态</span><code>{guard.matchedPreflightStatus}</code></div>
+            <div style={rowStyle}><span>是否联系 provider</span><strong>{yesNo(guard.shouldContactRemoteProvider)}</strong></div>
+            <div style={rowStyle}><span>是否授权执行</span><strong>{yesNo(guard.doesAuthorizeRemoteExecution)}</strong></div>
             <div style={rowStyle}><span>Receipt</span><code>{guard.receiptId}</code></div>
             {guard.blockingCodes.length > 0 ? (
-              <div>Blocking codes <code>{guard.blockingCodes.join(", ")}</code></div>
+              <div>阻断代码 <code>{guard.blockingCodes.join(", ")}</code></div>
             ) : null}
           </div>
         ))}
@@ -626,13 +640,13 @@ export function DashboardWidget({ context }: PluginWidgetProps) {
     companyId: context.companyId,
   });
 
-  if (loading) return <div>Loading Dark Factory provider health projection...</div>;
-  if (error) return <div>Dark Factory bridge error: {error.message}</div>;
+  if (loading) return <div>正在加载 Dark Factory Provider 健康投影...</div>;
+  if (error) return <div>Dark Factory Bridge 错误：{error.message}</div>;
   if (!data) return null;
 
   return (
     <div style={panelStyle}>
-      <strong>Dark Factory Bridge Projection</strong>
+      <strong>Dark Factory Bridge 投影</strong>
       <Disclaimer />
       <ProjectionRows data={data} />
       <ProviderHealthRows data={data} />
@@ -649,17 +663,17 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
   const [rehydrateError, setRehydrateError] = useState<string | null>(null);
   const [rehydratePending, setRehydratePending] = useState(false);
 
-  if (loading) return <div>Loading Dark Factory projection...</div>;
-  if (error) return <div>Dark Factory bridge error: {error.message}</div>;
+  if (loading) return <div>正在加载 Dark Factory 投影...</div>;
+  if (error) return <div>Dark Factory Bridge 错误：{error.message}</div>;
   if (!data) return null;
 
   return (
     <div style={panelStyle}>
       <div style={rowStyle}>
-        <strong>Dark Factory Projection</strong>
+        <strong>Dark Factory 投影</strong>
         <button
           style={buttonStyle}
-          title="Submits a receipt-only rehydrate intention; it does not mean terminal success."
+          title="只提交 receipt 级 rehydrate 意图；不代表终态成功。"
           disabled={rehydratePending}
           onClick={async () => {
             setRehydrateError(null);
@@ -674,12 +688,12 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
             }
           }}
         >
-          {rehydratePending ? "Requesting..." : "Request rehydrate (receipt only)"}
+          {rehydratePending ? "请求中..." : "请求 rehydrate（仅 receipt）"}
         </button>
       </div>
       <Disclaimer />
-      <div style={noticeStyle}>Request Rehydrate only submits an intention/receipt. It does not advance terminal success and does not make this projection authoritative.</div>
-      {rehydrateError ? <div role="alert" style={errorStyle}>Rehydrate request failed: {rehydrateError}</div> : null}
+      <div style={noticeStyle}>Request Rehydrate 只提交一个意图/receipt；不会推进终态成功，也不会让该投影变成权威记录。</div>
+      {rehydrateError ? <div role="alert" style={errorStyle}>Rehydrate 请求失败：{rehydrateError}</div> : null}
       <ProjectionRows data={data} />
       <ProviderHealthRows data={data} />
     </div>
@@ -728,19 +742,19 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
     companyId: context.companyId,
   });
 
-  if (loading) return <div>Loading Dark Factory bridge settings...</div>;
-  if (error) return <div>Dark Factory bridge settings error: {error.message}</div>;
+  if (loading) return <div>正在加载 Dark Factory Bridge 设置...</div>;
+  if (error) return <div>Dark Factory Bridge 设置错误：{error.message}</div>;
   if (!data) return null;
 
   return (
     <div style={panelStyle}>
-      <strong>Dark Factory Bridge Settings</strong>
+      <strong>Dark Factory Bridge 设置</strong>
       <Disclaimer />
-      <div>Mock projection mode. No real Dark Factory connection is configured, and no token or secret is stored.</div>
+      <div>Mock 投影模式。当前未配置真实 Dark Factory 连接，也不会保存 token 或 secret。</div>
       <ProjectionRows data={data} />
       <ProviderHealthRows data={data} />
-      {uiSmokePreviewLoading ? <div>Loading UI smoke preview...</div> : null}
-      {uiSmokePreviewError ? <div style={errorStyle}>UI smoke preview error: {uiSmokePreviewError.message}</div> : null}
+      {uiSmokePreviewLoading ? <div>正在加载 UI 烟雾预览...</div> : null}
+      {uiSmokePreviewError ? <div style={errorStyle}>UI 烟雾预览错误：{uiSmokePreviewError.message}</div> : null}
       {uiSmokePreview ? (
         <UiSmokePreviewRows
           data={uiSmokePreview}
@@ -748,17 +762,17 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
           onScenarioChange={setUiSmokePreviewScenario}
         />
       ) : null}
-      {remoteReadinessLoading ? <div>Loading remote provider readiness...</div> : null}
-      {remoteReadinessError ? <div style={errorStyle}>Remote provider readiness error: {remoteReadinessError.message}</div> : null}
+      {remoteReadinessLoading ? <div>正在加载远程 Provider 就绪状态...</div> : null}
+      {remoteReadinessError ? <div style={errorStyle}>远程 Provider 就绪状态错误：{remoteReadinessError.message}</div> : null}
       {remoteReadiness ? <RemoteReadinessRows data={remoteReadiness} /> : null}
-      {remoteCredentialDiagnosticsLoading ? <div>Loading remote credential diagnostics...</div> : null}
-      {remoteCredentialDiagnosticsError ? <div style={errorStyle}>Remote credential diagnostics error: {remoteCredentialDiagnosticsError.message}</div> : null}
+      {remoteCredentialDiagnosticsLoading ? <div>正在加载远程凭据诊断...</div> : null}
+      {remoteCredentialDiagnosticsError ? <div style={errorStyle}>远程凭据诊断错误：{remoteCredentialDiagnosticsError.message}</div> : null}
       {remoteCredentialDiagnostics ? <RemoteCredentialDiagnosticsRows data={remoteCredentialDiagnostics} /> : null}
-      {remoteBreakerLoading ? <div>Loading remote circuit breaker...</div> : null}
-      {remoteBreakerError ? <div style={errorStyle}>Remote circuit breaker error: {remoteBreakerError.message}</div> : null}
+      {remoteBreakerLoading ? <div>正在加载远程熔断器...</div> : null}
+      {remoteBreakerError ? <div style={errorStyle}>远程熔断器错误：{remoteBreakerError.message}</div> : null}
       {remoteBreaker ? <RemoteBreakerRows data={remoteBreaker} /> : null}
-      {remoteObservabilityLoading ? <div>Loading remote provider observability...</div> : null}
-      {remoteObservabilityError ? <div style={errorStyle}>Remote observability error: {remoteObservabilityError.message}</div> : null}
+      {remoteObservabilityLoading ? <div>正在加载远程 Provider 可观测性...</div> : null}
+      {remoteObservabilityError ? <div style={errorStyle}>远程可观测性错误：{remoteObservabilityError.message}</div> : null}
       {remoteObservability ? <RemoteObservabilityRows data={remoteObservability} /> : null}
     </div>
   );

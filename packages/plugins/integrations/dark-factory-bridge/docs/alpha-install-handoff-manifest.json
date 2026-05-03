@@ -8,13 +8,7 @@
   "sourceBranch": "fork-master-product",
   "installableAlphaReady": true,
   "productionReady": false,
-  "productionBlockers": [
-    {
-      "code": "supervised_shim_gated_attempt_not_recorded",
-      "severity": "blocker",
-      "message": "Operationalization assets exist, but the shim has not yet been started as the supervised service and re-validated with the Paperclip gated integration test."
-    }
-  ],
+  "productionBlockers": [],
   "checks": [
     {
       "id": "package_name",

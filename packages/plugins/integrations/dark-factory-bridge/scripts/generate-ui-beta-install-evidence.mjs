@@ -38,9 +38,9 @@ async function main() {
     check("settings_preview_data_key", uiSource.includes("remote-provider-ui-smoke-preview"), "settings UI reads smoke preview data"),
     check("settings_scenario_selector", uiSource.includes("onScenarioChange={setUiSmokePreviewScenario}"), "settings UI exposes scenario selector"),
     check("settings_boundary_fields", [
-      "Truth source",
-      "Authoritative",
-      "Terminal advanced",
+      "事实来源",
+      "是否权威",
+      "是否推进终态",
       "doesAuthorizeRemoteExecution",
       "shouldContactRemoteProvider",
     ].every((needle) => uiSource.includes(needle)), "settings UI renders boundary fields"),

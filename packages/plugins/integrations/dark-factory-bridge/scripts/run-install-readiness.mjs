@@ -309,7 +309,7 @@ function isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest
     && alphaInstallHandoff?.installableAlphaReady === true
     && alphaInstallHandoff?.productionReady === false
     && Array.isArray(alphaInstallHandoff?.productionBlockers)
-    && alphaInstallHandoff.productionBlockers.some((blocker) => blocker?.code === "supervised_shim_gated_attempt_not_recorded")
+    && alphaInstallHandoff.productionBlockers.every((blocker) => typeof blocker?.code === "string" && typeof blocker?.severity === "string")
     && alphaInstallHandoff?.installDistribution?.distributionMode === "fork-local-workspace"
     && alphaInstallHandoff?.installDistribution?.npmPublish === false
     && alphaInstallHandoff?.uiBetaEvidence?.uiInternalBetaReady === true

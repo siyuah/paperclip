@@ -4,14 +4,14 @@ describe("Dark Factory UI smoke preview panel source wiring", () => {
   it("wires settings UI to the remote provider smoke preview data key", async () => {
     const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/ui/index.tsx", import.meta.url), "utf8"));
 
-    expect(source).toContain("UI Smoke Preview");
+    expect(source).toContain("UI 烟雾预览");
     expect(source).toContain("remote-provider-ui-smoke-preview");
     expect(source).toContain("useState<UiSmokePreviewScenario>(\"healthy\")");
     expect(source).toContain("onScenarioChange={setUiSmokePreviewScenario}");
-    expect(source).toContain("Truth source");
-    expect(source).toContain("Authoritative");
-    expect(source).toContain("Terminal advanced");
-    expect(source).toContain("Remote Provider Dry-Run Guard");
+    expect(source).toContain("事实来源");
+    expect(source).toContain("是否权威");
+    expect(source).toContain("是否推进终态");
+    expect(source).toContain("远程 Provider Dry-run 防护");
     expect(source).toContain("Dry-run guard receipt");
     expect(source).toContain("shouldContactRemoteProvider");
     expect(source).toContain("doesAuthorizeRemoteExecution");

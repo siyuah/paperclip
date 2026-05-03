@@ -13,24 +13,25 @@ describe("UI smoke preview browser harness", () => {
     });
 
     expect(html).toContain("<!doctype html>");
-    expect(html).toContain("UI Smoke Preview");
+    expect(html).toContain("<html lang=\"zh-CN\">");
+    expect(html).toContain("UI 烟雾预览");
     expect(html).toContain("id=\"scenario\"");
     expect(html).toContain("healthy");
     expect(html).toContain("warning_latency");
     expect(html).toContain("blocked_failures");
     expect(html).toContain("stale_readiness");
-    expect(html).toContain("Truth source");
-    expect(html).toContain("Authoritative");
-    expect(html).toContain("Terminal advanced");
-    expect(html).toContain("Remote Provider Dry-Run Guard");
-    expect(html).toContain("Execute dry-run");
+    expect(html).toContain("事实来源");
+    expect(html).toContain("是否权威");
+    expect(html).toContain("是否推进终态");
+    expect(html).toContain("远程 Provider Dry-run 防护");
+    expect(html).toContain("执行 dry-run");
     expect(html).toContain("Dry-run receipt");
     expect(html).toContain("contactProvider");
     expect(html).toContain("authorizes");
     expect(html).toContain("dark-factory-journal");
     expect(html).toContain("journal-truth-source");
     expect(html).toContain("df-remote-dry-run-");
-    expect(html).toContain("Dark Factory Journal remains truth source");
+    expect(html).toContain("Dark Factory Journal 仍是唯一事实来源");
     expect(html).not.toContain("ui-smoke-preview-placeholder-not-a-secret");
   });
 
@@ -55,6 +56,8 @@ describe("UI smoke preview browser harness", () => {
     expect(script).toContain("Page.captureScreenshot");
     expect(script).toContain("smoke-result.json");
     expect(script).toContain("dark-factory-journal");
+    expect(script).toContain("预览状态");
+    expect(script).toContain("是否权威");
     expect(script).not.toContain("ui-smoke-preview-placeholder-not-a-secret");
   });
 

@@ -12,13 +12,13 @@ export type UiSmokePreviewBrowserHarnessOptions = {
 export function buildUiSmokePreviewBrowserHarness(
   options: UiSmokePreviewBrowserHarnessOptions = {},
 ): string {
-  const title = options.title ?? "Dark Factory Bridge UI Smoke Preview";
+  const title = options.title ?? "Dark Factory Bridge UI 烟雾预览";
   const generatedAt = options.generatedAt ?? "2026-05-03T00:00:00.000Z";
   const previews = options.previews ?? buildAllUiSmokePreviews();
   const previewJson = safeJsonForHtml(previews);
 
   return `<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -58,19 +58,19 @@ export function buildUiSmokePreviewBrowserHarness(
   <main>
     <header>
       <h1>${escapeHtml(title)}</h1>
-      <div class="subtitle">Generated ${escapeHtml(generatedAt)}. Local preview only. Dark Factory Journal remains truth source.</div>
+      <div class="subtitle">生成时间 ${escapeHtml(generatedAt)}。仅本地预览。Dark Factory Journal 仍是唯一事实来源。</div>
     </header>
     <section class="panel" aria-labelledby="preview-title">
       <div class="toolbar">
-        <h2 id="preview-title" style="margin:0;font-size:18px;">UI Smoke Preview</h2>
-        <label for="scenario">Scenario</label>
-        <select id="scenario" aria-label="Scenario"></select>
+        <h2 id="preview-title" style="margin:0;font-size:18px;">UI 烟雾预览</h2>
+        <label for="scenario">场景</label>
+        <select id="scenario" aria-label="场景"></select>
       </div>
       <div id="summary"></div>
       <div id="fields" class="grid"></div>
-      <h3 style="margin:0;font-size:16px;">Remote Provider Dry-Run Guard</h3>
-      <div id="dry-run-guards" class="guard-list" aria-label="Remote provider dry-run guard decisions"></div>
-      <div id="badges" class="badges" aria-label="UI badges"></div>
+      <h3 style="margin:0;font-size:16px;">远程 Provider Dry-run 防护</h3>
+      <div id="dry-run-guards" class="guard-list" aria-label="远程 Provider dry-run 防护决策"></div>
+      <div id="badges" class="badges" aria-label="UI 徽标"></div>
     </section>
   </main>
   <script type="application/json" id="preview-data">${previewJson}</script>
@@ -82,10 +82,10 @@ export function buildUiSmokePreviewBrowserHarness(
     const dryRunGuards = document.getElementById("dry-run-guards");
     const badges = document.getElementById("badges");
     const labels = {
-      healthy: "Healthy",
-      warning_latency: "Warning latency",
-      blocked_failures: "Blocked failures",
-      stale_readiness: "Stale readiness"
+      healthy: "健康",
+      warning_latency: "延迟告警",
+      blocked_failures: "失败阻断",
+      stale_readiness: "就绪状态过期"
     };
 
     for (const preview of previews) {
@@ -101,7 +101,7 @@ export function buildUiSmokePreviewBrowserHarness(
       const labelNode = document.createElement("span");
       labelNode.textContent = label;
       const valueNode = document.createElement("strong");
-      valueNode.textContent = value == null ? "none" : String(value);
+      valueNode.textContent = value == null ? "无" : String(value);
       node.append(labelNode, valueNode);
       return node;
     }
@@ -111,21 +111,21 @@ export function buildUiSmokePreviewBrowserHarness(
       summary.className = preview.previewStatus === "blocked" ? "critical" : preview.previewStatus === "needs_attention" ? "notice" : "";
       summary.textContent = preview.readiness.summary;
       fields.replaceChildren(
-        field("Preview status", preview.previewStatus),
-        field("Host context", preview.hostContextId),
-        field("Readiness", preview.readiness.readinessStatus),
-        field("Next safe hook", preview.readiness.nextSafeHook),
-        field("Breaker state", preview.breakerEvaluation.breakerState),
-        field("Sampled observations", preview.observability.sampledObservationCount),
-        field("Max latency", preview.observability.snapshot.maxLatencyMs + "ms"),
-        field("Cursor lag", preview.observability.snapshot.cursorLag ?? "unknown"),
-        field("Alerts", preview.observability.alerts.length),
-        field("Credential source", preview.credentialDiagnostics.credentialSource ?? "none"),
-        field("Execute dry-run", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).decision ?? "unknown"),
-        field("Dry-run receipt", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).receiptId ?? "none"),
-        field("Truth source", preview.truthSource),
-        field("Authoritative", preview.authoritative ? "yes" : "no"),
-        field("Terminal advanced", preview.terminalStateAdvanced ? "yes" : "no")
+        field("预览状态", preview.previewStatus),
+        field("Host 上下文", preview.hostContextId),
+        field("就绪状态", preview.readiness.readinessStatus),
+        field("下一安全 hook", preview.readiness.nextSafeHook),
+        field("熔断器状态", preview.breakerEvaluation.breakerState),
+        field("采样观测数", preview.observability.sampledObservationCount),
+        field("最大延迟", preview.observability.snapshot.maxLatencyMs + "ms"),
+        field("游标滞后", preview.observability.snapshot.cursorLag ?? "未知"),
+        field("告警数", preview.observability.alerts.length),
+        field("凭据来源", preview.credentialDiagnostics.credentialSource ?? "无"),
+        field("执行 dry-run", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).decision ?? "未知"),
+        field("Dry-run receipt", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).receiptId ?? "无"),
+        field("事实来源", preview.truthSource),
+        field("是否权威", preview.authoritative ? "是" : "否"),
+        field("是否推进终态", preview.terminalStateAdvanced ? "是" : "否")
       );
       dryRunGuards.replaceChildren(...preview.dryRunGuards.map((guard) => {
         const node = document.createElement("div");

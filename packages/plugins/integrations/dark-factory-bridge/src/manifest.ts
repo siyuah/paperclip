@@ -4,8 +4,8 @@ const manifest: PaperclipPluginManifestV1 = {
   id: "paperclipai.dark-factory-bridge",
   apiVersion: 1,
   version: "0.1.0",
-  displayName: "Dark Factory Bridge",
-  description: "Bridge plugin that displays Dark Factory projection, cursor, provider health, and rehydrate receipts without becoming an authoritative execution record.",
+  displayName: "Dark Factory Bridge（中文）",
+  description: "Dark Factory Bridge 插件：以中文界面显示投影、Journal 游标、Provider 健康和 rehydrate receipt；不会成为权威执行记录。",
   author: "Paperclip",
   categories: ["automation", "ui"],
   capabilities: [
@@ -32,7 +32,7 @@ const manifest: PaperclipPluginManifestV1 = {
     {
       driverKey: "dark-factory-mock",
       kind: "environment_driver",
-      displayName: "Dark Factory Bridge",
+      displayName: "Dark Factory Bridge（中文）",
       description: "Dark Factory environment driver with deterministic mock mode, live-local HTTP mode, and remote provider alpha mode. Projection is non-authoritative; Dark Factory Journal remains truth source.",
       configSchema: {
         type: "object",
@@ -145,20 +145,20 @@ const manifest: PaperclipPluginManifestV1 = {
       {
         type: "dashboardWidget",
         id: "dark-factory-provider-health",
-        displayName: "Dark Factory Provider Health",
+        displayName: "Dark Factory Provider 健康",
         exportName: "DashboardWidget"
       },
       {
         type: "taskDetailView",
         id: "dark-factory-projection",
-        displayName: "Dark Factory Projection",
+        displayName: "Dark Factory 投影",
         exportName: "IssuePanel",
         entityTypes: ["issue"]
       },
       {
         type: "settingsPage",
         id: "settings",
-        displayName: "Dark Factory Bridge",
+        displayName: "Dark Factory Bridge 设置",
         exportName: "SettingsPage"
       }
     ]
