@@ -209,7 +209,7 @@ describe("Dark Factory bridge projection plugin", () => {
     const parsed = pluginManifestV1Schema.parse(manifest);
 
     expect(parsed).toMatchObject({
-      id: "paperclipai.dark-factory-bridge-example",
+      id: "paperclipai.dark-factory-bridge",
       database: {
         namespaceSlug: "dark_factory_bridge_poc",
         migrationsDir: "migrations",

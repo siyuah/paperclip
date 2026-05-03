@@ -1,10 +1,10 @@
 import type { PaperclipPluginManifestV1 } from "@paperclipai/plugin-sdk";
 
 const manifest: PaperclipPluginManifestV1 = {
-  id: "paperclipai.dark-factory-bridge-example",
+  id: "paperclipai.dark-factory-bridge",
   apiVersion: 1,
   version: "0.1.0",
-  displayName: "Dark Factory Bridge Projection Example",
+  displayName: "Dark Factory Bridge",
   description: "Bridge plugin that displays Dark Factory projection, cursor, provider health, and rehydrate receipts without becoming an authoritative execution record.",
   author: "Paperclip",
   categories: ["automation", "ui"],
