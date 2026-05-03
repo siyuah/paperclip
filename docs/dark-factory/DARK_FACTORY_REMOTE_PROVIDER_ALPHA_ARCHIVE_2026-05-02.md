@@ -1806,3 +1806,51 @@ Validation after hardening batch 38:
 - `ui_full_internal_beta_not_completed` is no longer reported.
 - Remaining production blocker: real provider gated attempt.
 - V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.
+
+## Hardening Batch 39
+
+Remote provider alpha hardening batch 39 recorded the final real-provider gate
+status after all offline install and UI beta blockers were cleared.
+
+### Final Real Provider Gate Status
+
+Added `docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md`
+as the operator-facing status record for the remaining production gate.
+
+Current state:
+
+- `installableAlphaReady: true`
+- `productionReady: false`
+- remaining production blocker: `real_provider_gated_attempt_not_completed`
+
+A non-sensitive gate-input presence check was run and printed only boolean
+presence, string lengths, and whether the integration flag equaled `1`.
+
+Observed result:
+
+- integration flag present: no
+- provider endpoint present: no
+- credential value present: no
+- credential reference present: no
+- derived gated-run condition: false
+
+The gated provider attempt was therefore not run. This is intentional and keeps
+the production blocker honest until an operator supplies the real-provider
+inputs in a short-lived shell and the gated integration test passes.
+
+Validation after hardening batch 39:
+
+- `pnpm install:readiness -- --skip-build` passed with
+  `installableAlphaReady: true` and `productionReady: false`.
+- Remaining production blocker: `real_provider_gated_attempt_not_completed`.
+- The gated integration test remains skipped by default when operator inputs
+  are absent.
+
+Boundary compliance:
+
+- No real provider request was attempted: yes
+- No endpoint or credential value was printed: yes
+- No production blocker was bypassed: yes
+- `authoritative: false` remains required on all bridge outputs: yes
+- `terminalStateAdvanced: false` remains required on all bridge outputs: yes
+- Dark Factory Journal remains truth source: yes
