@@ -12,9 +12,11 @@ describe("Dark Factory UI smoke preview panel source wiring", () => {
     expect(source).toContain("是否权威");
     expect(source).toContain("是否推进终态");
     expect(source).toContain("远程 Provider Dry-run 防护");
-    expect(source).toContain("Dry-run guard receipt");
+    expect(source).toContain("Dry-run 防护 receipt");
     expect(source).toContain("shouldContactRemoteProvider");
     expect(source).toContain("doesAuthorizeRemoteExecution");
+    expect(source).toContain("displayValue(guard.decision)");
+    expect(source).toContain("translatedBadge(badge)");
     expect(source).toContain("healthy");
     expect(source).toContain("warning_latency");
     expect(source).toContain("blocked_failures");

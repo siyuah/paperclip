@@ -118,7 +118,7 @@ export function buildRemoteProviderAlertCandidates(
     alerts.push(alertCandidate({
       severity: failureClass === "runtime_blocked" || failureClass === "provider_unavailable" ? "critical" : "warning",
       code: "dark_factory_remote_error_rate_high",
-      message: `Remote provider error rate is ${Math.round(errorRate * 100)}%`,
+      message: `远程 Provider 错误率为 ${Math.round(errorRate * 100)}%`,
       failureClass,
       retryable: failureClass !== "runtime_blocked",
       reason: snapshot.latestErrorCode ?? failureClass,
@@ -129,7 +129,7 @@ export function buildRemoteProviderAlertCandidates(
     alerts.push(alertCandidate({
       severity: "warning",
       code: "dark_factory_remote_latency_high",
-      message: `Remote provider max latency is ${snapshot.maxLatencyMs}ms`,
+      message: `远程 Provider 最大延迟为 ${snapshot.maxLatencyMs}ms`,
       failureClass: "transient_provider",
       retryable: true,
       reason: "remote_latency_high",
@@ -140,7 +140,7 @@ export function buildRemoteProviderAlertCandidates(
     alerts.push(alertCandidate({
       severity: "warning",
       code: "dark_factory_remote_cursor_lag_high",
-      message: `Remote provider journal cursor lag is ${snapshot.cursorLag}`,
+      message: `远程 Provider Journal 游标滞后为 ${snapshot.cursorLag}`,
       failureClass: "provider_unavailable",
       retryable: true,
       reason: "remote_cursor_lag_high",

@@ -227,22 +227,22 @@ function buildPreflightPlan(input: {
     {
       hook: "onEnvironmentValidateConfig",
       code: "dark_factory_remote_preflight_validate_config",
-      label: "Validate config",
+      label: "校验配置",
     },
     {
       hook: "onEnvironmentProbe",
       code: "dark_factory_remote_preflight_probe",
-      label: "Probe provider",
+      label: "探测 Provider",
     },
     {
       hook: "onEnvironmentAcquireLease",
       code: "dark_factory_remote_preflight_acquire_lease",
-      label: "Acquire lease",
+      label: "获取租约",
     },
     {
       hook: "onEnvironmentExecute",
       code: "dark_factory_remote_preflight_execute",
-      label: "Execute",
+      label: "执行",
     },
   ];
 
@@ -277,15 +277,15 @@ function preflightMessageFor(
   nextSafeHook: RemoteProviderNextSafeHook,
 ): string {
   if (hook === "onEnvironmentValidateConfig") {
-    return "Validate remote configuration before any remote provider attempt.";
+    return "在任何远程 Provider 尝试前先校验远程配置。";
   }
   if (status === "allowed") {
-    return `${hook} is within the current advisory safety boundary.`;
+    return `${hook} 处于当前建议安全边界内。`;
   }
   if (status === "review_required") {
-    return `${hook} is the current next safe hook, but readiness is ${readinessStatus}; operator review is required.`;
+    return `${hook} 是当前下一安全 hook，但就绪状态为 ${readinessStatus}；需要操作员复核。`;
   }
-  return `${hook} is beyond the current next safe hook (${nextSafeHook}); resolve readiness blockers first.`;
+  return `${hook} 已超出当前下一安全 hook（${nextSafeHook}）；请先解决就绪阻断项。`;
 }
 
 function blockingCodesForPreflightStep(
@@ -414,36 +414,36 @@ function buildReadinessChecklist(
       category: "credentials",
       status: credentialChecklistStatus(input.credentialDiagnostics, signals),
       code: "dark_factory_remote_readiness_credentials",
-      label: "Remote credentials",
+      label: "远程凭据",
       message: input.credentialDiagnostics.ok
-        ? "Remote credential diagnostics are ready"
-        : "Remote credential diagnostics require operator attention",
+        ? "远程凭据诊断已就绪"
+        : "远程凭据诊断需要操作员处理",
       requiredBefore: "onEnvironmentProbe",
     }),
     checklistItem({
       category: "observability",
       status: observabilityChecklistStatus(input.alertCandidates, input.sampledObservationCount),
       code: "dark_factory_remote_readiness_observability",
-      label: "Remote observations",
+      label: "远程观测",
       message: input.sampledObservationCount > 0
-        ? "Remote provider observations are available for readiness evaluation"
-        : "No remote provider observations have been sampled yet",
+        ? "已有远程 Provider 观测可用于就绪评估"
+        : "尚未采样到远程 Provider 观测",
       requiredBefore: "onEnvironmentAcquireLease",
     }),
     checklistItem({
       category: "breaker",
       status: breakerChecklistStatus(input.breakerEvaluation.breakerState),
       code: "dark_factory_remote_readiness_breaker",
-      label: "Circuit breaker",
-      message: `Remote provider circuit breaker is ${input.breakerEvaluation.breakerState}`,
+      label: "熔断器",
+      message: `远程 Provider 熔断器状态为 ${input.breakerEvaluation.breakerState}`,
       requiredBefore: "onEnvironmentExecute",
     }),
     checklistItem({
       category: "journal_boundary",
       status: "pass",
       code: "dark_factory_remote_readiness_journal_boundary",
-      label: "Journal boundary",
-      message: "Dark Factory Journal remains truth source and Paperclip terminal state is unchanged",
+      label: "Journal 边界",
+      message: "Dark Factory Journal 仍是事实来源，Paperclip 终态保持不变",
       requiredBefore: "onEnvironmentExecute",
     }),
   ];
@@ -456,9 +456,9 @@ function credentialSignals(diagnostics: RemoteCredentialDiagnosticsForReadiness)
       severity: diagnostics.ok ? "info" : "critical",
       code: "dark_factory_remote_credential_diagnostic_missing",
       message: diagnostics.ok
-        ? "Credential diagnostics are ready but no detail entries were supplied"
-        : "Credential diagnostics are missing detail entries",
-      remediation: diagnostics.ok ? ["Continue with a controlled probe."] : ["Run remote credential diagnostics before attempting remote provider execution."],
+        ? "凭据诊断已就绪，但没有提供明细条目"
+        : "凭据诊断缺少明细条目",
+      remediation: diagnostics.ok ? ["继续执行受控 probe。"] : ["尝试远程 Provider 执行前先运行远程凭据诊断。"],
     })];
   }
 
@@ -491,8 +491,8 @@ function observabilitySignals(
       category: "observability",
       severity: "info",
       code: "dark_factory_remote_no_sampled_observations",
-      message: "No remote provider observations have been sampled yet",
-      remediation: ["Start with probe before acquire or execute in an operator-controlled environment."],
+      message: "尚未采样到远程 Provider 观测",
+      remediation: ["在操作员受控环境中先从 probe 开始，再进入 acquire 或 execute。"],
     })];
   }
 
@@ -500,8 +500,8 @@ function observabilitySignals(
     category: "observability",
     severity: "info",
     code: "dark_factory_remote_observability_clear",
-    message: "Remote provider sampled observations have no readiness alerts",
-    remediation: ["Continue monitoring request failures, latency, and Journal cursor lag."],
+    message: "远程 Provider 采样观测没有就绪告警",
+    remediation: ["继续监控请求失败、延迟和 Journal 游标滞后。"],
   })];
 }
 
@@ -511,8 +511,8 @@ function breakerSignal(evaluation: RemoteCircuitBreakerEvaluation): RemoteProvid
       category: "breaker",
       severity: "critical",
       code: "dark_factory_remote_breaker_open",
-      message: "Remote provider circuit breaker is open",
-      remediation: ["Pause remote execution and reconcile Dark Factory Journal before retrying."],
+      message: "远程 Provider 熔断器已打开",
+      remediation: ["暂停远程执行，并在重试前对齐 Dark Factory Journal。"],
     });
   }
   if (evaluation.breakerState === "half_open") {
@@ -520,16 +520,16 @@ function breakerSignal(evaluation: RemoteCircuitBreakerEvaluation): RemoteProvid
       category: "breaker",
       severity: "warning",
       code: "dark_factory_remote_breaker_half_open",
-      message: "Remote provider circuit breaker is half-open",
-      remediation: ["Run a controlled probe and verify projection freshness before execute."],
+      message: "远程 Provider 熔断器处于半开状态",
+      remediation: ["执行受控 probe，并在 execute 前验证投影新鲜度。"],
     });
   }
   return signal({
     category: "breaker",
     severity: "info",
     code: "dark_factory_remote_breaker_closed",
-    message: "Remote provider circuit breaker is closed",
-    remediation: ["Continue monitoring breaker state during remote alpha operations."],
+    message: "远程 Provider 熔断器已关闭",
+    remediation: ["远程 alpha 运行期间继续监控熔断器状态。"],
   });
 }
 
@@ -542,20 +542,20 @@ function credentialSeverity(diagnostic: RemoteCredentialDiagnosticForReadiness):
 function remediationForAlert(code: string): string[] {
   switch (code) {
     case "dark_factory_remote_error_rate_high":
-      return ["Inspect provider health and Dark Factory Journal before retrying remote execution."];
+      return ["重试远程执行前检查 Provider 健康和 Dark Factory Journal。"];
     case "dark_factory_remote_latency_high":
-      return ["Check provider or network latency and retry pressure before increasing workload."];
+      return ["增加工作负载前检查 Provider 或网络延迟以及重试压力。"];
     case "dark_factory_remote_cursor_lag_high":
-      return ["Reconcile Journal cursor freshness before trusting projection output."];
+      return ["信任投影输出前先对齐 Journal 游标新鲜度。"];
     default:
-      return ["Inspect the sampled remote provider observation window before continuing."];
+      return ["继续前检查采样到的远程 Provider 观测窗口。"];
   }
 }
 
 function summaryFor(status: RemoteProviderReadinessStatus): string {
-  if (status === "ready") return "Remote provider alpha is ready for a controlled probe.";
-  if (status === "needs_attention") return "Remote provider alpha needs operator attention before execute.";
-  return "Remote provider alpha is blocked until critical readiness signals are resolved.";
+  if (status === "ready") return "远程 Provider alpha 已准备好进行受控 probe。";
+  if (status === "needs_attention") return "远程 Provider alpha 在 execute 前需要操作员处理。";
+  return "远程 Provider alpha 已阻断，需先解决严重就绪信号。";
 }
 
 function recommendedActionFor(status: RemoteProviderReadinessStatus): string {
@@ -621,11 +621,11 @@ function transitionSummary(
   previousNextSafeHook: RemoteProviderNextSafeHook | null,
   currentNextSafeHook: RemoteProviderNextSafeHook,
 ): string {
-  if (kind === "new") return `Initial readiness report is ${currentStatus}; next safe hook is ${currentNextSafeHook}.`;
-  if (kind === "unchanged") return `Readiness remains ${currentStatus}; next safe hook remains ${currentNextSafeHook}.`;
-  if (kind === "improved") return `Readiness improved from ${previousStatus} to ${currentStatus}; next safe hook is ${currentNextSafeHook}.`;
-  if (kind === "regressed") return `Readiness regressed from ${previousStatus} to ${currentStatus}; next safe hook moved from ${previousNextSafeHook ?? "none"} to ${currentNextSafeHook}.`;
-  return `Readiness changed from ${previousStatus} to ${currentStatus}; next safe hook moved from ${previousNextSafeHook ?? "none"} to ${currentNextSafeHook}.`;
+  if (kind === "new") return `初始就绪报告为 ${currentStatus}；下一安全 hook 是 ${currentNextSafeHook}。`;
+  if (kind === "unchanged") return `就绪状态保持 ${currentStatus}；下一安全 hook 保持 ${currentNextSafeHook}。`;
+  if (kind === "improved") return `就绪状态从 ${previousStatus} 改善为 ${currentStatus}；下一安全 hook 是 ${currentNextSafeHook}。`;
+  if (kind === "regressed") return `就绪状态从 ${previousStatus} 回退为 ${currentStatus}；下一安全 hook 从 ${previousNextSafeHook ?? "none"} 变为 ${currentNextSafeHook}。`;
+  return `就绪状态从 ${previousStatus} 变为 ${currentStatus}；下一安全 hook 从 ${previousNextSafeHook ?? "none"} 变为 ${currentNextSafeHook}。`;
 }
 
 function credentialChecklistStatus(

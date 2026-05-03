@@ -33,7 +33,7 @@ const manifest: PaperclipPluginManifestV1 = {
       driverKey: "dark-factory-mock",
       kind: "environment_driver",
       displayName: "Dark Factory Bridge（中文）",
-      description: "Dark Factory environment driver with deterministic mock mode, live-local HTTP mode, and remote provider alpha mode. Projection is non-authoritative; Dark Factory Journal remains truth source.",
+      description: "Dark Factory environment driver：支持确定性 mock mode、本地 HTTP mode 和 remote provider alpha mode。所有投影均非权威；Dark Factory Journal remains truth source。",
       configSchema: {
         type: "object",
         additionalProperties: false,
@@ -45,7 +45,7 @@ const manifest: PaperclipPluginManifestV1 = {
           },
           endpoint: {
             type: "string",
-            description: "Dark Factory HTTP endpoint for http or remote mode, for example http://127.0.0.1:9701 or a trusted remote URL."
+            description: "http 或 remote 模式使用的 Dark Factory HTTP endpoint，例如 http://127.0.0.1:9701 或可信远程 URL。"
           },
           projectionMode: {
             type: "string",
@@ -58,11 +58,11 @@ const manifest: PaperclipPluginManifestV1 = {
           },
           apiKey: {
             type: "string",
-            description: "Inline API key for local preview only. Prefer apiKeySecretRef outside local development."
+            description: "仅供本地预览使用的内联 API key。本地开发之外请优先使用 apiKeySecretRef。"
           },
           apiKeySecretRef: {
             type: "string",
-            description: "Secret reference for the Dark Factory API key. Supports legacy env:NAME/env://NAME and host-managed secret://NAME/host-secret://NAME references. The plugin stores only the reference, not the secret value."
+            description: "Dark Factory API key 的 secret 引用。支持 legacy env:NAME/env://NAME 以及 Host 托管 secret://NAME/host-secret://NAME 引用。插件只保存引用，不保存 secret 值。"
           },
           requestedBy: {
             type: "string",

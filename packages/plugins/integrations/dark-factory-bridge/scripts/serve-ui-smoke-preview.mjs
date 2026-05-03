@@ -87,7 +87,7 @@ async function writePreview(outDir) {
   await writeFile(
     htmlPath,
     buildUiSmokePreviewBrowserHarness({
-      title: "Dark Factory Bridge WebUI Preview",
+      title: "Dark Factory Bridge WebUI 预览",
       generatedAt: new Date().toISOString(),
     }),
     "utf8",

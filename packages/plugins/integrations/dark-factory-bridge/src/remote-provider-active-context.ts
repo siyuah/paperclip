@@ -275,7 +275,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
         {
           severity: "info",
           code,
-          message: "No remote credential config was supplied to the settings surface",
+          message: "设置界面未提供远程凭据配置",
           details: { mode: "remote" },
           remediation: credentialRemediation(code),
         },
@@ -312,7 +312,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
         {
           severity: "info",
           code,
-          message: `Remote credential check passed using ${validation.credentialSource} credential`,
+          message: `远程凭据检查已通过，凭据来源为 ${validation.credentialSource}`,
           details: { credentialSource: validation.credentialSource },
           remediation: credentialRemediation(code),
         },
@@ -326,7 +326,7 @@ function remoteCredentialDiagnosticsFromParams(params: Record<string, unknown>):
     : validation.code;
   const diagnosticSeverity = hostSecretResolver.status === "host_managed_reference" ? "info" : "error";
   const diagnosticMessage = hostSecretResolver.status === "host_managed_reference"
-    ? "Remote credential host-managed secret reference is configured; resolved credential value is owned by the plugin host"
+    ? "远程凭据已配置 Host 托管 secret 引用；解析后的凭据值由插件 Host 持有"
     : validation.message;
 
   return {
@@ -358,38 +358,38 @@ function credentialRemediation(code: string): string[] {
   switch (code) {
     case "dark_factory_remote_credential_config_not_supplied":
       return [
-        "Open the environment driver settings and provide a remote config sample before validating credentials.",
-        "Treat this as an empty settings surface state, not a provider failure.",
+        "打开 environment driver 设置，并在校验凭据前提供远程配置样例。",
+        "把这视为设置界面为空的状态，而不是 Provider 故障。",
       ];
     case "dark_factory_remote_credential_missing":
       return [
-        "Set apiKeySecretRef to env:NAME or env://NAME for remote alpha.",
-        "Use inline apiKey only for controlled local testing.",
+        "远程 alpha 中请把 apiKeySecretRef 设置为 env:NAME 或 env://NAME。",
+        "内联 apiKey 只用于受控本地测试。",
       ];
     case "dark_factory_remote_credential_host_secret_ref_ready":
     case "dark_factory_remote_credential_host_secret_ref_pending_runtime_resolution":
       return [
-        "The host-managed secret reference is configured and accepted by readiness diagnostics.",
-        "Real network calls still require the plugin host to inject a resolved credential at execution time.",
+        "Host 托管 secret 引用已配置，并被就绪诊断接受。",
+        "真实网络调用仍需要插件 Host 在执行时注入解析后的凭据。",
       ];
     case "dark_factory_remote_credential_ref_unsupported":
       return [
-        "Replace the unsupported secret reference with env:NAME, env://NAME, secret://NAME, or host-secret://NAME.",
-        "Use host-managed secret references for internal alpha when the host resolver is available.",
+        "请将不支持的 secret 引用替换为 env:NAME、env://NAME、secret://NAME 或 host-secret://NAME。",
+        "Host resolver 可用时，内部 alpha 优先使用 Host 托管 secret 引用。",
       ];
     case "dark_factory_remote_credential_unresolved":
       return [
-        "Create or export the referenced environment variable in the plugin host process.",
-        "Restart or reload the host after updating environment variables.",
+        "在插件 Host 进程中创建或导出被引用的环境变量。",
+        "更新环境变量后重启或重新加载 Host。",
       ];
     case "dark_factory_remote_credential_ready":
       return [
-        "No credential remediation is needed.",
-        "Continue with probe or acquire only in an operator-controlled environment.",
+        "无需修复凭据。",
+        "仅在操作员受控环境中继续执行 probe 或 acquire。",
       ];
     default:
       return [
-        "Review the remote provider configuration and keep credential values outside plugin data surfaces.",
+        "复查远程 Provider 配置，并确保凭据值不进入插件数据展示面。",
       ];
   }
 }

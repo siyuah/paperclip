@@ -25,13 +25,17 @@ describe("UI smoke preview browser harness", () => {
     expect(html).toContain("是否推进终态");
     expect(html).toContain("远程 Provider Dry-run 防护");
     expect(html).toContain("执行 dry-run");
-    expect(html).toContain("Dry-run receipt");
-    expect(html).toContain("contactProvider");
-    expect(html).toContain("authorizes");
+    expect(html).toContain("Dry-run 回执");
+    expect(html).toContain("是否联系 Provider");
+    expect(html).toContain("是否授权执行");
     expect(html).toContain("dark-factory-journal");
     expect(html).toContain("journal-truth-source");
     expect(html).toContain("df-remote-dry-run-");
     expect(html).toContain("Dark Factory Journal 仍是唯一事实来源");
+    expect(html).not.toContain("contactProvider=");
+    expect(html).not.toContain("authorizes=");
+    expect(html).not.toContain("preflight=");
+    expect(html).not.toContain("blocking=");
     expect(html).not.toContain("ui-smoke-preview-placeholder-not-a-secret");
   });
 

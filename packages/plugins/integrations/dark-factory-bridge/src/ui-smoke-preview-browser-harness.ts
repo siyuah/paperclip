@@ -87,6 +87,34 @@ export function buildUiSmokePreviewBrowserHarness(
       blocked_failures: "失败阻断",
       stale_readiness: "就绪状态过期"
     };
+    const valueLabels = {
+      ready: "就绪",
+      needs_attention: "需要处理",
+      blocked: "已阻断",
+      allowed: "允许",
+      review_required: "需要人工复核",
+      closed: "关闭",
+      open: "打开",
+      half_open: "半开",
+      pass: "通过",
+      warn: "警告",
+      fail: "失败"
+    };
+
+    function displayValue(value) {
+      if (value == null) return "无";
+      const raw = String(value);
+      return valueLabels[raw] ? valueLabels[raw] + " (" + raw + ")" : raw;
+    }
+
+    function badgeLabel(value) {
+      if (value === "journal-truth-source") return "Journal 是事实来源 (journal-truth-source)";
+      if (value === "execute-allowed") return "允许执行 (execute-allowed)";
+      if (value.startsWith("next:")) return "下一安全 hook: " + value.slice(5) + " (" + value + ")";
+      if (value.startsWith("breaker:")) return "熔断器: " + displayValue(value.slice(8)) + " (" + value + ")";
+      if (value.startsWith("alerts:")) return "告警数: " + value.slice(7) + " (" + value + ")";
+      return displayValue(value);
+    }
 
     for (const preview of previews) {
       const option = document.createElement("option");
@@ -111,18 +139,18 @@ export function buildUiSmokePreviewBrowserHarness(
       summary.className = preview.previewStatus === "blocked" ? "critical" : preview.previewStatus === "needs_attention" ? "notice" : "";
       summary.textContent = preview.readiness.summary;
       fields.replaceChildren(
-        field("预览状态", preview.previewStatus),
+        field("预览状态", displayValue(preview.previewStatus)),
         field("Host 上下文", preview.hostContextId),
-        field("就绪状态", preview.readiness.readinessStatus),
+        field("就绪状态", displayValue(preview.readiness.readinessStatus)),
         field("下一安全 hook", preview.readiness.nextSafeHook),
-        field("熔断器状态", preview.breakerEvaluation.breakerState),
+        field("熔断器状态", displayValue(preview.breakerEvaluation.breakerState)),
         field("采样观测数", preview.observability.sampledObservationCount),
         field("最大延迟", preview.observability.snapshot.maxLatencyMs + "ms"),
         field("游标滞后", preview.observability.snapshot.cursorLag ?? "未知"),
         field("告警数", preview.observability.alerts.length),
         field("凭据来源", preview.credentialDiagnostics.credentialSource ?? "无"),
-        field("执行 dry-run", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).decision ?? "未知"),
-        field("Dry-run receipt", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).receiptId ?? "无"),
+        field("执行 dry-run", displayValue((preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).decision ?? "未知")),
+        field("Dry-run 回执", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).receiptId ?? "无"),
         field("事实来源", preview.truthSource),
         field("是否权威", preview.authoritative ? "是" : "否"),
         field("是否推进终态", preview.terminalStateAdvanced ? "是" : "否")
@@ -130,18 +158,18 @@ export function buildUiSmokePreviewBrowserHarness(
       dryRunGuards.replaceChildren(...preview.dryRunGuards.map((guard) => {
         const node = document.createElement("div");
         node.className = "guard " + guard.decision;
-        node.textContent = guard.targetHook + ": " + guard.decision
-          + " | preflight=" + guard.matchedPreflightStatus
-          + " | contactProvider=" + (guard.shouldContactRemoteProvider ? "yes" : "no")
-          + " | authorizes=" + (guard.doesAuthorizeRemoteExecution ? "yes" : "no")
-          + " | receipt=" + guard.receiptId
-          + (guard.blockingCodes.length ? " | blocking=" + guard.blockingCodes.join(",") : "");
+        node.textContent = guard.targetHook + "：决策 " + displayValue(guard.decision)
+          + " | 预检状态 " + displayValue(guard.matchedPreflightStatus)
+          + " | 是否联系 Provider " + (guard.shouldContactRemoteProvider ? "是" : "否")
+          + " | 是否授权执行 " + (guard.doesAuthorizeRemoteExecution ? "是" : "否")
+          + " | receipt " + guard.receiptId
+          + (guard.blockingCodes.length ? " | 阻断代码 " + guard.blockingCodes.map(displayValue).join(", ") : "");
         return node;
       }));
       badges.replaceChildren(...preview.uiBadges.map((item) => {
         const node = document.createElement("span");
         node.className = "badge";
-        node.textContent = item;
+        node.textContent = badgeLabel(item);
         return node;
       }));
     }

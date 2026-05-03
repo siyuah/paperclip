@@ -1174,8 +1174,8 @@ describe("Dark Factory bridge projection plugin", () => {
           severity: "info",
           code: "dark_factory_remote_credential_config_not_supplied",
           remediation: expect.arrayContaining([
-            expect.stringContaining("remote config sample"),
-            expect.stringContaining("empty settings surface"),
+            expect.stringContaining("远程配置样例"),
+            expect.stringContaining("设置界面为空"),
           ]),
         }),
       ],
@@ -1196,7 +1196,7 @@ describe("Dark Factory bridge projection plugin", () => {
           code: "dark_factory_remote_credential_missing",
           remediation: expect.arrayContaining([
             expect.stringContaining("apiKeySecretRef"),
-            expect.stringContaining("inline apiKey"),
+            expect.stringContaining("内联 apiKey"),
           ]),
         }),
       ],
@@ -1222,8 +1222,8 @@ describe("Dark Factory bridge projection plugin", () => {
           severity: "info",
           code: "dark_factory_remote_credential_host_secret_ref_ready",
           remediation: expect.arrayContaining([
-            expect.stringContaining("host-managed secret reference"),
-            expect.stringContaining("inject a resolved credential"),
+            expect.stringContaining("Host 托管 secret 引用"),
+            expect.stringContaining("注入解析后的凭据"),
           ]),
         }),
       ],
@@ -1240,7 +1240,7 @@ describe("Dark Factory bridge projection plugin", () => {
           code: "dark_factory_remote_credential_ref_unsupported",
           remediation: expect.arrayContaining([
             expect.stringContaining("env:NAME"),
-            expect.stringContaining("host resolver"),
+            expect.stringContaining("Host resolver"),
           ]),
         }),
       ],
@@ -1261,8 +1261,8 @@ describe("Dark Factory bridge projection plugin", () => {
             envName: "DARK_FACTORY_PLUGIN_SPEC_MISSING_KEY",
           },
           remediation: expect.arrayContaining([
-            expect.stringContaining("referenced environment variable"),
-            expect.stringContaining("Restart or reload"),
+            expect.stringContaining("被引用的环境变量"),
+            expect.stringContaining("重启或重新加载"),
           ]),
         }),
       ],
@@ -1305,8 +1305,8 @@ describe("Dark Factory bridge projection plugin", () => {
           severity: "info",
           code: "dark_factory_remote_credential_ready",
           remediation: expect.arrayContaining([
-            expect.stringContaining("No credential remediation"),
-            expect.stringContaining("operator-controlled environment"),
+            expect.stringContaining("无需修复凭据"),
+            expect.stringContaining("操作员受控环境"),
           ]),
         }),
       ],
