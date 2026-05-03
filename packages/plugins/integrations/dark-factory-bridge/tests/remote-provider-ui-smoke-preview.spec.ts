@@ -58,6 +58,16 @@ describe("remote provider UI smoke preview harness", () => {
         terminalStateAdvanced: false,
       });
       expect(preview.uiBadges).toContain("journal-truth-source");
+      expect(preview.dryRunGuards).toHaveLength(4);
+      expect(preview.dryRunGuards.map((guard) => guard.targetHook)).toEqual([
+        "onEnvironmentValidateConfig",
+        "onEnvironmentProbe",
+        "onEnvironmentAcquireLease",
+        "onEnvironmentExecute",
+      ]);
+      expect(preview.dryRunGuards.every((guard) => guard.dryRunOnly === true)).toBe(true);
+      expect(preview.dryRunGuards.every((guard) => guard.shouldContactRemoteProvider === false)).toBe(true);
+      expect(preview.dryRunGuards.every((guard) => guard.doesAuthorizeRemoteExecution === false)).toBe(true);
       expectAllNonAuthoritative(preview);
       expectAllTerminalStateUnchanged(preview);
     }
@@ -98,6 +108,15 @@ describe("remote provider UI smoke preview harness", () => {
       "alerts:0",
       "execute-allowed",
     ]));
+    expect(preview.dryRunGuards).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetHook: "onEnvironmentExecute",
+        decision: "allowed",
+        matchedPreflightStatus: "allowed",
+        blockingCodes: [],
+        receiptId: expect.stringMatching(/^df-remote-dry-run-[0-9a-f]{8}$/),
+      }),
+    ]));
   });
 
   it("previews latency warnings as needs_attention with execute blocked for review", () => {
@@ -130,6 +149,14 @@ describe("remote provider UI smoke preview harness", () => {
       expect.objectContaining({
         hook: "onEnvironmentExecute",
         status: "blocked",
+        blockingCodes: expect.arrayContaining(["dark_factory_remote_latency_high"]),
+      }),
+    ]));
+    expect(preview.dryRunGuards).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetHook: "onEnvironmentExecute",
+        decision: "blocked",
+        matchedPreflightStatus: "blocked",
         blockingCodes: expect.arrayContaining(["dark_factory_remote_latency_high"]),
       }),
     ]));
@@ -177,6 +204,17 @@ describe("remote provider UI smoke preview harness", () => {
       "breaker:open",
       "dark_factory_remote_breaker_open",
     ]));
+    expect(preview.dryRunGuards).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetHook: "onEnvironmentExecute",
+        decision: "blocked",
+        matchedPreflightStatus: "blocked",
+        blockingCodes: expect.arrayContaining([
+          "dark_factory_remote_breaker_open",
+          "dark_factory_remote_error_rate_high",
+        ]),
+      }),
+    ]));
   });
 
   it("previews stale readiness as needs_attention with a regressed transition", () => {
@@ -204,6 +242,13 @@ describe("remote provider UI smoke preview harness", () => {
       },
     });
     expect(preview.uiBadges).toContain("dark_factory_remote_cursor_lag_high");
+    expect(preview.dryRunGuards).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetHook: "onEnvironmentExecute",
+        decision: "blocked",
+        blockingCodes: expect.arrayContaining(["dark_factory_remote_cursor_lag_high"]),
+      }),
+    ]));
   });
 
   it("serves UI smoke preview data through the plugin getData harness", async () => {

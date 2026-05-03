@@ -46,6 +46,10 @@ export function buildUiSmokePreviewBrowserHarness(
     .field { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; min-width: 0; }
     .field span { display: block; color: #64748b; font-size: 12px; margin-bottom: 4px; }
     .field strong, code { overflow-wrap: anywhere; }
+    .guard-list { display: grid; gap: 8px; }
+    .guard { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; display: grid; gap: 4px; }
+    .guard.review_required { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+    .guard.blocked { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; }
     .badge { border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 999px; padding: 3px 8px; font-size: 12px; }
   </style>
@@ -64,6 +68,8 @@ export function buildUiSmokePreviewBrowserHarness(
       </div>
       <div id="summary"></div>
       <div id="fields" class="grid"></div>
+      <h3 style="margin:0;font-size:16px;">Remote Provider Dry-Run Guard</h3>
+      <div id="dry-run-guards" class="guard-list" aria-label="Remote provider dry-run guard decisions"></div>
       <div id="badges" class="badges" aria-label="UI badges"></div>
     </section>
   </main>
@@ -73,6 +79,7 @@ export function buildUiSmokePreviewBrowserHarness(
     const scenarioSelect = document.getElementById("scenario");
     const summary = document.getElementById("summary");
     const fields = document.getElementById("fields");
+    const dryRunGuards = document.getElementById("dry-run-guards");
     const badges = document.getElementById("badges");
     const labels = {
       healthy: "Healthy",
@@ -114,10 +121,23 @@ export function buildUiSmokePreviewBrowserHarness(
         field("Cursor lag", preview.observability.snapshot.cursorLag ?? "unknown"),
         field("Alerts", preview.observability.alerts.length),
         field("Credential source", preview.credentialDiagnostics.credentialSource ?? "none"),
+        field("Execute dry-run", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).decision ?? "unknown"),
+        field("Dry-run receipt", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).receiptId ?? "none"),
         field("Truth source", preview.truthSource),
         field("Authoritative", preview.authoritative ? "yes" : "no"),
         field("Terminal advanced", preview.terminalStateAdvanced ? "yes" : "no")
       );
+      dryRunGuards.replaceChildren(...preview.dryRunGuards.map((guard) => {
+        const node = document.createElement("div");
+        node.className = "guard " + guard.decision;
+        node.textContent = guard.targetHook + ": " + guard.decision
+          + " | preflight=" + guard.matchedPreflightStatus
+          + " | contactProvider=" + (guard.shouldContactRemoteProvider ? "yes" : "no")
+          + " | authorizes=" + (guard.doesAuthorizeRemoteExecution ? "yes" : "no")
+          + " | receipt=" + guard.receiptId
+          + (guard.blockingCodes.length ? " | blocking=" + guard.blockingCodes.join(",") : "");
+        return node;
+      }));
       badges.replaceChildren(...preview.uiBadges.map((item) => {
         const node = document.createElement("span");
         node.className = "badge";

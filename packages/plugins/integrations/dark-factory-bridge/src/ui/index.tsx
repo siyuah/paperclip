@@ -266,6 +266,23 @@ type UiSmokePreview = {
   observability: Pick<RemoteObservabilitySnapshot, "sampledObservationCount" | "snapshot" | "alerts" | "terminalStateAdvanced">;
   credentialDiagnostics: RemoteCredentialDiagnostics;
   breakerEvaluation: RemoteBreakerEvaluation;
+  dryRunGuards: Array<{
+    source: "dark-factory-projection";
+    truthSource: "dark-factory-journal";
+    authoritative: false;
+    observationSource: "runtime_observation";
+    runtimeMode: "remote";
+    targetHook: string;
+    decision: "allowed" | "review_required" | "blocked";
+    dryRunOnly: true;
+    shouldContactRemoteProvider: false;
+    doesAuthorizeRemoteExecution: false;
+    matchedPreflightStatus: string;
+    blockingCodes: string[];
+    receiptId: string;
+    digest: string;
+    terminalStateAdvanced: false;
+  }>;
   terminalStateAdvanced: false;
 };
 
@@ -576,9 +593,25 @@ function UiSmokePreviewRows({
       <div style={rowStyle}><span>Cursor lag</span><strong>{data.observability.snapshot.cursorLag ?? "unknown"}</strong></div>
       <div style={rowStyle}><span>Alerts</span><strong>{data.observability.alerts.length}</strong></div>
       <div style={rowStyle}><span>Credential source</span><code>{data.credentialDiagnostics.credentialSource ?? "none"}</code></div>
+      <div style={rowStyle}><span>Dry-run guard receipt</span><code>{data.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute")?.receiptId ?? "none"}</code></div>
       <div style={rowStyle}><span>Truth source</span><code>{data.truthSource}</code></div>
       <div style={rowStyle}><span>Authoritative</span><strong>{data.authoritative ? "yes" : "no"}</strong></div>
       <div style={rowStyle}><span>Terminal advanced</span><strong>{data.terminalStateAdvanced ? "yes" : "no"}</strong></div>
+      <div style={{ display: "grid", gap: 6 }}>
+        <strong>Remote Provider Dry-Run Guard</strong>
+        {data.dryRunGuards.map((guard) => (
+          <div key={guard.targetHook} role="status" style={guard.decision === "blocked" ? errorStyle : guard.decision === "review_required" ? noticeStyle : undefined}>
+            <div style={rowStyle}><span>{guard.targetHook}</span><strong>{guard.decision}</strong></div>
+            <div style={rowStyle}><span>Preflight status</span><code>{guard.matchedPreflightStatus}</code></div>
+            <div style={rowStyle}><span>Should contact provider</span><strong>{guard.shouldContactRemoteProvider ? "yes" : "no"}</strong></div>
+            <div style={rowStyle}><span>Authorizes execution</span><strong>{guard.doesAuthorizeRemoteExecution ? "yes" : "no"}</strong></div>
+            <div style={rowStyle}><span>Receipt</span><code>{guard.receiptId}</code></div>
+            {guard.blockingCodes.length > 0 ? (
+              <div>Blocking codes <code>{guard.blockingCodes.join(", ")}</code></div>
+            ) : null}
+          </div>
+        ))}
+      </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {data.uiBadges.map((badge) => (
           <span key={badge} style={badgeStyle}>{badge}</span>

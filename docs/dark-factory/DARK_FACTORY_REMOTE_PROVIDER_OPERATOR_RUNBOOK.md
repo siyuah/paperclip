@@ -410,6 +410,20 @@ to smoke-check the internal UI before wiring real host-collected observations:
 The selector is still a local preview surface. It is not an operator approval
 control and does not change lifecycle hook behavior.
 
+The preview panel now also renders the dry-run guard result for each lifecycle
+boundary:
+
+- `onEnvironmentValidateConfig`
+- `onEnvironmentProbe`
+- `onEnvironmentAcquireLease`
+- `onEnvironmentExecute`
+
+For each hook, the panel shows the advisory decision, matched preflight status,
+blocking codes, dry-run receipt id, whether the guard would contact the remote
+provider, and whether it authorizes execution. The provider contact and
+authorization flags must remain `no`; the panel is evidence for operator
+review, not an approval control.
+
 For browser-level smoke without a full Paperclip host, generate a standalone
 HTML harness from `buildUiSmokePreviewBrowserHarness`. The harness embeds the
 same deterministic preview envelopes, exposes the same scenario selector, and
@@ -421,6 +435,7 @@ renders the boundary fields that must remain visible before full UI alpha:
 - next safe hook
 - breaker state
 - cursor lag and alert count
+- dry-run guard decisions and receipts for all lifecycle hooks
 
 This harness is suitable for Playwright or manual browser checks. It remains a
 local preview artifact and does not connect to a provider.
@@ -482,6 +497,11 @@ The guard returns:
 - deterministic `guardReceipt`
 - operator summary for UI or runbook notes
 
+In the current UI smoke preview, only a summarized guard payload is rendered:
+target hook, decision, preflight status, blocking codes, receipt id, digest,
+provider-contact flag, and authorization flag. The full adapter/bridge payload
+stays out of the UI preview panel.
+
 The result is advisory only. It never contacts the remote provider, never
 invokes lifecycle hooks, never persists state, and never authorizes remote
 execution. `doesAuthorizeRemoteExecution` is always `false`, and
@@ -520,8 +540,8 @@ Recommended alpha thresholds:
    `remote-observability-snapshot` data key.
 3. Feed the active environment driver config into
    `remote-credential-diagnostics` when the host exposes settings context.
-4. Feed `remote-provider-dry-run-guard` output into the operator UI as an
-   advisory pre-execution checklist.
+4. Add a runbook-driven manual dry-run checklist for the first gated real
+   provider attempt.
 5. Wire the circuit breaker evaluator into the remote execution path after host
    persistence for breaker state is available.
 6. Feed sampled observations and previous breaker state into

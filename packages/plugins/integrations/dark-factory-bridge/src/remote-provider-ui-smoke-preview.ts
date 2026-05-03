@@ -23,6 +23,13 @@ import type {
 import type {
   RemoteCircuitBreakerEvaluation,
 } from "./remote-provider-circuit-breaker.js";
+import {
+  buildRemoteProviderDryRunGuard,
+  type RemoteProviderDryRunDecision,
+} from "./remote-provider-dry-run-guard.js";
+import type {
+  RemoteProviderPreflightStep,
+} from "./remote-provider-readiness.js";
 
 type ProjectionBoundary = {
   source: typeof DARK_FACTORY_PROJECTION_SOURCE;
@@ -33,6 +40,21 @@ type ProjectionBoundary = {
 export type UiSmokePreviewScenario = HostObservationScenario;
 
 export type UiSmokePreviewStatus = "ready" | "needs_attention" | "blocked";
+
+export type UiSmokePreviewDryRunGuard = ProjectionBoundary & {
+  observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
+  runtimeMode: "remote";
+  targetHook: RemoteProviderPreflightStep["hook"];
+  decision: RemoteProviderDryRunDecision;
+  dryRunOnly: true;
+  shouldContactRemoteProvider: false;
+  doesAuthorizeRemoteExecution: false;
+  matchedPreflightStatus: RemoteProviderPreflightStep["status"];
+  blockingCodes: string[];
+  receiptId: string;
+  digest: string;
+  terminalStateAdvanced: false;
+};
 
 export type UiSmokePreview = ProjectionBoundary & {
   observationSource: typeof RUNTIME_OBSERVATION_SOURCE;
@@ -50,6 +72,7 @@ export type UiSmokePreview = ProjectionBoundary & {
   };
   credentialDiagnostics: RemoteCredentialDiagnostics;
   breakerEvaluation: RemoteCircuitBreakerEvaluation;
+  dryRunGuards: UiSmokePreviewDryRunGuard[];
   terminalStateAdvanced: false;
 };
 
@@ -88,6 +111,7 @@ export function buildUiSmokePreview(
     },
   });
   const readiness = buildRemoteProviderReadinessReport(replay.activeContext.readinessInput);
+  const dryRunGuards = dryRunGuardsFor(fixture.activeContext);
 
   return {
     ...projectionBoundary(),
@@ -106,6 +130,7 @@ export function buildUiSmokePreview(
     },
     credentialDiagnostics: replay.activeContext.credentialDiagnostics,
     breakerEvaluation: replay.activeContext.breakerEvaluation,
+    dryRunGuards,
     terminalStateAdvanced: false,
   };
 }
@@ -132,6 +157,58 @@ function uiBadgesFor(readiness: RemoteProviderReadinessReport): string[] {
     badges.push(signal.code);
   }
   return badges;
+}
+
+function dryRunGuardsFor(activeContext: Record<string, unknown>): UiSmokePreviewDryRunGuard[] {
+  const hooks: RemoteProviderPreflightStep["hook"][] = [
+    "onEnvironmentValidateConfig",
+    "onEnvironmentProbe",
+    "onEnvironmentAcquireLease",
+    "onEnvironmentExecute",
+  ];
+  return hooks.map((targetHook) => {
+    const guard = buildRemoteProviderDryRunGuard({
+      targetHook,
+      hostSettingsContext: {
+        environmentConfig: {
+          ...recordField(activeContext.environmentConfig),
+          apiKey: uiSmokePreviewCredentialPlaceholder,
+          apiKeySecretRef: undefined,
+        },
+        alertThresholds: activeContext.alertThresholds,
+        circuitBreakerPolicy: activeContext.circuitBreakerPolicy,
+      },
+      hostRuntimeContext: {
+        checkedAt: activeContext.checkedAt,
+        evaluatedAt: activeContext.evaluatedAt,
+        journal: activeContext.journal,
+        sampledObservations: activeContext.sampledObservations,
+        breakerEvidence: activeContext.breakerEvidence,
+        readinessEvidence: activeContext.readinessEvidence,
+      },
+    });
+    return {
+      ...projectionBoundary(),
+      observationSource: RUNTIME_OBSERVATION_SOURCE,
+      runtimeMode: "remote",
+      targetHook: guard.targetHook,
+      decision: guard.decision,
+      dryRunOnly: guard.dryRunOnly,
+      shouldContactRemoteProvider: guard.shouldContactRemoteProvider,
+      doesAuthorizeRemoteExecution: guard.doesAuthorizeRemoteExecution,
+      matchedPreflightStatus: guard.matchedPreflightStep.status,
+      blockingCodes: guard.blockingCodes,
+      receiptId: guard.guardReceipt.receiptId,
+      digest: guard.guardReceipt.digest,
+      terminalStateAdvanced: false,
+    };
+  });
+}
+
+function recordField(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
 }
 
 function projectionBoundary(): ProjectionBoundary {

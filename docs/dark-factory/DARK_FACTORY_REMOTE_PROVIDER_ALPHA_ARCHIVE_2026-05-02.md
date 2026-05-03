@@ -1286,3 +1286,49 @@ Validation after hardening batch 26:
 
 - targeted `remote-provider-dry-run-guard.spec.ts` passed: 5 tests.
 - `pnpm typecheck` passed.
+
+## Hardening Batch 27
+
+Remote provider alpha hardening batch 27 surfaced dry-run guard decisions in
+the internal UI preview surfaces.
+
+### UI Preview Integration
+
+Updated `src/remote-provider-ui-smoke-preview.ts` so each deterministic preview
+now includes summarized guard decisions for:
+
+- `onEnvironmentValidateConfig`
+- `onEnvironmentProbe`
+- `onEnvironmentAcquireLease`
+- `onEnvironmentExecute`
+
+Each summary includes:
+
+- target hook
+- advisory decision
+- matched preflight status
+- blocking codes
+- guard receipt id and digest
+- remote-provider contact flag
+- execution authorization flag
+
+The preview intentionally does not embed the full adapter/bridge object. It
+keeps only the operator-facing summary needed for UI smoke and manual review.
+
+### Panel And Browser Harness
+
+Updated the settings-page smoke preview panel and standalone browser harness to
+render the dry-run guard section. The panel shows all four lifecycle boundaries
+for the selected preview scenario, including provider-contact and authorization
+flags that must remain `no`.
+
+### Boundary Semantics
+
+The UI remains a local preview surface. It does not contact a provider, does
+not persist state, does not approve execution, and does not change lifecycle
+hook behavior.
+
+Validation after hardening batch 27:
+
+- targeted UI preview tests passed: 11 tests across 3 files.
+- `pnpm typecheck` passed.
