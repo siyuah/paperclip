@@ -15,7 +15,8 @@ describe("first real provider gated attempt runbook", () => {
 
     expect(runbook).toContain("Dry-Run Gate");
     expect(runbook).toContain("dry-run guard receipt id");
-    expect(runbook).toContain("pnpm smoke:ui:browser -- --no-screenshots");
+    expect(runbook).toContain("pnpm preflight:first-provider");
+    expect(runbook).toContain("output/dark-factory-first-provider-preflight/evidence.json");
     expect(runbook).toContain("onEnvironmentExecute");
     expect(runbook).toContain("If the decision is `blocked`, do not run");
     expect(runbook).toContain("Gated Integration Command");

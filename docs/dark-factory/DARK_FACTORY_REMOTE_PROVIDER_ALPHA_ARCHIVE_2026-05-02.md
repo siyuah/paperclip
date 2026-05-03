@@ -1378,3 +1378,46 @@ Validation after hardening batch 28:
 - `pnpm test` passed: 22 files passed, 1 gated file skipped, 145 tests passed,
   1 skipped.
 - `pnpm smoke:ui:browser -- --no-screenshots` passed.
+
+## Hardening Batch 29
+
+Remote provider alpha hardening batch 29 added a local preflight evidence
+script for the first real provider attempt.
+
+### Preflight Evidence Script
+
+Added `scripts/run-first-provider-preflight.mjs` and the package script
+`pnpm preflight:first-provider`.
+
+The script runs the local gate checks and writes
+`output/dark-factory-first-provider-preflight/evidence.json`:
+
+- `pnpm typecheck`
+- `pnpm build`
+- `pnpm test`
+- `pnpm smoke:ui:browser -- --no-screenshots`
+- `/home/siyuah/workspace/123/tools/validate_v3_bundle.py`
+- `pnpm test -- tests/remote-gated-integration.spec.ts` with real-provider
+  environment variables scrubbed
+
+The final check must report that the gated integration test is skipped by
+default before the operator sets `DARK_FACTORY_REMOTE_INTEGRATION=1`.
+
+### Evidence Boundaries
+
+The evidence JSON records command status, branch, commit, UI smoke boundary
+summary, V3 validation summary, and the default-skip status. It redacts
+secret-like output and records only non-sensitive evidence.
+
+Validation after hardening batch 29:
+
+- targeted preflight script test passed: 4 tests.
+- `pnpm preflight:first-provider -- --skip-heavy` passed and confirmed gated
+  integration default skip.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 23 test files passed, 1 gated file skipped, 149 tests
+  passed, 1 skipped.
+- `pnpm smoke:ui:browser -- --no-screenshots` passed.
+- `pnpm preflight:first-provider` passed and generated local evidence JSON.
+- V3 bundle validation passed: 12 checks, 0 errors, 0 warnings.

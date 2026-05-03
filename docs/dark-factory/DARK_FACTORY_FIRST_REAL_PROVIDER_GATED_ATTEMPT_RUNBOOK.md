@@ -14,12 +14,11 @@ running the gated integration test.
 Before any real provider attempt:
 
 1. Confirm the bridge plugin branch is the intended fork branch.
-2. Confirm `pnpm typecheck`, `pnpm build`, and `pnpm test` pass locally.
-3. Confirm `pnpm smoke:ui:browser -- --no-screenshots` passes.
-4. Confirm `/home/siyuah/workspace/123` V3 bundle validation is `12/12 pass`.
-5. Confirm the provider endpoint is trusted and operator-controlled.
-6. Confirm the API key is only present in the operator shell environment.
-7. Confirm the settings UI dry-run guard shows a receipt for the target hook.
+2. Run `pnpm preflight:first-provider` and archive the generated evidence JSON.
+3. Confirm the generated evidence says `gatedIntegrationDefaultSkip: true`.
+4. Confirm the provider endpoint is trusted and operator-controlled.
+5. Confirm the API key is only present in the operator shell environment.
+6. Confirm the settings UI dry-run guard shows a receipt for the target hook.
 
 Do not continue if any precondition fails.
 
@@ -65,11 +64,14 @@ Before enabling `DARK_FACTORY_REMOTE_INTEGRATION=1`, run the local preview and
 record the execute dry-run receipt id in the operator notes:
 
 ```bash
-pnpm smoke:ui:browser -- --no-screenshots
+pnpm preflight:first-provider
 ```
 
-In the Dark Factory Bridge settings preview or generated browser harness,
-verify:
+The command writes `output/dark-factory-first-provider-preflight/evidence.json`.
+Archive that file with operator notes after confirming it contains no resolved
+credential values.
+
+In the generated evidence and Dark Factory Bridge settings preview, verify:
 
 | Field | Required value |
 | --- | --- |
@@ -90,6 +92,9 @@ the gated integration test.
 The real-provider test is skipped by default. It only runs when
 `DARK_FACTORY_REMOTE_INTEGRATION=1` and a provider endpoint plus credential
 reference are supplied.
+
+Before setting those variables, `pnpm preflight:first-provider` must report
+`gatedIntegrationDefaultSkip: true`.
 
 ```bash
 pnpm test -- tests/remote-gated-integration.spec.ts

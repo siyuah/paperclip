@@ -76,6 +76,9 @@ For the first real provider attempt, use the dedicated gated-attempt checklist:
 That checklist requires a dry-run guard receipt before setting
 `DARK_FACTORY_REMOTE_INTEGRATION=1`.
 
+Use `pnpm preflight:first-provider` to generate the local operator evidence JSON
+before setting real-provider environment variables.
+
 Run it only in an operator-controlled environment:
 
 ```bash
