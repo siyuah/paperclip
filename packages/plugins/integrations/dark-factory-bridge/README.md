@@ -67,7 +67,11 @@ The first shim-backed real backend gated attempt has passed and is recorded in
 `docs/real-provider-gated-attempt-evidence.json`. Full production install
 remains blocked until the supervised LinghuCall shim service is started and
 re-validated with the Paperclip gated integration test. Operationalization
-assets are recorded in `docs/linghucall-shim-operationalization-evidence.json`.
+assets and the supervised verifier contract are recorded in
+`docs/linghucall-shim-operationalization-evidence.json`. The final supervised
+attempt evidence is expected at
+`docs/supervised-shim-gated-attempt-evidence.json` after the operator starts the
+systemd user service and reruns the gated test.
 
 ## Local WebUI preview
 

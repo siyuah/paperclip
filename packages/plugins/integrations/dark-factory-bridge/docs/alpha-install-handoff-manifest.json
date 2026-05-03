@@ -77,6 +77,12 @@
       "message": "LinghuCall shim operationalization evidence is present and boundary-safe"
     },
     {
+      "id": "supervised_shim_gated_attempt_evidence",
+      "ok": true,
+      "status": "pass",
+      "message": "optional supervised shim gated attempt evidence is absent or boundary-safe"
+    },
+    {
       "id": "boundary_policy",
       "ok": true,
       "status": "pass",
@@ -116,6 +122,7 @@
     "uiBetaInstallEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/ui-beta-install-evidence.json",
     "realProviderGatedAttemptEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json",
     "linghuCallShimOperationalizationEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json",
+    "supervisedShimGatedAttemptEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json",
     "finalRealProviderGateStatus": "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md",
     "firstProviderRunbook": "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md"
   },

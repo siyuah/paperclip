@@ -105,15 +105,19 @@ To complete the final gate, an operator must use the existing runbook:
 
 The required sequence is:
 
-1. Generate the first-provider preflight evidence.
-2. Generate the operator session packet.
-3. Generate the handoff manifest.
-4. Verify the handoff bundle.
-5. Enable the gated provider inputs in a short-lived operator shell.
-6. Run `pnpm test -- tests/remote-gated-integration.spec.ts`.
-7. Archive only non-sensitive evidence.
-8. Keep `supervised_shim_gated_attempt_not_recorded` active until the shim is
-   started as the supervised service and re-validated with the gated test.
+1. Install and start the LinghuCall shim as the systemd user service described
+   in `/home/siyuah/workspace/123/ops/linghucall-provider-shim/README.md`.
+2. Run
+   `/home/siyuah/workspace/123/tools/verify_linghucall_provider_shim_supervised.py --include-paperclip-gate --require-pass`
+   from an operator shell that contains the bridge-facing key reference.
+3. Archive only the sanitized verifier result as
+   `packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json`.
+4. Keep `supervised_shim_gated_attempt_not_recorded` active until that evidence
+   exists and passes the install-readiness validator.
+
+The supervised verifier contract was added in `123` commit `65e3058`; Paperclip
+install readiness now recognizes the optional supervised evidence path but does
+not require it for controlled alpha installation.
 
 ## Boundary Compliance
 

@@ -15,7 +15,9 @@ describe("alpha install handoff script", () => {
     expect(source).toContain("productionReady: false");
     expect(source).toContain("real_provider_gated_attempt_evidence");
     expect(source).toContain("linghucall_shim_operationalization_evidence");
+    expect(source).toContain("supervised_shim_gated_attempt_evidence");
     expect(source).toContain("supervised_shim_gated_attempt_not_recorded");
+    expect(source).toContain("production_deployment_plan_not_recorded");
   });
 
   it("writes deterministic boundary-safe alpha install handoff evidence", async () => {
@@ -71,9 +73,11 @@ describe("alpha install handoff script", () => {
         expect.objectContaining({ id: "final_gate_status", status: "pass" }),
         expect.objectContaining({ id: "real_provider_gated_attempt_evidence", status: "pass" }),
         expect.objectContaining({ id: "linghucall_shim_operationalization_evidence", status: "pass" }),
+        expect.objectContaining({ id: "supervised_shim_gated_attempt_evidence", status: "pass" }),
       ]));
       expect(report.artifacts.realProviderGatedAttemptEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json");
       expect(report.artifacts.linghuCallShimOperationalizationEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json");
+      expect(report.artifacts.supervisedShimGatedAttemptEvidence).toBe("packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json");
       expect(report.artifacts.finalRealProviderGateStatus).toBe("docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {

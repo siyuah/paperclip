@@ -14,6 +14,7 @@ const uiBetaEvidencePath = join(pluginRoot, "docs/ui-beta-install-evidence.json"
 const alphaInstallHandoffPath = join(pluginRoot, "docs/alpha-install-handoff-manifest.json");
 const realProviderGatedAttemptEvidencePath = join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json");
 const linghuCallShimOperationalizationEvidencePath = join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json");
+const supervisedShimGatedAttemptEvidencePath = join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json");
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -82,8 +83,10 @@ async function main() {
   checks.push(check("real_provider_gated_attempt_evidence", isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence, packageJson }), "real provider gated attempt evidence is present, passed, and boundary-safe"));
   const linghuCallShimOperationalizationEvidence = await readJsonFile(linghuCallShimOperationalizationEvidencePath);
   checks.push(check("linghucall_shim_operationalization_evidence", isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence }), "LinghuCall shim operationalization assets are present and boundary-safe"));
+  const supervisedShimGatedAttemptEvidence = await readJsonFile(supervisedShimGatedAttemptEvidencePath);
+  checks.push(check("supervised_shim_gated_attempt_evidence", supervisedShimGatedAttemptEvidence === null || isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptEvidence, packageJson }), "optional supervised shim gated attempt evidence is absent or boundary-safe"));
 
-  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence });
+  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
   const productionReady = installableAlphaReady && productionBlockers.length === 0;
   const report = {
@@ -107,6 +110,7 @@ async function main() {
       alphaInstallHandoff: "docs/alpha-install-handoff-manifest.json",
       realProviderGatedAttemptEvidence: "docs/real-provider-gated-attempt-evidence.json",
       linghuCallShimOperationalizationEvidence: "docs/linghucall-shim-operationalization-evidence.json",
+      supervisedShimGatedAttemptEvidence: "docs/supervised-shim-gated-attempt-evidence.json",
     },
     installDistributionPolicy: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -187,7 +191,7 @@ function parseArgs(args) {
   return parsed;
 }
 
-function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence }) {
+function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence }) {
   const blockers = [];
   if (/example/i.test(manifest.id) || /example/i.test(manifest.displayName)) {
     blockers.push({
@@ -198,6 +202,14 @@ function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence,
   }
   if (isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence })) {
     if (isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence })) {
+      if (isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptEvidence })) {
+        blockers.push({
+          code: "production_deployment_plan_not_recorded",
+          severity: "blocker",
+          message: "The supervised shim gated attempt passed, but production deployment, monitoring, rollback, and retention evidence has not yet been recorded.",
+        });
+        return blockers;
+      }
       blockers.push({
         code: "supervised_shim_gated_attempt_not_recorded",
         severity: "blocker",
@@ -312,8 +324,11 @@ function isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperati
     && linghuCallShimOperationalizationEvidence?.status === "assets-ready"
     && linghuCallShimOperationalizationEvidence?.operationalized === false
     && linghuCallShimOperationalizationEvidence?.verification?.offlineVerifierPassed === true
-    && linghuCallShimOperationalizationEvidence?.verification?.unitTestsPassed === 7
+    && linghuCallShimOperationalizationEvidence?.verification?.supervisedVerifierImplemented === true
+    && linghuCallShimOperationalizationEvidence?.verification?.unitTestsPassed >= 11
     && linghuCallShimOperationalizationEvidence?.verification?.v3BundleValidationPassed === true
+    && linghuCallShimOperationalizationEvidence?.artifacts?.supervisedVerifier === "tools/verify_linghucall_provider_shim_supervised.py"
+    && linghuCallShimOperationalizationEvidence?.artifacts?.supervisedTests === "tests/test_linghucall_provider_shim_supervised.py"
     && linghuCallShimOperationalizationEvidence?.serviceTemplate?.restartPolicy === "on-failure"
     && linghuCallShimOperationalizationEvidence?.serviceTemplate?.usesEnvironmentFile === true
     && linghuCallShimOperationalizationEvidence?.serviceTemplate?.usesBridgeApiKeyFile === true
@@ -324,6 +339,24 @@ function isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperati
     && linghuCallShimOperationalizationEvidence?.boundary?.noResolvedCredentialValues === true
     && linghuCallShimOperationalizationEvidence?.boundary?.doesContactProvider === false
     && linghuCallShimOperationalizationEvidence?.boundary?.doesInstallService === false;
+}
+
+function isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptEvidence, packageJson } = {}) {
+  return supervisedShimGatedAttemptEvidence?.schemaVersion === 1
+    && supervisedShimGatedAttemptEvidence?.reportType === "linghucall-supervised-shim-gated-attempt-evidence"
+    && (!packageJson || supervisedShimGatedAttemptEvidence?.packageName === packageJson.name)
+    && supervisedShimGatedAttemptEvidence?.supervisedService?.serviceName === "linghucall-provider-shim.service"
+    && supervisedShimGatedAttemptEvidence?.supervisedService?.active === true
+    && supervisedShimGatedAttemptEvidence?.healthcheck?.ok === true
+    && supervisedShimGatedAttemptEvidence?.paperclipGate?.providerStatusPassed === true
+    && supervisedShimGatedAttemptEvidence?.paperclipGate?.remoteGatedIntegrationPassed === true
+    && supervisedShimGatedAttemptEvidence?.productionDecision?.supervisedShimGatedAttemptRecorded === true
+    && supervisedShimGatedAttemptEvidence?.productionDecision?.productionReady === false
+    && supervisedShimGatedAttemptEvidence?.boundary?.truthSource === "dark-factory-journal"
+    && supervisedShimGatedAttemptEvidence?.boundary?.authoritative === false
+    && supervisedShimGatedAttemptEvidence?.boundary?.terminalStateAdvanced === false
+    && supervisedShimGatedAttemptEvidence?.boundary?.noResolvedCredentialValues === true
+    && supervisedShimGatedAttemptEvidence?.boundary?.credentialValuesRedacted === true;
 }
 
 function check(id, ok, message) {

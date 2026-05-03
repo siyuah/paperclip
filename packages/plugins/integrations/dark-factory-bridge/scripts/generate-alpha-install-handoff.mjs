@@ -22,6 +22,7 @@ async function main() {
   const uiBetaEvidence = await readJson(join(pluginRoot, "docs/ui-beta-install-evidence.json"));
   const realProviderGatedAttemptEvidence = await readJson(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json"));
   const linghuCallShimOperationalizationEvidence = await readJson(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json"));
+  const supervisedShimGatedAttemptEvidence = await readJson(join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json"));
   const finalGateStatusPath = join(repoRoot, "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
   const finalGateStatusText = await readOptionalText(finalGateStatusPath);
 
@@ -36,8 +37,11 @@ async function main() {
     check("final_gate_status", finalGateStatusText.includes("supervised_shim_gated_attempt_not_recorded") && finalGateStatusText.includes("productionReady: false"), "final real provider gate status is archived"),
     check("real_provider_gated_attempt_evidence", isValidRealProviderGatedAttemptEvidence(realProviderGatedAttemptEvidence), "real provider gated attempt evidence is present, passed, and boundary-safe"),
     check("linghucall_shim_operationalization_evidence", isValidLinghuCallShimOperationalizationEvidence(linghuCallShimOperationalizationEvidence), "LinghuCall shim operationalization evidence is present and boundary-safe"),
+    check("supervised_shim_gated_attempt_evidence", supervisedShimGatedAttemptEvidence === null || isValidSupervisedShimGatedAttemptEvidence(supervisedShimGatedAttemptEvidence), "optional supervised shim gated attempt evidence is absent or boundary-safe"),
     check("boundary_policy", hasBoundary(installPolicy?.boundary) && hasBoundary(uiBetaEvidence?.boundary), "policy and UI evidence preserve non-authoritative Journal boundary"),
   ];
+
+  const productionBlockers = collectProductionBlockers(supervisedShimGatedAttemptEvidence);
 
   const report = {
     schemaVersion: 1,
@@ -49,13 +53,7 @@ async function main() {
     sourceBranch: "fork-master-product",
     installableAlphaReady: checks.every((item) => item.ok),
     productionReady: false,
-    productionBlockers: [
-      {
-        code: "supervised_shim_gated_attempt_not_recorded",
-        severity: "blocker",
-        message: "Operationalization assets exist, but the shim has not yet been started as the supervised service and re-validated with the Paperclip gated integration test.",
-      },
-    ],
+    productionBlockers,
     checks,
     installDistribution: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -82,6 +80,7 @@ async function main() {
       uiBetaInstallEvidence: relativeToRepo(join(pluginRoot, "docs/ui-beta-install-evidence.json")),
       realProviderGatedAttemptEvidence: relativeToRepo(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json")),
       linghuCallShimOperationalizationEvidence: relativeToRepo(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json")),
+      supervisedShimGatedAttemptEvidence: relativeToRepo(join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json")),
       finalRealProviderGateStatus: relativeToRepo(finalGateStatusPath),
       firstProviderRunbook: "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md",
     },
@@ -195,8 +194,11 @@ function isValidLinghuCallShimOperationalizationEvidence(value) {
     && value?.status === "assets-ready"
     && value?.operationalized === false
     && value?.verification?.offlineVerifierPassed === true
-    && value?.verification?.unitTestsPassed === 7
+    && value?.verification?.supervisedVerifierImplemented === true
+    && value?.verification?.unitTestsPassed >= 11
     && value?.verification?.v3BundleValidationPassed === true
+    && value?.artifacts?.supervisedVerifier === "tools/verify_linghucall_provider_shim_supervised.py"
+    && value?.artifacts?.supervisedTests === "tests/test_linghucall_provider_shim_supervised.py"
     && value?.serviceTemplate?.restartPolicy === "on-failure"
     && value?.serviceTemplate?.usesEnvironmentFile === true
     && value?.serviceTemplate?.usesBridgeApiKeyFile === true
@@ -207,6 +209,42 @@ function isValidLinghuCallShimOperationalizationEvidence(value) {
     && value?.boundary?.noResolvedCredentialValues === true
     && value?.boundary?.doesContactProvider === false
     && value?.boundary?.doesInstallService === false;
+}
+
+function isValidSupervisedShimGatedAttemptEvidence(value) {
+  return value?.schemaVersion === 1
+    && value?.reportType === "linghucall-supervised-shim-gated-attempt-evidence"
+    && value?.supervisedService?.serviceName === "linghucall-provider-shim.service"
+    && value?.supervisedService?.active === true
+    && value?.healthcheck?.ok === true
+    && value?.paperclipGate?.providerStatusPassed === true
+    && value?.paperclipGate?.remoteGatedIntegrationPassed === true
+    && value?.productionDecision?.supervisedShimGatedAttemptRecorded === true
+    && value?.productionDecision?.productionReady === false
+    && value?.boundary?.truthSource === "dark-factory-journal"
+    && value?.boundary?.authoritative === false
+    && value?.boundary?.terminalStateAdvanced === false
+    && value?.boundary?.noResolvedCredentialValues === true
+    && value?.boundary?.credentialValuesRedacted === true;
+}
+
+function collectProductionBlockers(supervisedShimGatedAttemptEvidence) {
+  if (isValidSupervisedShimGatedAttemptEvidence(supervisedShimGatedAttemptEvidence)) {
+    return [
+      {
+        code: "production_deployment_plan_not_recorded",
+        severity: "blocker",
+        message: "The supervised shim gated attempt passed, but production deployment, monitoring, rollback, and retention evidence has not yet been recorded.",
+      },
+    ];
+  }
+  return [
+    {
+      code: "supervised_shim_gated_attempt_not_recorded",
+      severity: "blocker",
+      message: "Operationalization assets exist, but the shim has not yet been started as the supervised service and re-validated with the Paperclip gated integration test.",
+    },
+  ];
 }
 
 function check(id, ok, message) {

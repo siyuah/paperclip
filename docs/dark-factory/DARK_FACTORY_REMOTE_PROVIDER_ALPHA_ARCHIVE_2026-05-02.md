@@ -2083,3 +2083,55 @@ Boundary compliance:
 - No real provider request is made by offline verification: yes
 - Credential examples use placeholders only: yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 45
+
+Remote provider alpha hardening batch 45 added the supervised-service evidence
+boundary for the LinghuCall shim.
+
+### Supervised Shim Evidence Contract
+
+The `123` repository added:
+
+- `tools/verify_linghucall_provider_shim_supervised.py`
+- `tests/test_linghucall_provider_shim_supervised.py`
+
+The verifier checks:
+
+- `systemctl --user is-active linghucall-provider-shim.service`
+- private permissions for the operator env file and bridge key file
+- unauthenticated `/api/health`
+- optional Paperclip provider-status and gated integration test against the
+  supervised shim
+
+The verifier does not read credential-bearing file contents and does not install
+or start the service.
+
+Paperclip updated
+`packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json`
+to point at `123` commit `65e3058` and record the supervised verifier assets.
+
+`pnpm install:readiness` and `pnpm handoff:alpha-install` now recognize the
+optional final evidence path:
+
+- `packages/plugins/integrations/dark-factory-bridge/docs/supervised-shim-gated-attempt-evidence.json`
+
+That file is intentionally absent until an operator starts the systemd user
+service and reruns the Paperclip gated integration test. Until then, production
+readiness remains blocked by `supervised_shim_gated_attempt_not_recorded`.
+
+Validation after hardening batch 45:
+
+- targeted alpha handoff and install readiness tests passed: 4 tests.
+- `pnpm handoff:alpha-install` passed with `installableAlphaReady: true`.
+- `pnpm install:readiness -- --skip-build` passed with
+  `installableAlphaReady: true`, `productionReady: false`, and production
+  blocker `supervised_shim_gated_attempt_not_recorded`.
+
+Boundary compliance:
+
+- Supervised verifier is credential-blind: yes
+- No service is installed or started by Paperclip evidence generation: yes
+- Missing supervised evidence does not fail alpha install readiness: yes
+- Missing supervised evidence continues to block production readiness: yes
+- Dark Factory Journal remains truth source: yes
