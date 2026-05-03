@@ -26,12 +26,12 @@ The bridge must therefore stay in this state:
 
 - `installableAlphaReady: true`
 - `productionReady: false`
-- remaining blocker: `provider_shim_not_operationalized`
+- remaining blocker: `supervised_shim_gated_attempt_not_recorded`
 
 This is intentional. The first gated attempt result is recorded, but the passing
 path still depends on a local operator-started shim. Production install must not
-be claimed until the provider/shim deployment, monitoring, startup, retention,
-and rollback plan are operationalized.
+be claimed until the supervised shim service is started and re-validated with
+the Paperclip gated integration test.
 
 ## Safe Environment Check
 
@@ -61,7 +61,8 @@ recognizes the recorded gated attempt evidence:
 - `productionReady: false`
 - failed checks: none
 - recorded gated attempt evidence: pass
-- remaining production blocker: `provider_shim_not_operationalized`
+- operationalization assets: pass
+- remaining production blocker: `supervised_shim_gated_attempt_not_recorded`
 
 The gated integration test remains skipped by default when the required
 operator inputs are absent. This is the expected safe state for ordinary local
@@ -111,8 +112,8 @@ The required sequence is:
 5. Enable the gated provider inputs in a short-lived operator shell.
 6. Run `pnpm test -- tests/remote-gated-integration.spec.ts`.
 7. Archive only non-sensitive evidence.
-8. Keep `provider_shim_not_operationalized` active until the shim/provider
-   deployment is operationalized.
+8. Keep `supervised_shim_gated_attempt_not_recorded` active until the shim is
+   started as the supervised service and re-validated with the gated test.
 
 ## Boundary Compliance
 
@@ -123,8 +124,8 @@ The required sequence is:
 - A real model backend connection was attempted only through the local
   Dark Factory external-runs shim.
 - No credential value was printed, stored, or committed.
-- The production blocker remains active until provider/shim operations are
-  productionized.
+- The production blocker remains active until the supervised shim service is
+  validated end to end.
 
 ## Decision
 
@@ -132,5 +133,5 @@ Do not claim full production install readiness yet.
 
 The plugin is ready for controlled alpha/internal installation and has passed
 the first shim-backed real backend gated attempt. It is not ready for full
-production installation until `provider_shim_not_operationalized` is cleared by
-an operational provider/shim deployment plan and validation.
+production installation until `supervised_shim_gated_attempt_not_recorded` is
+cleared by running the gated test against the supervised shim service.

@@ -13,6 +13,7 @@ const defaultOutDir = join(repoRoot, "output/dark-factory-install-readiness");
 const uiBetaEvidencePath = join(pluginRoot, "docs/ui-beta-install-evidence.json");
 const alphaInstallHandoffPath = join(pluginRoot, "docs/alpha-install-handoff-manifest.json");
 const realProviderGatedAttemptEvidencePath = join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json");
+const linghuCallShimOperationalizationEvidencePath = join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json");
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -79,8 +80,10 @@ async function main() {
   checks.push(check("alpha_install_handoff_manifest", isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest }), "alpha install handoff manifest is present and keeps production gate explicit"));
   const realProviderGatedAttemptEvidence = await readJsonFile(realProviderGatedAttemptEvidencePath);
   checks.push(check("real_provider_gated_attempt_evidence", isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence, packageJson }), "real provider gated attempt evidence is present, passed, and boundary-safe"));
+  const linghuCallShimOperationalizationEvidence = await readJsonFile(linghuCallShimOperationalizationEvidencePath);
+  checks.push(check("linghucall_shim_operationalization_evidence", isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence }), "LinghuCall shim operationalization assets are present and boundary-safe"));
 
-  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence });
+  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
   const productionReady = installableAlphaReady && productionBlockers.length === 0;
   const report = {
@@ -103,6 +106,7 @@ async function main() {
       uiBetaInstallEvidence: "docs/ui-beta-install-evidence.json",
       alphaInstallHandoff: "docs/alpha-install-handoff-manifest.json",
       realProviderGatedAttemptEvidence: "docs/real-provider-gated-attempt-evidence.json",
+      linghuCallShimOperationalizationEvidence: "docs/linghucall-shim-operationalization-evidence.json",
     },
     installDistributionPolicy: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -183,7 +187,7 @@ function parseArgs(args) {
   return parsed;
 }
 
-function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence }) {
+function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence }) {
   const blockers = [];
   if (/example/i.test(manifest.id) || /example/i.test(manifest.displayName)) {
     blockers.push({
@@ -193,6 +197,14 @@ function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence 
     });
   }
   if (isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence })) {
+    if (isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence })) {
+      blockers.push({
+        code: "supervised_shim_gated_attempt_not_recorded",
+        severity: "blocker",
+        message: "Operationalization assets exist, but the shim has not yet been started as the supervised service and re-validated with the Paperclip gated integration test.",
+      });
+      return blockers;
+    }
     blockers.push({
       code: "provider_shim_not_operationalized",
       severity: "blocker",
@@ -266,10 +278,11 @@ function isValidAlphaInstallHandoff({ alphaInstallHandoff, packageJson, manifest
     && alphaInstallHandoff?.installableAlphaReady === true
     && alphaInstallHandoff?.productionReady === false
     && Array.isArray(alphaInstallHandoff?.productionBlockers)
-    && alphaInstallHandoff.productionBlockers.some((blocker) => blocker?.code === "provider_shim_not_operationalized")
+    && alphaInstallHandoff.productionBlockers.some((blocker) => blocker?.code === "supervised_shim_gated_attempt_not_recorded")
     && alphaInstallHandoff?.installDistribution?.distributionMode === "fork-local-workspace"
     && alphaInstallHandoff?.installDistribution?.npmPublish === false
     && alphaInstallHandoff?.uiBetaEvidence?.uiInternalBetaReady === true
+    && alphaInstallHandoff?.artifacts?.linghuCallShimOperationalizationEvidence === "packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json"
     && alphaInstallHandoff?.boundary?.truthSource === "dark-factory-journal"
     && alphaInstallHandoff?.boundary?.authoritative === false
     && alphaInstallHandoff?.boundary?.terminalStateAdvanced === false
@@ -291,6 +304,26 @@ function isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvide
     && realProviderGatedAttemptEvidence?.boundary?.terminalStateAdvanced === false
     && realProviderGatedAttemptEvidence?.boundary?.noResolvedCredentialValues === true
     && realProviderGatedAttemptEvidence?.boundary?.credentialValuesRedacted === true;
+}
+
+function isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence } = {}) {
+  return linghuCallShimOperationalizationEvidence?.schemaVersion === 1
+    && linghuCallShimOperationalizationEvidence?.reportType === "linghucall-shim-operationalization-evidence"
+    && linghuCallShimOperationalizationEvidence?.status === "assets-ready"
+    && linghuCallShimOperationalizationEvidence?.operationalized === false
+    && linghuCallShimOperationalizationEvidence?.verification?.offlineVerifierPassed === true
+    && linghuCallShimOperationalizationEvidence?.verification?.unitTestsPassed === 7
+    && linghuCallShimOperationalizationEvidence?.verification?.v3BundleValidationPassed === true
+    && linghuCallShimOperationalizationEvidence?.serviceTemplate?.restartPolicy === "on-failure"
+    && linghuCallShimOperationalizationEvidence?.serviceTemplate?.usesEnvironmentFile === true
+    && linghuCallShimOperationalizationEvidence?.serviceTemplate?.usesBridgeApiKeyFile === true
+    && linghuCallShimOperationalizationEvidence?.serviceTemplate?.hasBasicHardening === true
+    && linghuCallShimOperationalizationEvidence?.boundary?.truthSource === "dark-factory-journal"
+    && linghuCallShimOperationalizationEvidence?.boundary?.authoritative === false
+    && linghuCallShimOperationalizationEvidence?.boundary?.terminalStateAdvanced === false
+    && linghuCallShimOperationalizationEvidence?.boundary?.noResolvedCredentialValues === true
+    && linghuCallShimOperationalizationEvidence?.boundary?.doesContactProvider === false
+    && linghuCallShimOperationalizationEvidence?.boundary?.doesInstallService === false;
 }
 
 function check(id, ok, message) {

@@ -10,9 +10,9 @@
   "productionReady": false,
   "productionBlockers": [
     {
-      "code": "provider_shim_not_operationalized",
+      "code": "supervised_shim_gated_attempt_not_recorded",
       "severity": "blocker",
-      "message": "The first gated attempt passed through the local LinghuCall shim, but production install still needs an operationalized provider/shim deployment and monitoring plan."
+      "message": "Operationalization assets exist, but the shim has not yet been started as the supervised service and re-validated with the Paperclip gated integration test."
     }
   ],
   "checks": [
@@ -71,6 +71,12 @@
       "message": "real provider gated attempt evidence is present, passed, and boundary-safe"
     },
     {
+      "id": "linghucall_shim_operationalization_evidence",
+      "ok": true,
+      "status": "pass",
+      "message": "LinghuCall shim operationalization evidence is present and boundary-safe"
+    },
+    {
       "id": "boundary_policy",
       "ok": true,
       "status": "pass",
@@ -109,12 +115,13 @@
     "installDistributionPolicy": "packages/plugins/integrations/dark-factory-bridge/docs/install-distribution-policy.json",
     "uiBetaInstallEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/ui-beta-install-evidence.json",
     "realProviderGatedAttemptEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json",
+    "linghuCallShimOperationalizationEvidence": "packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json",
     "finalRealProviderGateStatus": "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md",
     "firstProviderRunbook": "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md"
   },
   "operatorNotes": [
     "Install from the fork-local workspace/package during controlled alpha.",
-    "The first shim-backed gated provider attempt has passed; do not claim productionReady until the provider/shim deployment is operationalized.",
+    "The first shim-backed gated provider attempt has passed and operationalization assets exist; do not claim productionReady until the supervised shim service is re-validated.",
     "Do not put resolved credential values in docs, logs, screenshots, or committed files.",
     "Use the first-provider gated attempt runbook for the final production gate."
   ],

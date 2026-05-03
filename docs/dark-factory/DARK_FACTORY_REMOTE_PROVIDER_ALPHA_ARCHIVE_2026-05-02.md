@@ -2039,3 +2039,47 @@ Boundary compliance:
 - The direct LinghuCall endpoint is not treated as a Dark Factory provider: yes
 - Production readiness remains blocked until provider/shim operations are
   productionized: yes
+
+## Hardening Batch 44
+
+Remote provider alpha hardening batch 44 recorded the LinghuCall shim
+operationalization assets from the `123` repository.
+
+### Shim Operationalization Evidence
+
+The `123` repository added:
+
+- `ops/linghucall-provider-shim/README.md`
+- `ops/linghucall-provider-shim/linghucall-provider-shim.service`
+- `ops/linghucall-provider-shim/linghucall-provider-shim.env.example`
+- `tools/check_linghucall_provider_shim_health.py`
+- `tools/verify_linghucall_provider_shim_ops.py`
+- `tests/test_linghucall_provider_shim_ops.py`
+
+Paperclip now records those assets in
+`packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json`.
+
+Updated `pnpm install:readiness` to verify that operationalization evidence is
+present and boundary-safe. The production blocker advances from
+`provider_shim_not_operationalized` to
+`supervised_shim_gated_attempt_not_recorded`.
+
+Validation after hardening batch 44:
+
+- `123` operationalization commit: `50d748f`.
+- targeted alpha handoff and install readiness tests passed: 4 tests.
+- `pnpm typecheck` passed.
+- `pnpm build` passed.
+- `pnpm test` passed: 31 files passed, 1 gated file skipped, 176 tests passed,
+  1 skipped.
+- `pnpm install:readiness -- --skip-build` passed with
+  `installableAlphaReady: true`, `productionReady: false`, and production
+  blocker `supervised_shim_gated_attempt_not_recorded`.
+
+Boundary compliance:
+
+- Operationalization verifier is offline only: yes
+- No service is installed or started by evidence generation: yes
+- No real provider request is made by offline verification: yes
+- Credential examples use placeholders only: yes
+- Dark Factory Journal remains truth source: yes

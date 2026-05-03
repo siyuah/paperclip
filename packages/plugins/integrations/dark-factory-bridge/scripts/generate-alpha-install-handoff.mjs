@@ -21,6 +21,7 @@ async function main() {
   const installPolicy = await readJson(join(pluginRoot, "docs/install-distribution-policy.json"));
   const uiBetaEvidence = await readJson(join(pluginRoot, "docs/ui-beta-install-evidence.json"));
   const realProviderGatedAttemptEvidence = await readJson(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json"));
+  const linghuCallShimOperationalizationEvidence = await readJson(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json"));
   const finalGateStatusPath = join(repoRoot, "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
   const finalGateStatusText = await readOptionalText(finalGateStatusPath);
 
@@ -32,8 +33,9 @@ async function main() {
     check("environment_driver", Array.isArray(manifest.environmentDrivers) && manifest.environmentDrivers.some((driver) => driver.driverKey === "dark-factory-mock"), "environment driver declaration is present"),
     check("install_distribution_policy", installPolicy?.distributionMode === "fork-local-workspace" && installPolicy?.npmPublish === false, "fork-local install distribution policy is present"),
     check("ui_beta_evidence", uiBetaEvidence?.uiInternalBetaReady === true, "UI beta install evidence is present and ready"),
-    check("final_gate_status", finalGateStatusText.includes("provider_shim_not_operationalized") && finalGateStatusText.includes("productionReady: false"), "final real provider gate status is archived"),
+    check("final_gate_status", finalGateStatusText.includes("supervised_shim_gated_attempt_not_recorded") && finalGateStatusText.includes("productionReady: false"), "final real provider gate status is archived"),
     check("real_provider_gated_attempt_evidence", isValidRealProviderGatedAttemptEvidence(realProviderGatedAttemptEvidence), "real provider gated attempt evidence is present, passed, and boundary-safe"),
+    check("linghucall_shim_operationalization_evidence", isValidLinghuCallShimOperationalizationEvidence(linghuCallShimOperationalizationEvidence), "LinghuCall shim operationalization evidence is present and boundary-safe"),
     check("boundary_policy", hasBoundary(installPolicy?.boundary) && hasBoundary(uiBetaEvidence?.boundary), "policy and UI evidence preserve non-authoritative Journal boundary"),
   ];
 
@@ -49,9 +51,9 @@ async function main() {
     productionReady: false,
     productionBlockers: [
       {
-        code: "provider_shim_not_operationalized",
+        code: "supervised_shim_gated_attempt_not_recorded",
         severity: "blocker",
-        message: "The first gated attempt passed through the local LinghuCall shim, but production install still needs an operationalized provider/shim deployment and monitoring plan.",
+        message: "Operationalization assets exist, but the shim has not yet been started as the supervised service and re-validated with the Paperclip gated integration test.",
       },
     ],
     checks,
@@ -79,12 +81,13 @@ async function main() {
       installDistributionPolicy: relativeToRepo(join(pluginRoot, "docs/install-distribution-policy.json")),
       uiBetaInstallEvidence: relativeToRepo(join(pluginRoot, "docs/ui-beta-install-evidence.json")),
       realProviderGatedAttemptEvidence: relativeToRepo(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json")),
+      linghuCallShimOperationalizationEvidence: relativeToRepo(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json")),
       finalRealProviderGateStatus: relativeToRepo(finalGateStatusPath),
       firstProviderRunbook: "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md",
     },
     operatorNotes: [
       "Install from the fork-local workspace/package during controlled alpha.",
-      "The first shim-backed gated provider attempt has passed; do not claim productionReady until the provider/shim deployment is operationalized.",
+      "The first shim-backed gated provider attempt has passed and operationalization assets exist; do not claim productionReady until the supervised shim service is re-validated.",
       "Do not put resolved credential values in docs, logs, screenshots, or committed files.",
       "Use the first-provider gated attempt runbook for the final production gate.",
     ],
@@ -184,6 +187,26 @@ function isValidRealProviderGatedAttemptEvidence(value) {
     && value?.boundary?.terminalStateAdvanced === false
     && value?.boundary?.noResolvedCredentialValues === true
     && value?.boundary?.credentialValuesRedacted === true;
+}
+
+function isValidLinghuCallShimOperationalizationEvidence(value) {
+  return value?.schemaVersion === 1
+    && value?.reportType === "linghucall-shim-operationalization-evidence"
+    && value?.status === "assets-ready"
+    && value?.operationalized === false
+    && value?.verification?.offlineVerifierPassed === true
+    && value?.verification?.unitTestsPassed === 7
+    && value?.verification?.v3BundleValidationPassed === true
+    && value?.serviceTemplate?.restartPolicy === "on-failure"
+    && value?.serviceTemplate?.usesEnvironmentFile === true
+    && value?.serviceTemplate?.usesBridgeApiKeyFile === true
+    && value?.serviceTemplate?.hasBasicHardening === true
+    && value?.boundary?.truthSource === "dark-factory-journal"
+    && value?.boundary?.authoritative === false
+    && value?.boundary?.terminalStateAdvanced === false
+    && value?.boundary?.noResolvedCredentialValues === true
+    && value?.boundary?.doesContactProvider === false
+    && value?.boundary?.doesInstallService === false;
 }
 
 function check(id, ok, message) {

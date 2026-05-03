@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "reportType": "linghucall-shim-operationalization-evidence",
+  "recordedAt": "2026-05-03T12:26:30.000Z",
+  "sourceRepository": "/home/siyuah/workspace/123",
+  "sourceCommit": "50d748f",
+  "status": "assets-ready",
+  "operationalized": false,
+  "serviceManager": "systemd-user-template",
+  "artifacts": {
+    "opsReadme": "ops/linghucall-provider-shim/README.md",
+    "serviceTemplate": "ops/linghucall-provider-shim/linghucall-provider-shim.service",
+    "envExample": "ops/linghucall-provider-shim/linghucall-provider-shim.env.example",
+    "healthcheck": "tools/check_linghucall_provider_shim_health.py",
+    "offlineVerifier": "tools/verify_linghucall_provider_shim_ops.py",
+    "opsTests": "tests/test_linghucall_provider_shim_ops.py"
+  },
+  "verification": {
+    "offlineVerifierCommand": ".venv312/bin/python tools/verify_linghucall_provider_shim_ops.py --require-pass",
+    "offlineVerifierPassed": true,
+    "unitTestCommand": ".venv312/bin/python -m pytest tests/test_linghucall_provider_shim.py tests/test_linghucall_provider_shim_ops.py -q",
+    "unitTestsPassed": 7,
+    "v3BundleValidationPassed": true
+  },
+  "serviceTemplate": {
+    "restartPolicy": "on-failure",
+    "usesEnvironmentFile": true,
+    "usesBridgeApiKeyFile": true,
+    "limitsWritePath": true,
+    "hasBasicHardening": true,
+    "doesInstallService": false,
+    "doesStartService": false
+  },
+  "productionDecision": {
+    "providerShimOperationalizationAssetsReady": true,
+    "supervisedShimGatedAttemptRecorded": false,
+    "productionReady": false,
+    "remainingProductionBlockers": [
+      {
+        "code": "supervised_shim_gated_attempt_not_recorded",
+        "severity": "blocker",
+        "message": "Operationalization assets exist, but the shim has not yet been started as the supervised service and re-validated with the Paperclip gated integration test."
+      }
+    ]
+  },
+  "boundary": {
+    "truthSource": "dark-factory-journal",
+    "authoritative": false,
+    "terminalStateAdvanced": false,
+    "noResolvedCredentialValues": true,
+    "doesContactProvider": false,
+    "doesInstallService": false
+  }
+}

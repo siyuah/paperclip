@@ -101,10 +101,12 @@ pnpm install:readiness
 ```
 
 The report must show `installableAlphaReady: true`. It may still show
-`productionReady: false` until the provider/shim deployment, monitoring,
-startup, retention, and rollback plan is operationalized. The first
-shim-backed gated attempt is recorded separately as
-`packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json`.
+`productionReady: false` until the supervised LinghuCall shim service is
+started and re-validated with the gated integration test. The first shim-backed
+gated attempt and operationalization assets are recorded separately as:
+
+- `packages/plugins/integrations/dark-factory-bridge/docs/real-provider-gated-attempt-evidence.json`
+- `packages/plugins/integrations/dark-factory-bridge/docs/linghucall-shim-operationalization-evidence.json`
 
 Run it only in an operator-controlled environment:
 

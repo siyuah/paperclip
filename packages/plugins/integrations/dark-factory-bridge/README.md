@@ -65,8 +65,9 @@ The report distinguishes:
 
 The first shim-backed real backend gated attempt has passed and is recorded in
 `docs/real-provider-gated-attempt-evidence.json`. Full production install
-remains blocked until the local LinghuCall shim/provider path is operationalized
-with deployment, startup, monitoring, retention, and rollback procedures.
+remains blocked until the supervised LinghuCall shim service is started and
+re-validated with the Paperclip gated integration test. Operationalization
+assets are recorded in `docs/linghucall-shim-operationalization-evidence.json`.
 
 ## Local WebUI preview
 
