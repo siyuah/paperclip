@@ -2182,3 +2182,58 @@ Boundary compliance:
 - Recorder output remains non-authoritative: yes
 - No resolved credential value is recorded: yes
 - Dark Factory Journal remains truth source: yes
+
+## Hardening Batch 47
+
+Remote provider alpha hardening batch 47 added the production deployment plan
+evidence layer.
+
+### Production Plan Evidence
+
+Added package script:
+
+```bash
+pnpm evidence:production-plan
+```
+
+The generated evidence file is:
+
+- `packages/plugins/integrations/dark-factory-bridge/docs/production-deployment-plan-evidence.json`
+
+It records:
+
+- fork-local bridge install target
+- LinghuCall systemd user service target
+- healthcheck and supervised verifier commands
+- rollback commands
+- Journal backup/retention commands
+- operator checklist for supervised cutover
+
+The plan is intentionally non-executing: it does not install the service, start
+the service, contact the provider, or authorize remote execution. It prepares
+the next blocker transition only.
+
+Readiness progression after this batch:
+
+1. Without supervised evidence: `supervised_shim_gated_attempt_not_recorded`.
+2. With supervised evidence but without production plan:
+   `production_deployment_plan_not_recorded`.
+3. With supervised evidence and production plan:
+   `production_cutover_result_not_recorded`.
+
+Validation after hardening batch 47:
+
+- production deployment plan evidence tests passed.
+- alpha handoff and install readiness tests passed with production plan present
+  and supervised evidence absent.
+- `pnpm evidence:production-plan` generated boundary-safe evidence.
+- `pnpm install:readiness -- --skip-build` still reports
+  `productionReady: false` with blocker
+  `supervised_shim_gated_attempt_not_recorded`.
+
+Boundary compliance:
+
+- Production plan evidence is non-executing: yes
+- No service is installed or started: yes
+- No resolved credential value is recorded: yes
+- Dark Factory Journal remains truth source: yes

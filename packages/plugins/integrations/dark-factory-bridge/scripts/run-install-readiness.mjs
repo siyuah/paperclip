@@ -15,6 +15,7 @@ const alphaInstallHandoffPath = join(pluginRoot, "docs/alpha-install-handoff-man
 const realProviderGatedAttemptEvidencePath = join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json");
 const linghuCallShimOperationalizationEvidencePath = join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json");
 const supervisedShimGatedAttemptEvidencePath = join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json");
+const productionDeploymentPlanEvidencePath = join(pluginRoot, "docs/production-deployment-plan-evidence.json");
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -85,8 +86,10 @@ async function main() {
   checks.push(check("linghucall_shim_operationalization_evidence", isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence }), "LinghuCall shim operationalization assets are present and boundary-safe"));
   const supervisedShimGatedAttemptEvidence = await readJsonFile(supervisedShimGatedAttemptEvidencePath);
   checks.push(check("supervised_shim_gated_attempt_evidence", supervisedShimGatedAttemptEvidence === null || isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptEvidence, packageJson }), "optional supervised shim gated attempt evidence is absent or boundary-safe"));
+  const productionDeploymentPlanEvidence = await readJsonFile(productionDeploymentPlanEvidencePath);
+  checks.push(check("production_deployment_plan_evidence", productionDeploymentPlanEvidence === null || isValidProductionDeploymentPlanEvidence({ productionDeploymentPlanEvidence, packageJson }), "optional production deployment plan evidence is absent or boundary-safe"));
 
-  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence });
+  const productionBlockers = collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence });
   const installableAlphaReady = checks.every((item) => item.ok || item.status === "skipped");
   const productionReady = installableAlphaReady && productionBlockers.length === 0;
   const report = {
@@ -111,6 +114,7 @@ async function main() {
       realProviderGatedAttemptEvidence: "docs/real-provider-gated-attempt-evidence.json",
       linghuCallShimOperationalizationEvidence: "docs/linghucall-shim-operationalization-evidence.json",
       supervisedShimGatedAttemptEvidence: "docs/supervised-shim-gated-attempt-evidence.json",
+      productionDeploymentPlanEvidence: "docs/production-deployment-plan-evidence.json",
     },
     installDistributionPolicy: {
       distributionMode: installPolicy?.distributionMode ?? null,
@@ -191,7 +195,7 @@ function parseArgs(args) {
   return parsed;
 }
 
-function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence }) {
+function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence, linghuCallShimOperationalizationEvidence, supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence }) {
   const blockers = [];
   if (/example/i.test(manifest.id) || /example/i.test(manifest.displayName)) {
     blockers.push({
@@ -203,6 +207,14 @@ function collectProductionBlockers({ manifest, realProviderGatedAttemptEvidence,
   if (isValidRealProviderGatedAttemptEvidence({ realProviderGatedAttemptEvidence })) {
     if (isValidLinghuCallShimOperationalizationEvidence({ linghuCallShimOperationalizationEvidence })) {
       if (isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptEvidence })) {
+        if (isValidProductionDeploymentPlanEvidence({ productionDeploymentPlanEvidence })) {
+          blockers.push({
+            code: "production_cutover_result_not_recorded",
+            severity: "blocker",
+            message: "Deployment, monitoring, rollback, and retention plan exists, but production cutover result evidence has not yet been recorded.",
+          });
+          return blockers;
+        }
         blockers.push({
           code: "production_deployment_plan_not_recorded",
           severity: "blocker",
@@ -357,6 +369,27 @@ function isValidSupervisedShimGatedAttemptEvidence({ supervisedShimGatedAttemptE
     && supervisedShimGatedAttemptEvidence?.boundary?.terminalStateAdvanced === false
     && supervisedShimGatedAttemptEvidence?.boundary?.noResolvedCredentialValues === true
     && supervisedShimGatedAttemptEvidence?.boundary?.credentialValuesRedacted === true;
+}
+
+function isValidProductionDeploymentPlanEvidence({ productionDeploymentPlanEvidence, packageJson } = {}) {
+  return productionDeploymentPlanEvidence?.schemaVersion === 1
+    && productionDeploymentPlanEvidence?.reportType === "dark-factory-production-deployment-plan-evidence"
+    && (!packageJson || productionDeploymentPlanEvidence?.packageName === packageJson.name)
+    && productionDeploymentPlanEvidence?.planStatus === "ready-for-supervised-cutover"
+    && productionDeploymentPlanEvidence?.deploymentTargets?.providerShim?.serviceName === "linghucall-provider-shim.service"
+    && productionDeploymentPlanEvidence?.monitoringPlan?.supervisedVerifierCommand?.includes("verify_linghucall_provider_shim_supervised.py")
+    && productionDeploymentPlanEvidence?.rollbackPlan?.journalReconciliationRequired === true
+    && productionDeploymentPlanEvidence?.retentionPlan?.truthSource === "dark-factory-journal"
+    && productionDeploymentPlanEvidence?.productionDecision?.productionDeploymentPlanRecorded === true
+    && productionDeploymentPlanEvidence?.productionDecision?.productionReady === false
+    && productionDeploymentPlanEvidence?.productionDecision?.nextProductionBlocker?.code === "production_cutover_result_not_recorded"
+    && productionDeploymentPlanEvidence?.boundary?.truthSource === "dark-factory-journal"
+    && productionDeploymentPlanEvidence?.boundary?.authoritative === false
+    && productionDeploymentPlanEvidence?.boundary?.terminalStateAdvanced === false
+    && productionDeploymentPlanEvidence?.boundary?.doesAuthorizeRemoteExecution === false
+    && productionDeploymentPlanEvidence?.boundary?.noResolvedCredentialValues === true
+    && productionDeploymentPlanEvidence?.boundary?.doesInstallService === false
+    && productionDeploymentPlanEvidence?.boundary?.doesStartService === false;
 }
 
 function check(id, ok, message) {

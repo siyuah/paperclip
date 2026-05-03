@@ -83,6 +83,17 @@ The recorder fails closed unless the source verifier report shows the systemd
 user service, healthcheck, provider-status gate, and remote gated integration
 test all passed.
 
+The next production blocker is covered by:
+
+```bash
+pnpm evidence:production-plan
+```
+
+This writes `docs/production-deployment-plan-evidence.json`, a boundary-safe
+deployment, monitoring, rollback, and retention plan. It still does not claim
+production readiness; it only prepares the next evidence layer after the
+supervised gate passes.
+
 ## Local WebUI preview
 
 For direct browser inspection, run:

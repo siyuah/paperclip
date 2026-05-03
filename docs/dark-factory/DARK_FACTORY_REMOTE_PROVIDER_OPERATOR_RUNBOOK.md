@@ -124,6 +124,19 @@ The recorder writes
 source verifier shows the service, healthcheck, provider-status gate, and
 remote gated integration test all passed. It does not accept raw credentials.
 
+The deployment, monitoring, rollback, and retention plan evidence is generated
+separately:
+
+```bash
+pnpm evidence:production-plan
+pnpm install:readiness -- --skip-build
+```
+
+This writes `docs/production-deployment-plan-evidence.json`. Once supervised
+evidence and this plan both validate, the next blocker becomes
+`production_cutover_result_not_recorded`; the bridge still does not claim
+production readiness until the actual cutover result is recorded.
+
 Run it only in an operator-controlled environment:
 
 ```bash

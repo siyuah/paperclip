@@ -23,6 +23,7 @@ async function main() {
   const realProviderGatedAttemptEvidence = await readJson(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json"));
   const linghuCallShimOperationalizationEvidence = await readJson(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json"));
   const supervisedShimGatedAttemptEvidence = await readJson(join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json"));
+  const productionDeploymentPlanEvidence = await readJson(join(pluginRoot, "docs/production-deployment-plan-evidence.json"));
   const finalGateStatusPath = join(repoRoot, "docs/dark-factory/DARK_FACTORY_REAL_PROVIDER_GATE_STATUS_2026-05-03.md");
   const finalGateStatusText = await readOptionalText(finalGateStatusPath);
 
@@ -38,10 +39,11 @@ async function main() {
     check("real_provider_gated_attempt_evidence", isValidRealProviderGatedAttemptEvidence(realProviderGatedAttemptEvidence), "real provider gated attempt evidence is present, passed, and boundary-safe"),
     check("linghucall_shim_operationalization_evidence", isValidLinghuCallShimOperationalizationEvidence(linghuCallShimOperationalizationEvidence), "LinghuCall shim operationalization evidence is present and boundary-safe"),
     check("supervised_shim_gated_attempt_evidence", supervisedShimGatedAttemptEvidence === null || isValidSupervisedShimGatedAttemptEvidence(supervisedShimGatedAttemptEvidence), "optional supervised shim gated attempt evidence is absent or boundary-safe"),
+    check("production_deployment_plan_evidence", productionDeploymentPlanEvidence === null || isValidProductionDeploymentPlanEvidence(productionDeploymentPlanEvidence), "optional production deployment plan evidence is absent or boundary-safe"),
     check("boundary_policy", hasBoundary(installPolicy?.boundary) && hasBoundary(uiBetaEvidence?.boundary), "policy and UI evidence preserve non-authoritative Journal boundary"),
   ];
 
-  const productionBlockers = collectProductionBlockers(supervisedShimGatedAttemptEvidence);
+  const productionBlockers = collectProductionBlockers(supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence);
 
   const report = {
     schemaVersion: 1,
@@ -81,6 +83,7 @@ async function main() {
       realProviderGatedAttemptEvidence: relativeToRepo(join(pluginRoot, "docs/real-provider-gated-attempt-evidence.json")),
       linghuCallShimOperationalizationEvidence: relativeToRepo(join(pluginRoot, "docs/linghucall-shim-operationalization-evidence.json")),
       supervisedShimGatedAttemptEvidence: relativeToRepo(join(pluginRoot, "docs/supervised-shim-gated-attempt-evidence.json")),
+      productionDeploymentPlanEvidence: relativeToRepo(join(pluginRoot, "docs/production-deployment-plan-evidence.json")),
       finalRealProviderGateStatus: relativeToRepo(finalGateStatusPath),
       firstProviderRunbook: "docs/dark-factory/DARK_FACTORY_FIRST_REAL_PROVIDER_GATED_ATTEMPT_RUNBOOK.md",
     },
@@ -228,8 +231,37 @@ function isValidSupervisedShimGatedAttemptEvidence(value) {
     && value?.boundary?.credentialValuesRedacted === true;
 }
 
-function collectProductionBlockers(supervisedShimGatedAttemptEvidence) {
+function isValidProductionDeploymentPlanEvidence(value) {
+  return value?.schemaVersion === 1
+    && value?.reportType === "dark-factory-production-deployment-plan-evidence"
+    && value?.planStatus === "ready-for-supervised-cutover"
+    && value?.deploymentTargets?.providerShim?.serviceName === "linghucall-provider-shim.service"
+    && value?.monitoringPlan?.supervisedVerifierCommand?.includes("verify_linghucall_provider_shim_supervised.py")
+    && value?.rollbackPlan?.journalReconciliationRequired === true
+    && value?.retentionPlan?.truthSource === "dark-factory-journal"
+    && value?.productionDecision?.productionDeploymentPlanRecorded === true
+    && value?.productionDecision?.productionReady === false
+    && value?.productionDecision?.nextProductionBlocker?.code === "production_cutover_result_not_recorded"
+    && value?.boundary?.truthSource === "dark-factory-journal"
+    && value?.boundary?.authoritative === false
+    && value?.boundary?.terminalStateAdvanced === false
+    && value?.boundary?.doesAuthorizeRemoteExecution === false
+    && value?.boundary?.noResolvedCredentialValues === true
+    && value?.boundary?.doesInstallService === false
+    && value?.boundary?.doesStartService === false;
+}
+
+function collectProductionBlockers(supervisedShimGatedAttemptEvidence, productionDeploymentPlanEvidence) {
   if (isValidSupervisedShimGatedAttemptEvidence(supervisedShimGatedAttemptEvidence)) {
+    if (isValidProductionDeploymentPlanEvidence(productionDeploymentPlanEvidence)) {
+      return [
+        {
+          code: "production_cutover_result_not_recorded",
+          severity: "blocker",
+          message: "Deployment, monitoring, rollback, and retention plan exists, but production cutover result evidence has not yet been recorded.",
+        },
+      ];
+    }
     return [
       {
         code: "production_deployment_plan_not_recorded",

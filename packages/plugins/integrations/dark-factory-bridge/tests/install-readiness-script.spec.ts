@@ -22,8 +22,11 @@ describe("install readiness script", () => {
     expect(source).toContain("linghucall_shim_operationalization_evidence");
     expect(source).toContain("supervised_shim_gated_attempt_evidence");
     expect(source).toContain("supervised-shim-gated-attempt-evidence.json");
+    expect(source).toContain("production_deployment_plan_evidence");
+    expect(source).toContain("production-deployment-plan-evidence.json");
     expect(source).toContain("supervised_shim_gated_attempt_not_recorded");
     expect(source).toContain("production_deployment_plan_not_recorded");
+    expect(source).toContain("production_cutover_result_not_recorded");
   });
 
   it("writes an alpha-ready report while preserving production blockers", async () => {
@@ -97,10 +100,12 @@ describe("install readiness script", () => {
         expect.objectContaining({ id: "real_provider_gated_attempt_evidence", status: "pass" }),
         expect.objectContaining({ id: "linghucall_shim_operationalization_evidence", status: "pass" }),
         expect.objectContaining({ id: "supervised_shim_gated_attempt_evidence", status: "pass" }),
+        expect.objectContaining({ id: "production_deployment_plan_evidence", status: "pass" }),
       ]));
       expect(report.artifacts.realProviderGatedAttemptEvidence).toBe("docs/real-provider-gated-attempt-evidence.json");
       expect(report.artifacts.linghuCallShimOperationalizationEvidence).toBe("docs/linghucall-shim-operationalization-evidence.json");
       expect(report.artifacts.supervisedShimGatedAttemptEvidence).toBe("docs/supervised-shim-gated-attempt-evidence.json");
+      expect(report.artifacts.productionDeploymentPlanEvidence).toBe("docs/production-deployment-plan-evidence.json");
       expect(JSON.stringify(report)).not.toContain("resolved-key");
     } finally {
       await rm(outDir, { recursive: true, force: true });
