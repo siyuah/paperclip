@@ -95,7 +95,7 @@ export function buildUiSmokePreviewBrowserHarness(
     .df-guard.review_required { border-color: rgba(245, 158, 11, 0.18); background: var(--df-status-warning-bg); color: var(--df-status-warning); }
     .df-guard.blocked { border-color: rgba(239, 68, 68, 0.18); background: var(--df-status-error-bg); color: var(--df-status-error); }
     .df-badges { display: flex; gap: 6px; flex-wrap: wrap; }
-    .df-badge { border: 1px solid rgba(59, 130, 246, 0.16); background: var(--df-status-info-bg); color: var(--df-status-info); border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 500; }
+    .df-badge { border: 1px solid rgba(59, 130, 246, 0.16); background: var(--df-status-info-bg); color: var(--df-status-info); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 500; }
     .df-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--df-status-info); margin-right: 4px; }
     @media (max-width: 640px) {
       body { padding: 12px; }

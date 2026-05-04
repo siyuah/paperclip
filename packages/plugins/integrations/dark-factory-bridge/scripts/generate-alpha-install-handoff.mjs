@@ -31,7 +31,13 @@ async function main() {
   const checks = [
     check("package_name", packageJson.name === "@paperclipai/plugin-dark-factory-bridge", "package name is product bridge package"),
     check("package_private", packageJson.private === true, "package remains private for fork-local internal alpha install"),
-    check("manifest_identity", manifest.id === "paperclipai.dark-factory-bridge" && String(manifest.displayName ?? "").includes("Dark Factory Bridge"), "manifest uses product identity"),
+    check(
+      "manifest_identity",
+      manifest.id === "paperclipai.dark-factory-bridge"
+        && String(manifest.displayName ?? "").includes("Dark Factory")
+        && !/example/i.test(String(manifest.displayName ?? "")),
+      "manifest uses product identity",
+    ),
     check("database_namespace", manifest.database?.namespaceSlug === "dark_factory_bridge", "database namespace is product namespace"),
     check("environment_driver", Array.isArray(manifest.environmentDrivers) && manifest.environmentDrivers.some((driver) => driver.driverKey === "dark-factory-mock"), "environment driver declaration is present"),
     check("install_distribution_policy", installPolicy?.distributionMode === "fork-local-workspace" && installPolicy?.npmPublish === false, "fork-local install distribution policy is present"),

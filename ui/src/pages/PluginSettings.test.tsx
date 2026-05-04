@@ -113,10 +113,10 @@ describe("PluginSettings", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("Configure this plugin from Company Environments.");
-    expect(container.textContent).toContain("company-scoped instead of instance-global");
+    expect(container.textContent).toContain("请从公司环境中配置此插件。");
+    expect(container.textContent).toContain("凭据保持公司级作用域");
     const link = container.querySelector('a[href="/company/settings/environments"]');
-    expect(link?.textContent).toContain("Open Company Environments");
+    expect(link?.textContent).toContain("打开公司环境");
 
     await act(async () => {
       root.unmount();

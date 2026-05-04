@@ -4,8 +4,8 @@ const manifest: PaperclipPluginManifestV1 = {
   id: "paperclipai.dark-factory-bridge",
   apiVersion: 1,
   version: "0.1.0",
-  displayName: "Dark Factory Bridge（中文）",
-  description: "Dark Factory Bridge 插件：以中文界面显示投影、日志游标、提供方健康和重建回执；不会成为权威执行记录。",
+  displayName: "Dark Factory 桥接（中文）",
+  description: "Dark Factory 桥接插件：以中文界面显示投影、日志游标、提供方健康和重建回执；不会成为权威执行记录。",
   author: "Paperclip",
   categories: ["automation", "ui"],
   capabilities: [
@@ -32,7 +32,7 @@ const manifest: PaperclipPluginManifestV1 = {
     {
       driverKey: "dark-factory-mock",
       kind: "environment_driver",
-      displayName: "Dark Factory Bridge（中文）",
+      displayName: "Dark Factory 桥接（中文）",
       description: "Dark Factory 环境驱动：支持确定性模拟模式、本地 HTTP mode 和远程提供方 alpha 模式。所有投影均非权威；Dark Factory Journal remains truth source。",
       configSchema: {
         type: "object",
@@ -158,7 +158,7 @@ const manifest: PaperclipPluginManifestV1 = {
       {
         type: "settingsPage",
         id: "settings",
-        displayName: "Dark Factory Bridge 设置",
+        displayName: "Dark Factory 桥接设置",
         exportName: "SettingsPage"
       }
     ]

@@ -309,8 +309,8 @@ export function Dashboard() {
           <PluginSlotOutlet
             slotTypes={["dashboardWidget"]}
             context={{ companyId: selectedCompanyId }}
-            className="grid gap-4 md:grid-cols-2"
-            itemClassName="rounded-md border border-border/60 bg-card/40 p-4 shadow-none"
+            className="grid gap-4"
+            itemClassName="min-w-0 rounded-md border border-border/60 bg-card/40 p-4 shadow-none"
           />
 
           <div className="grid md:grid-cols-2 gap-4">

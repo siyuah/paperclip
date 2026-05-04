@@ -189,7 +189,7 @@ function CompanyRootRedirect() {
   const location = useLocation();
 
   if (loading) {
-    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">Loading...</div>;
+    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">正在加载...</div>;
   }
 
   const targetCompany = selectedCompany ?? companies[0] ?? null;
@@ -213,7 +213,7 @@ function UnprefixedBoardRedirect() {
   const { companies, selectedCompany, loading } = useCompany();
 
   if (loading) {
-    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">Loading...</div>;
+    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">正在加载...</div>;
   }
 
   const targetCompany = selectedCompany ?? companies[0] ?? null;
@@ -243,12 +243,12 @@ function NoCompaniesStartPage() {
   return (
     <div className="mx-auto max-w-xl py-10">
       <div className="rounded-lg border border-border bg-card p-6">
-        <h1 className="text-xl font-semibold">Create your first company</h1>
+        <h1 className="text-xl font-semibold">创建你的第一个公司</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Get started by creating a company.
+          先创建一个公司即可开始使用。
         </p>
         <div className="mt-4">
-          <Button onClick={() => openOnboarding()}>New Company</Button>
+          <Button onClick={() => openOnboarding()}>新建公司</Button>
         </div>
       </div>
     </div>

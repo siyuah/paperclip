@@ -55,14 +55,16 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-60 h-full min-h-0 border-r border-border/60 bg-sidebar flex flex-col">
+    <aside className="w-60 h-full min-h-0 overflow-hidden border-r border-border/60 bg-sidebar flex flex-col">
       {/* Top bar: Company name (bold) + Search — aligned with top sections (no visible border) */}
-      <div className="flex items-center gap-1 border-b border-border/40 px-3 h-12 shrink-0">
+      <div className="flex min-w-0 items-center gap-1 border-b border-border/40 px-3 h-12 shrink-0">
         <SidebarCompanyMenu />
         <Button
           variant="ghost"
           size="icon-sm"
           className="text-muted-foreground hover:bg-accent/50 shrink-0"
+          aria-label="Search"
+          title="Search"
           onClick={openSearch}
         >
           <Search className="h-4 w-4" />

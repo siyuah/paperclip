@@ -43,7 +43,7 @@ describe("Dark Factory environment lifecycle hooks", () => {
       expect.objectContaining({
         driverKey: "dark-factory-mock",
         kind: "environment_driver",
-        displayName: "Dark Factory Bridge（中文）",
+        displayName: "Dark Factory 桥接（中文）",
         description: expect.stringContaining("HTTP mode"),
         configSchema: expect.objectContaining({
           type: "object",

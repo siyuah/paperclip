@@ -227,7 +227,7 @@ describe("Dark Factory bridge projection plugin", () => {
         coreReadTables: ["issues"],
       },
     });
-    expect(parsed.displayName).toContain("Dark Factory Bridge");
+    expect(parsed.displayName).toContain("Dark Factory 桥接");
     expect(parsed.description).toMatch(/投影|projection/i);
     expect(parsed.description).not.toMatch(/truth source/i);
     expect(parsed.capabilities).toEqual(expect.arrayContaining([

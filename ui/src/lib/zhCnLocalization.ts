@@ -65,6 +65,37 @@ const EXACT_TRANSLATIONS: Record<string, string> = {
   "New Company": "新建公司",
   "New issue": "新建事项",
   "New Issue": "新建事项",
+  "New sub-issue": "新建子事项",
+  "Issue title": "事项标题",
+  "Add description...": "添加描述...",
+  "Discard Draft": "丢弃草稿",
+  "Create Issue": "创建事项",
+  "Create issue": "创建事项",
+  "Create Sub-Issue": "创建子事项",
+  "Creating issue...": "正在创建事项...",
+  "Search assignees...": "搜索负责人...",
+  "No assignees found.": "未找到负责人。",
+  "Search projects...": "搜索项目...",
+  "No projects found.": "未找到项目。",
+  "No reviewer": "无复核人",
+  "Search reviewers...": "搜索复核人...",
+  "No reviewers found.": "未找到复核人。",
+  "No approver": "无审批人",
+  "Search approvers...": "搜索审批人...",
+  "No approvers found.": "未找到审批人。",
+  "Add reviewer or approver": "添加复核人或审批人",
+  "Execution workspace": "执行工作区",
+  "Choose an existing workspace": "选择现有工作区",
+  "Model lane": "模型通道",
+  "Cheap": "低成本",
+  "Default model": "默认模型",
+  "Search models...": "搜索模型...",
+  "No models found.": "未找到模型。",
+  "Enable Chrome (--chrome)": "启用 Chrome (--chrome)",
+  "Remove document": "移除文档",
+  "Remove attachment": "移除附件",
+  "Start date": "开始日期",
+  "Due date": "截止日期",
   "Search": "搜索",
   "Search for a command to run...": "搜索要运行的命令...",
   "Search by name or email": "按姓名或邮箱搜索",
@@ -511,7 +542,7 @@ const EXACT_TRANSLATIONS: Record<string, string> = {
   "models": "模型",
   "Cheap model": "低成本模型",
   "CHEAP MODEL": "低成本模型",
-  "Thinking effort": "思考强度",
+  "Thinking effort": "推理强度",
   "Auto": "自动",
   "Enable Chrome": "启用 Chrome",
   "Skip permissions": "跳过权限检查",
@@ -1543,6 +1574,24 @@ function addPendingLocalizationRoot(node: Node): void {
     ? node.parentElement
     : node;
   if (!root) return;
+  for (const existingRoot of pendingRoots) {
+    if (
+      existingRoot instanceof Node
+      && root instanceof Node
+      && existingRoot.contains(root)
+    ) {
+      return;
+    }
+  }
+  for (const existingRoot of Array.from(pendingRoots)) {
+    if (
+      existingRoot instanceof Node
+      && root instanceof Node
+      && root.contains(existingRoot)
+    ) {
+      pendingRoots.delete(existingRoot);
+    }
+  }
   pendingRoots.add(root as ParentNode);
 }
 
@@ -1657,6 +1706,19 @@ function normalizeTranslatedWhitespace(input: string): string {
     .replace(/名称\s+your company/g, "为公司命名")
     .replace(/打开\s+([^\n]+)\s+menu/g, "打开 $1 菜单")
     .replace(/添加\s+company/g, "添加公司")
+    .replace(/^给\s+负责人\s+归属\s+项目$/g, "给 负责人 归属 项目")
+    .replace(/^对象\s+负责人\s+in\s+项目$/g, "给 负责人 归属 项目")
+    .replace(/\bFor\s+负责人\s+in\s+项目\b/g, "给 负责人 归属 项目")
+    .replace(/\bFor\s+负责人\b/g, "给 负责人")
+    .replace(/\b负责人\s+in\s+项目\b/g, "负责人 归属 项目")
+    .replace(/新建\s+sub-issue/g, "新建子事项")
+    .replace(/Create\s+子事项/g, "创建子事项")
+    .replace(/Create\s+事项/g, "创建事项")
+    .replace(/正在创建\s+issue/g, "正在创建事项")
+    .replace(/丢弃\s+Draft/g, "丢弃草稿")
+    .replace(/Execution\s+工作区/g, "执行工作区")
+    .replace(/Model\s+通道/g, "模型通道")
+    .replace(/Thinking\s+effort/g, "推理强度")
     .replace(/新版本\s+project/g, "新建项目")
     .replace(/选择\s+how this\s+代理\s+will run\s+任务\.?/g, "选择这个代理将如何运行任务。")
     .replace(/适配器\s+environment check/g, "适配器环境检查")

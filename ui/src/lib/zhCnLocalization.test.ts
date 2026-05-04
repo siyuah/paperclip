@@ -19,6 +19,20 @@ describe("zh-CN localization layer", () => {
     expect(translateZhCnText("添加 company")).toBe("添加公司");
     expect(translateZhCnText("New project")).toBe("新建项目");
     expect(translateZhCnText("新版本 project")).toBe("新建项目");
+    expect(translateZhCnText("Issue title")).toBe("事项标题");
+    expect(translateZhCnText("Add description...")).toBe("添加描述...");
+    expect(translateZhCnText("Discard Draft")).toBe("丢弃草稿");
+    expect(translateZhCnText("Create Issue")).toBe("创建事项");
+    expect(translateZhCnText("Create Sub-Issue")).toBe("创建子事项");
+    expect(translateZhCnText("For 负责人 in 项目")).toBe("给 负责人 归属 项目");
+    expect(translateZhCnText("Assignee")).toBe("负责人");
+    expect(translateZhCnText("No assignees found.")).toBe("未找到负责人。");
+    expect(translateZhCnText("Reviewer")).toBe("复核人");
+    expect(translateZhCnText("Approver")).toBe("审批人");
+    expect(translateZhCnText("Add reviewer or approver")).toBe("添加复核人或审批人");
+    expect(translateZhCnText("Execution workspace")).toBe("执行工作区");
+    expect(translateZhCnText("Model lane")).toBe("模型通道");
+    expect(translateZhCnText("Thinking effort")).toBe("推理强度");
     expect(translateZhCnText("Select company")).toBe("选择公司");
     expect(translateZhCnText("Invite people")).toBe("邀请成员");
     expect(translateZhCnText("Invite people to Dark Factory Browser POST"))

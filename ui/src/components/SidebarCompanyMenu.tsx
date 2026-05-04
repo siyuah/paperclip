@@ -53,7 +53,7 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-auto flex-1 justify-start gap-1 px-2 py-1.5 text-left"
+          className="h-auto min-w-0 flex-1 justify-start gap-1 px-2 py-1.5 text-left"
           aria-label={selectedCompany ? `打开 ${selectedCompany.name} 菜单` : "打开公司菜单"}
           disabled={!selectedCompany}
         >

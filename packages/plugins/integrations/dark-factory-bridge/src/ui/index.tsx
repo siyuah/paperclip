@@ -125,6 +125,19 @@ function displayList(values: string[]): string {
     : NONE_TEXT;
 }
 
+function displayHookName(value: string): string {
+  const labels: Record<string, string> = {
+    onEnvironmentValidateConfig: "校验配置",
+    onEnvironmentProbe: "探测提供方",
+    onEnvironmentAcquireLease: "获取租约",
+    onEnvironmentExecute: "执行",
+    onEnvironmentResumeLease: "恢复租约",
+    onEnvironmentReleaseLease: "释放租约",
+    onEnvironmentDestroyLease: "销毁租约",
+  };
+  return labels[value] ? `${labels[value]} (${value})` : value;
+}
+
 function translatedBadge(value: string): string {
   if (value === "journal-truth-source") return "日志是事实来源 (journal-truth-source)";
   if (value === "execute-allowed") return "允许执行 (execute-allowed)";
@@ -538,7 +551,7 @@ function Root({ children }: { children: ReactNode }) {
 }
 
 function Header({
-  title = "Dark Factory Bridge",
+  title = "Dark Factory 桥接",
   subtitle = "仅投影 · 日志为事实来源 · 非权威",
   actions,
 }: {
@@ -738,7 +751,7 @@ function GuardCard({ data }: { data: UiSmokePreview | null | undefined }) {
       {(guards.length > 0 ? guards.slice(0, 4) : []).map((guard) => (
         <CheckItem
           key={guard.targetHook}
-          label={guard.targetHook}
+          label={displayHookName(guard.targetHook)}
           status={checkStatusFromValue(guard.decision)}
           statusLabel={String(displayValue(guard.decision))}
         />
@@ -747,10 +760,10 @@ function GuardCard({ data }: { data: UiSmokePreview | null | undefined }) {
       <Section title="远程提供方试运行防护">
         {guards.map((guard) => (
           <div key={guard.targetHook} className={alertClass(statusTone(guard.decision))}>
-            <ValueRow label={guard.targetHook} value={displayValue(guard.decision)} />
+            <ValueRow label={displayHookName(guard.targetHook)} value={displayValue(guard.decision)} />
             <ValueRow label="预检状态" value={displayValue(guard.matchedPreflightStatus)} />
-            <ValueRow label="shouldContactRemoteProvider" value={guard.shouldContactRemoteProvider} />
-            <ValueRow label="doesAuthorizeRemoteExecution" value={guard.doesAuthorizeRemoteExecution} />
+            <ValueRow label="是否联系远程提供方" value={guard.shouldContactRemoteProvider} />
+            <ValueRow label="是否授权远程执行" value={guard.doesAuthorizeRemoteExecution} />
             <ValueRow label="试运行回执" value={guard.receiptId} />
             {guard.blockingCodes.length > 0 ? <div>阻断代码 <span className="df-code">{displayList(guard.blockingCodes)}</span></div> : null}
           </div>
@@ -780,9 +793,9 @@ function CredentialCard({ data }: { data: RemoteCredentialDiagnostics }) {
     >
       <ValueRow label="凭据来源" value={optionalText(data.credentialSource)} />
       <ValueRow label="已提供配置" value={data.checkedConfig.configSupplied} />
-      <ValueRow label="已配置 endpoint" value={data.checkedConfig.endpointPresent} />
-      <ValueRow label="已配置 secret 引用" value={data.checkedConfig.apiKeySecretRefPresent} />
-      <ValueRow label="secret 引用 scheme" value={data.checkedConfig.apiKeySecretRefScheme} />
+      <ValueRow label="已配置端点" value={data.checkedConfig.endpointPresent} />
+      <ValueRow label="已配置凭据引用" value={data.checkedConfig.apiKeySecretRefPresent} />
+      <ValueRow label="凭据引用方案" value={data.checkedConfig.apiKeySecretRefScheme} />
       <ValueRow label="是否推进终态" value={data.terminalStateAdvanced} />
       <Section title="诊断建议">
         {data.diagnostics.length > 0 ? data.diagnostics.map((diagnostic) => (
@@ -899,8 +912,8 @@ export function DashboardWidget({ context }: PluginWidgetProps) {
     companyId: context.companyId,
   });
 
-  if (loading) return <LoadingCard title="Dark Factory Bridge" />;
-  if (error) return <ErrorCard title="Dark Factory Bridge 错误" message={error.message} />;
+  if (loading) return <LoadingCard title="Dark Factory 桥接" />;
+  if (error) return <ErrorCard title="Dark Factory 桥接错误" message={error.message} />;
   if (!data) return null;
 
   return (
@@ -926,8 +939,8 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
   const [rehydrateError, setRehydrateError] = useState<string | null>(null);
   const [rehydratePending, setRehydratePending] = useState(false);
 
-  if (loading) return <LoadingCard title="Dark Factory Bridge" />;
-  if (error) return <ErrorCard title="Dark Factory Bridge 错误" message={error.message} />;
+  if (loading) return <LoadingCard title="Dark Factory 桥接" />;
+  if (error) return <ErrorCard title="Dark Factory 桥接错误" message={error.message} />;
   if (!data) return null;
 
   return (
@@ -1009,8 +1022,8 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
     companyId: context.companyId,
   });
 
-  if (loading) return <LoadingCard title="Dark Factory Bridge" />;
-  if (error) return <ErrorCard title="Dark Factory Bridge 设置错误" message={error.message} />;
+  if (loading) return <LoadingCard title="Dark Factory 桥接" />;
+  if (error) return <ErrorCard title="Dark Factory 桥接设置错误" message={error.message} />;
   if (!data) return null;
 
   return (
