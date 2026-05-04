@@ -1422,7 +1422,10 @@ const EXACT_PHRASE_TRANSLATIONS = Object.entries(EXACT_TRANSLATIONS)
 
 let observer: MutationObserver | null = null;
 let scheduled = false;
+let scheduledFullDocument = false;
+let pendingRoots = new Set<ParentNode>();
 const POST_INSTALL_RESCAN_DELAYS_MS = [0, 50, 250, 750, 1500] as const;
+const scheduleFullZhCnRescans = () => scheduleZhCnRescans(true);
 
 export function translateZhCnText(input: string): string {
   if (!input.trim()) return input;
@@ -1452,16 +1455,16 @@ export function localizeDocumentZhCn(root: ParentNode = document): void {
 export function installZhCnLocalization(): void {
   if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
   localizeDocumentZhCn(document);
-  scheduleZhCnRescans();
+  scheduleZhCnRescans(true);
   if (observer) return;
 
-  observer = new MutationObserver(() => {
+  observer = new MutationObserver((mutations) => {
+    collectMutationRoots(mutations);
     if (scheduled) return;
     scheduled = true;
     window.requestAnimationFrame(() => {
       scheduled = false;
-      localizeDocumentZhCn(document);
-      scheduleZhCnRescans();
+      flushPendingZhCnLocalization();
     });
   });
   observer.observe(document.documentElement, {
@@ -1471,24 +1474,82 @@ export function installZhCnLocalization(): void {
     characterData: true,
     subtree: true,
   });
-  window.addEventListener("hashchange", scheduleZhCnRescans);
-  window.addEventListener("popstate", scheduleZhCnRescans);
+  window.addEventListener("hashchange", scheduleFullZhCnRescans);
+  window.addEventListener("popstate", scheduleFullZhCnRescans);
 }
 
 export function uninstallZhCnLocalizationForTests(): void {
   observer?.disconnect();
   observer = null;
   scheduled = false;
+  scheduledFullDocument = false;
+  pendingRoots = new Set<ParentNode>();
   if (typeof window !== "undefined") {
-    window.removeEventListener("hashchange", scheduleZhCnRescans);
-    window.removeEventListener("popstate", scheduleZhCnRescans);
+    window.removeEventListener("hashchange", scheduleFullZhCnRescans);
+    window.removeEventListener("popstate", scheduleFullZhCnRescans);
   }
 }
 
-function scheduleZhCnRescans(): void {
+function scheduleZhCnRescans(forceFullDocument = true): void {
   if (typeof window === "undefined") return;
   for (const delay of POST_INSTALL_RESCAN_DELAYS_MS) {
-    window.setTimeout(() => localizeDocumentZhCn(document), delay);
+    window.setTimeout(() => {
+      if (forceFullDocument) {
+        localizeDocumentZhCn(document);
+      } else {
+        flushPendingZhCnLocalization();
+      }
+    }, delay);
+  }
+}
+
+function collectMutationRoots(mutations: MutationRecord[]): void {
+  if (typeof document === "undefined") return;
+  for (const mutation of mutations) {
+    if (mutation.type === "childList") {
+      for (const node of mutation.addedNodes) {
+        addPendingLocalizationRoot(node);
+      }
+      if (mutation.addedNodes.length === 0) {
+        addPendingLocalizationRoot(mutation.target);
+      }
+      continue;
+    }
+
+    addPendingLocalizationRoot(mutation.target);
+  }
+}
+
+function addPendingLocalizationRoot(node: Node): void {
+  if (typeof document === "undefined") return;
+  if (node === document || node === document.documentElement || node === document.body) {
+    scheduledFullDocument = true;
+    pendingRoots.clear();
+    return;
+  }
+  if (scheduledFullDocument) return;
+
+  const root = node.nodeType === Node.TEXT_NODE
+    ? node.parentElement
+    : node;
+  if (!root) return;
+  pendingRoots.add(root as ParentNode);
+}
+
+function flushPendingZhCnLocalization(): void {
+  if (typeof document === "undefined") return;
+  if (scheduledFullDocument) {
+    scheduledFullDocument = false;
+    pendingRoots.clear();
+    localizeDocumentZhCn(document);
+    return;
+  }
+
+  const roots = Array.from(pendingRoots);
+  pendingRoots.clear();
+  for (const root of roots) {
+    if (root instanceof Node && !document.documentElement.contains(root)) continue;
+    localizeDocumentZhCn(root);
   }
 }
 

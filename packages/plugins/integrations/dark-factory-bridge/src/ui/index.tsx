@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Children, useEffect, useState, type ReactNode } from "react";
 import {
   usePluginAction,
   usePluginData,
@@ -521,7 +521,9 @@ function Card({
           {actions}
         </header>
         <Disclaimer />
-        {children}
+        <div className="df-card-body">
+          {Children.toArray(children)}
+        </div>
       </article>
     </div>
   );

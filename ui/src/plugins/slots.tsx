@@ -217,6 +217,21 @@ function applyJsxRuntimeKey(
   return { ...(props ?? {}), key };
 }
 
+function jsxRuntimeCreateElement(
+  react: typeof import("react"),
+  type: unknown,
+  props: Record<string, unknown> | null | undefined,
+  key: string | number | undefined,
+) {
+  const nextProps = applyJsxRuntimeKey(props, key);
+  const children = nextProps.children;
+  if (Array.isArray(children)) {
+    const { children: _children, ...rest } = nextProps;
+    return react.createElement(type as never, rest, ...children);
+  }
+  return react.createElement(type as never, nextProps);
+}
+
 function getShimBlobUrl(specifier: "react" | "react-dom" | "react-dom/client" | "react/jsx-runtime" | "sdk-ui"): string {
   if (shimBlobUrls[specifier]) return shimBlobUrls[specifier];
 
@@ -239,9 +254,10 @@ function getShimBlobUrl(specifier: "react" | "react-dom" | "react-dom/client" | 
     case "react/jsx-runtime":
       source = `
         const R = globalThis.__paperclipPluginBridge__?.react;
-        const withKey = ${applyJsxRuntimeKey.toString()};
-        export const jsx = (type, props, key) => R.createElement(type, withKey(props, key));
-        export const jsxs = (type, props, key) => R.createElement(type, withKey(props, key));
+        const applyJsxRuntimeKey = ${applyJsxRuntimeKey.toString()};
+        const createElement = ${jsxRuntimeCreateElement.toString()};
+        export const jsx = (type, props, key) => createElement(R, type, props, key);
+        export const jsxs = (type, props, key) => createElement(R, type, props, key);
         export const Fragment = R.Fragment;
       `;
       break;

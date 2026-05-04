@@ -64,6 +64,11 @@
   border-color: var(--df-border-focus);
 }
 
+.df-card-body {
+  display: grid;
+  gap: var(--df-space-md);
+}
+
 .df-header {
   display: flex;
   align-items: flex-start;
