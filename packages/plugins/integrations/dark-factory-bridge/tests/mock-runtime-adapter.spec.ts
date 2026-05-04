@@ -403,12 +403,11 @@ describe("runtime contract V3 parity guard", () => {
     expect([...RUNTIME_BREAKER_STATE_VALUES]).toEqual(["closed", "open", "half_open"]);
   });
 
-  it("keeps ProviderHealthState stable as runtime-level type (not yet in V3 binding enums)", () => {
-    // ProviderHealthState is defined in runtime-contract.ts for bridge-local
-    // provider projection. V3.0 capsuleHealth describes capsule preflight health,
-    // not provider runtime availability. When V3.1 formalizes provider health,
-    // update this test to use the V3 enum source.
-    expect(v3CoreEnums).not.toHaveProperty("providerHealthState");
+  it("keeps ProviderHealthState stable as V3 binding enum (promoted from runtime-level in Batch 3)", () => {
+    // providerHealthState is now part of the V3 binding contract. The bridge
+    // runtime still keeps its local projection state literals separate from the
+    // binding enum and from capsuleHealth.
+    expect(v3CoreEnums).toHaveProperty("providerHealthState");
     expect(v3CoreEnums).not.toHaveProperty("providerState");
     expect(v3CoreEnums.capsuleHealth).not.toEqual([...RUNTIME_PROVIDER_HEALTH_STATE_VALUES]);
     expect([...RUNTIME_PROVIDER_HEALTH_STATE_VALUES]).toEqual(["available", "degraded", "blocked", "fallback"]);

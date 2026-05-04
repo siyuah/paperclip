@@ -1,14 +1,16 @@
 # Dark Factory Bridge Production Readiness Assessment
 
-Date: 2026-05-02  
+Date: 2026-05-05
 Scope: `paperclip_upstream` Dark Factory bridge plugin plus the companion Dark Factory V3 HTTP server in the `123` repository.  
-Implementation state assessed: deterministic mock mode plus live-local HTTP mode (`mode: "http"`) connected to the local Dark Factory V3 FastAPI service, with MVP batch 1 and batch 2 internal-preview hardening applied.
+Implementation state assessed: deterministic mock mode plus live-local HTTP mode (`mode: "http"`) connected to the local Dark Factory V3 FastAPI service, with MVP internal-preview hardening plus Batch 1-5 workflow, readiness, provider-health, route-reason, guardrail, fault-playbook, structured-fact, drift-detection, handoff, and security-boundary layers applied.
 
 ## Executive Summary
 
 **Production readiness conclusion: CONDITIONAL YES for MVP internal preview**
 
 The Path B implementation is now past the local integration milestone and has the controls needed for a constrained MVP internal preview: API key authentication, request logging with redaction, JSONL journal file locking, bridge HTTP retries, Docker/Caddy packaging, secret-file deployment, journal backup/restore/retention tooling, and dedicated security/lock/retry/concurrency tests.
+
+Since the previous assessment, the capability baseline has expanded substantially: ProviderHealthRecord, route-decision reason codes, guardrail decisions, fault playbooks, structured Journal facts, contract drift detection, review readiness aggregation, AI workflow entry points, handoff packets, and security-boundary documentation are now present and tested. These additions improve reviewability and operator readiness, but they remain derived/non-authoritative support surfaces. Dark Factory Journal remains truth source.
 
 It is still not ready for broad production or untrusted multi-tenant use. Metrics/alerts, a real circuit breaker, durable multi-node append storage, and full event-backed provider failure/repair/archive workflows remain open. The recommended launch posture is a single-tenant, access-controlled internal preview behind trusted network boundaries.
 
@@ -23,6 +25,16 @@ It is still not ready for broad production or untrusted multi-tenant use. Metric
 - [x] Journal replay and reconciliation: mock adapter includes replay/reconciliation classification; Dark Factory server exposes projection from the append-only journal.
 - [x] Journal receipt simulator: covered by dedicated simulator and tests.
 - [x] End-to-end smoke harness: existing smoke harness plus live-local HTTP integration test.
+- [x] Provider health monitoring: `ProviderHealthRecord` and `providerHealthState` are part of the V3 binding baseline with 6 states (`healthy`, `degraded`, `exhausted`, `unreachable`, `rate_limited`, `unknown`).
+- [x] Route decision explainability: `RouteDecisionReason` records standardized route rationale with 10 reason codes.
+- [x] Guardrail decision model: P0/P1/P2 approval levels are represented for high-risk operation gating.
+- [x] Fault playbooks: `FaultPlaybook` registry covers 8 common provider/runtime failure patterns.
+- [x] Structured Journal facts: `StructuredJournalFact` extracts non-authoritative facts from Journal events for review and handoff.
+- [x] Contract drift detection: `tools/v3_contract_drift_report.py` checks protocol tag, event, schema-enum, Batch 4 definition, bundle, and generated-summary parity.
+- [x] Review readiness dashboard: `tools/df_review_readiness.py` aggregates 6 static checks plus 2 evidence inputs.
+- [x] Handoff packet generator: `tools/df_handoff_packet.py` generates a redacted, non-authoritative handoff packet.
+- [x] AI workflow entry: `123/AGENTS.md` and `123/docs/ai_workflows.md` define fixed collaboration workflows and file boundaries.
+- [x] Security boundary documentation: `123/docs/security_boundaries.md` records the three-layer API boundary and scoped-token design preview.
 
 Notes:
 
@@ -75,30 +87,32 @@ Operability assessment: enough for single-node internal preview; broader product
 
 Bridge plugin test suite:
 
-| Test file | Test count | Status |
+| Test scope | Test count | Status |
 | --- | ---: | --- |
-| `tests/journal-receipt-simulator.spec.ts` | 9 | Pass |
-| `tests/mock-runtime-adapter.spec.ts` | 18 | Pass |
-| `tests/environment-lifecycle.spec.ts` | 10 | Pass |
-| `tests/smoke-harness.spec.ts` | 5 | Pass |
-| `tests/plugin.spec.ts` | 13 | Pass |
-| `tests/http-integration.spec.ts` | 1 | Pass |
-| `tests/http-runtime-adapter.spec.ts` | 2 | Pass |
-| **Total** | **58** | **58/58 pass** |
+| Bridge plugin suite | 185 | Pass |
+| Skipped tests | 1 | Skip |
+| Test files | 35 | 34 pass, 1 skip |
+| **Total executed assertions** | **185** | **185 pass, 0 failed, 1 skipped** |
 
-Dark Factory V3 core checks observed during Path B:
+Dark Factory V3 / `123` checks observed after Batch 1-5:
 
 | Test group | Test count | Status |
 | --- | ---: | --- |
-| `tests/test_v3_runtime.py` | 43 | Pass |
-| `tests/test_v3_journal_verification.py` | 1 | Pass |
-| `tests/test_validate_v3_bundle.py` | 2 | Pass |
-| `tests/test_v3_http_server_security.py` | 5 | Pass |
-| `tests/test_v3_http_server_load.py` | 1 | Pass |
-| `tests/test_v3_journal_admin.py` | 1 | Pass |
-| **Core subset total** | **53** | **53/53 pass** |
+| Full Python test suite | 122 | Pass |
+| V3 bundle validation | 12 checks | Pass |
+| Contract drift report | 6 checks | Pass |
+| Review readiness dashboard | 6 static checks + 2 evidence inputs | Conditional ready: 6 pass, 2 warn |
+| **Python total** | **122** | **122/122 pass** |
 
-Full `123` pytest after MVP batch 2: 80 tests passed.
+The 2 review readiness warnings are expected when smoke and bridge evidence JSON paths are not supplied to `df_review_readiness.py`; they are not test failures.
+
+### Tooling Baseline
+
+| Tool | Coverage / purpose | Status |
+| --- | --- | --- |
+| `tools/df_review_readiness.py` | 6 static checks plus 2 optional evidence inputs | Present and tested |
+| `tools/v3_contract_drift_report.py` | 6 drift checks: protocol tags, event parity, schema-enum parity, Batch 4 definitions, bundle validation, generated summary freshness | Present and tested |
+| `tools/df_handoff_packet.py` | Generates redacted handoff packets with git state, validation summaries, progress archives, and next AI command | Present and tested |
 
 ### Coverage Assessment
 
