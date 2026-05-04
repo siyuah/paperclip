@@ -178,6 +178,10 @@ describe("zh-CN localization layer", () => {
     expect(translateZhCnText("Work")).toBe("工作");
     expect(translateZhCnText("PROJECTS")).toBe("项目");
     expect(translateZhCnText("Projects")).toBe("项目");
+    expect(translateZhCnText("Configure company identity, hiring controls, invite prompts, and package transfer settings."))
+      .toBe("配置公司身份、招聘控制、邀请提示词和包转移设置。");
+    expect(translateZhCnText("配置 company identity, hiring controls, invite prompts, and package transfer settings."))
+      .toBe("配置公司身份、招聘控制、邀请提示词和包转移设置。");
     expect(translateZhCnText("APPEARANCE")).toBe("外观");
     expect(translateZhCnText("Appearance")).toBe("外观");
     expect(translateZhCnText("Hiring")).toBe("招聘");
@@ -186,6 +190,9 @@ describe("zh-CN localization layer", () => {
     expect(translateZhCnText("公司 Packages")).toBe("公司包");
     expect(translateZhCnText("GRANTS")).toBe("授权");
     expect(translateZhCnText("ACTION")).toBe("操作");
+    expect(translateZhCnText("Built-in adapter")).toBe("内置适配器");
+    expect(translateZhCnText("Built-in Adapters")).toBe("内置适配器");
+    expect(translateZhCnText("内置 Adapters")).toBe("内置适配器");
     expect(translateZhCnText("0 routines")).toBe("0 例程");
     expect(translateZhCnText("10 models")).toBe("10 个模型");
     expect(translateZhCnText("公司 access")).toBe("公司访问权限");
@@ -285,7 +292,7 @@ describe("zh-CN localization layer", () => {
 
   it("translates known phrases embedded in dynamic shell text", () => {
     expect(translateZhCnText("Loading plugin details...")).toBe("正在加载插件详情...");
-    expect(translateZhCnText("Open board now")).toBe("打开看板 now");
+    expect(translateZhCnText("Open board now")).toBe("立即打开看板");
     expect(translateZhCnText("Company Environments are enabled")).toBe("公司环境已启用");
     expect(translateZhCnText("Search for a command to run...")).toBe("搜索要运行的命令...");
   });

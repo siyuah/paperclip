@@ -108,7 +108,7 @@ export function buildUiSmokePreviewBrowserHarness(
   <main>
     <header>
       <h1>${escapeHtml(title)}</h1>
-      <div class="subtitle">生成时间 ${escapeHtml(generatedAt)}。仅本地预览。Dark Factory Journal remains truth source。</div>
+      <div class="subtitle">生成时间 ${escapeHtml(generatedAt)}。仅本地预览。Dark Factory 日志仍是事实来源。</div>
     </header>
     <section class="df-card" aria-labelledby="preview-title">
       <div class="df-toolbar">
@@ -122,10 +122,10 @@ export function buildUiSmokePreviewBrowserHarness(
       <div id="summary"></div>
       <div id="fields" class="df-grid"></div>
       <div class="df-section-title">
-        <h3>远程 Provider Dry-run 防护</h3>
+        <h3>远程提供方试运行防护</h3>
         <span class="df-badge">shouldContactRemoteProvider / doesAuthorizeRemoteExecution 固定 false</span>
       </div>
-      <div id="dry-run-guards" class="df-guard-list" aria-label="远程 Provider dry-run 防护决策"></div>
+      <div id="dry-run-guards" class="df-guard-list" aria-label="远程提供方试运行防护决策"></div>
       <div id="badges" class="df-badges" aria-label="UI 徽标"></div>
     </section>
   </main>
@@ -163,8 +163,20 @@ export function buildUiSmokePreviewBrowserHarness(
       return valueLabels[raw] ? valueLabels[raw] + " (" + raw + ")" : raw;
     }
 
+    function displayMessage(value) {
+      if (value == null) return "无";
+      return String(value)
+        .replace(/远程 Provider alpha/g, "远程提供方 alpha")
+        .replace(/受控 probe/g, "受控探测")
+        .replace(/\\bProvider\\b/g, "提供方")
+        .replace(/\\bJournal\\b/g, "日志")
+        .replace(/\\bDry-run\\b/g, "试运行")
+        .replace(/\\bdry-run\\b/g, "试运行")
+        .replace(/\\breceipt\\b/g, "回执");
+    }
+
     function badgeLabel(value) {
-      if (value === "journal-truth-source") return "Journal 是事实来源 (journal-truth-source)";
+      if (value === "journal-truth-source") return "日志是事实来源 (journal-truth-source)";
       if (value === "execute-allowed") return "允许执行 (execute-allowed)";
       if (value.startsWith("next:")) return "下一安全 hook: " + value.slice(5) + " (" + value + ")";
       if (value.startsWith("breaker:")) return "熔断器: " + displayValue(value.slice(8)) + " (" + value + ")";
@@ -193,10 +205,10 @@ export function buildUiSmokePreviewBrowserHarness(
     function render() {
       const preview = previews.find((item) => item.scenario === scenarioSelect.value) ?? previews[0];
       summary.className = preview.previewStatus === "blocked" ? "df-alert error" : preview.previewStatus === "needs_attention" ? "df-alert warning" : "df-alert info";
-      summary.textContent = preview.readiness.summary;
+      summary.textContent = displayMessage(preview.readiness.summary);
       fields.replaceChildren(
         field("预览状态", displayValue(preview.previewStatus)),
-        field("Host 上下文", preview.hostContextId),
+        field("主机上下文", preview.hostContextId),
         field("就绪状态", displayValue(preview.readiness.readinessStatus)),
         field("下一安全 hook", preview.readiness.nextSafeHook),
         field("熔断器状态", displayValue(preview.breakerEvaluation.breakerState)),
@@ -205,8 +217,8 @@ export function buildUiSmokePreviewBrowserHarness(
         field("游标滞后", preview.observability.snapshot.cursorLag ?? "未知"),
         field("告警数", preview.observability.alerts.length),
         field("凭据来源", preview.credentialDiagnostics.credentialSource ?? "无"),
-        field("执行 dry-run", displayValue((preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).decision ?? "未知")),
-        field("Dry-run 回执", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).receiptId ?? "无"),
+        field("执行试运行", displayValue((preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).decision ?? "未知")),
+        field("试运行回执", (preview.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute") ?? {}).receiptId ?? "无"),
         field("事实来源", preview.truthSource),
         field("是否权威", preview.authoritative ? "是" : "否"),
         field("是否推进终态", preview.terminalStateAdvanced ? "是" : "否")
@@ -216,9 +228,9 @@ export function buildUiSmokePreviewBrowserHarness(
         node.className = "df-guard " + guard.decision;
         node.textContent = guard.targetHook + "：决策 " + displayValue(guard.decision)
           + " | 预检状态 " + displayValue(guard.matchedPreflightStatus)
-          + " | 是否联系 Provider " + (guard.shouldContactRemoteProvider ? "是" : "否")
+          + " | 是否联系提供方 " + (guard.shouldContactRemoteProvider ? "是" : "否")
           + " | 是否授权执行 " + (guard.doesAuthorizeRemoteExecution ? "是" : "否")
-          + " | receipt " + guard.receiptId
+          + " | 回执 " + guard.receiptId
           + (guard.blockingCodes.length ? " | 阻断代码 " + guard.blockingCodes.map(displayValue).join(", ") : "");
         return node;
       }));

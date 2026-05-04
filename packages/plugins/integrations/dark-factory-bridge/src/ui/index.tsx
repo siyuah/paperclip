@@ -8,7 +8,7 @@ import {
 } from "@paperclipai/plugin-sdk/ui";
 import "./styles.css";
 
-const DISCLAIMER = "仅显示非权威投影，Dark Factory Journal remains truth source。";
+const DISCLAIMER = "仅显示非权威投影，Dark Factory 日志仍是事实来源。";
 const NONE_TEXT = "无";
 const UNKNOWN_TEXT = "未知";
 
@@ -30,6 +30,19 @@ function displayValue(value: string | number | null | undefined): string | numbe
   return translated === value ? value : `${translated} (${value})`;
 }
 
+function displayMessage(value: string | null | undefined): string {
+  if (!value) return NONE_TEXT;
+  return value
+    .replace(/远程 Provider alpha/g, "远程提供方 alpha")
+    .replace(/受控 probe/g, "受控探测")
+    .replace(/\bProvider\b/g, "提供方")
+    .replace(/\bJournal\b/g, "日志")
+    .replace(/\bDry-run\b/g, "试运行")
+    .replace(/\bdry-run\b/g, "试运行")
+    .replace(/\breceipt\b/g, "回执")
+    .replace(/\bfallback\b/g, "回退");
+}
+
 function translatedValue(value: string): string {
   const translations: Record<string, string> = {
     current: "当前",
@@ -45,11 +58,11 @@ function translatedValue(value: string): string {
     warning: "警告",
     critical: "严重",
     monitor: "监控",
-    retry_or_wait_for_provider_recovery: "重试或等待 Provider 恢复",
-    pause_external_execution_and_reconcile_journal: "暂停外部执行并对齐 Journal",
+    retry_or_wait_for_provider_recovery: "重试或等待提供方恢复",
+    pause_external_execution_and_reconcile_journal: "暂停外部执行并对齐日志",
     verify_fallback_projection_before_retry: "重试前验证 fallback 投影",
     unchanged: "未改变",
-    primary_execution: "主执行 Provider",
+    primary_execution: "主执行提供方",
     execution_model: "执行模型",
     role_based_runtime_selection: "按运行时角色选择",
     closed: "关闭",
@@ -69,22 +82,22 @@ function translatedValue(value: string): string {
     credentials: "凭据",
     observability: "可观测性",
     breaker: "熔断器",
-    journal_boundary: "Journal 边界",
+    journal_boundary: "日志边界",
     remote: "远程",
     none: "无",
-    transient_provider: "Provider 暂时异常",
-    provider_unavailable: "Provider 不可用",
+    transient_provider: "提供方暂时异常",
+    provider_unavailable: "提供方不可用",
     quota_exceeded: "配额已耗尽",
     runtime_blocked: "运行时已阻断",
     runtime_observation: "运行时观测",
     dark_factory_remote_preflight_validate_config: "远程预检：校验配置",
-    dark_factory_remote_preflight_probe: "远程预检：探测 Provider",
+    dark_factory_remote_preflight_probe: "远程预检：探测提供方",
     dark_factory_remote_preflight_acquire_lease: "远程预检：获取租约",
     dark_factory_remote_preflight_execute: "远程预检：执行",
     dark_factory_remote_readiness_credentials: "远程就绪：凭据",
     dark_factory_remote_readiness_observability: "远程就绪：可观测性",
     dark_factory_remote_readiness_breaker: "远程就绪：熔断器",
-    dark_factory_remote_readiness_journal_boundary: "远程就绪：Journal 边界",
+    dark_factory_remote_readiness_journal_boundary: "远程就绪：日志边界",
     dark_factory_remote_credential_ready: "远程凭据已就绪",
     dark_factory_remote_credential_config_not_supplied: "未提供远程凭据配置",
     dark_factory_remote_credential_missing: "缺少远程凭据",
@@ -92,15 +105,15 @@ function translatedValue(value: string): string {
     dark_factory_remote_credential_host_secret_ref_pending_runtime_resolution: "Host 托管 secret 引用等待运行时注入",
     dark_factory_remote_credential_ref_unsupported: "不支持的 secret 引用",
     dark_factory_remote_credential_unresolved: "secret 引用未解析",
-    dark_factory_remote_no_sampled_observations: "尚无远程 Provider 采样观测",
-    dark_factory_remote_observability_clear: "远程 Provider 可观测性正常",
-    dark_factory_remote_error_rate_high: "远程 Provider 错误率过高",
-    dark_factory_remote_latency_high: "远程 Provider 延迟过高",
-    dark_factory_remote_cursor_lag_high: "远程 Provider Journal 游标滞后过高",
-    dark_factory_remote_breaker_open: "远程 Provider 熔断器打开",
-    dark_factory_remote_breaker_half_open: "远程 Provider 熔断器半开",
-    dark_factory_remote_breaker_closed: "远程 Provider 熔断器关闭",
-    journal_truth_source: "Journal 是事实来源",
+    dark_factory_remote_no_sampled_observations: "尚无远程提供方采样观测",
+    dark_factory_remote_observability_clear: "远程提供方可观测性正常",
+    dark_factory_remote_error_rate_high: "远程提供方错误率过高",
+    dark_factory_remote_latency_high: "远程提供方延迟过高",
+    dark_factory_remote_cursor_lag_high: "远程提供方日志游标滞后过高",
+    dark_factory_remote_breaker_open: "远程提供方熔断器打开",
+    dark_factory_remote_breaker_half_open: "远程提供方熔断器半开",
+    dark_factory_remote_breaker_closed: "远程提供方熔断器关闭",
+    journal_truth_source: "日志是事实来源",
     execute_allowed: "允许执行",
   };
   return translations[value] ?? value;
@@ -113,7 +126,7 @@ function displayList(values: string[]): string {
 }
 
 function translatedBadge(value: string): string {
-  if (value === "journal-truth-source") return "Journal 是事实来源 (journal-truth-source)";
+  if (value === "journal-truth-source") return "日志是事实来源 (journal-truth-source)";
   if (value === "execute-allowed") return "允许执行 (execute-allowed)";
   if (value.startsWith("next:")) return `下一安全 hook: ${value.slice(5)} (${value})`;
   if (value.startsWith("breaker:")) return `熔断器: ${displayValue(value.slice(8))} (${value})`;
@@ -526,7 +539,7 @@ function Root({ children }: { children: ReactNode }) {
 
 function Header({
   title = "Dark Factory Bridge",
-  subtitle = "仅投影 · Journal 为事实来源 · 非权威",
+  subtitle = "仅投影 · 日志为事实来源 · 非权威",
   actions,
 }: {
   title?: string;
@@ -645,9 +658,9 @@ function ProjectionCard({ data }: { data: ProjectionSummary }) {
     >
       <ValueRow label="运行 ID" value={projection.runId} />
       <ValueRow label="关联 Run" value={projection.linkedRunId} />
-      <ValueRow label="Journal 游标" value={projection.journalCursorMetadata.journalCursor} />
+      <ValueRow label="日志游标" value={projection.journalCursorMetadata.journalCursor} />
       <ValueRow label="序列号" value={projection.lastSequenceNo} />
-      <ValueRow label="回调 receipt" value={projection.callbackReceiptId} />
+      <ValueRow label="回调回执" value={projection.callbackReceiptId} />
       <ValueRow label="最后更新" value={projection.lastUpdatedAt} />
       <div className="df-badge-list">
         <Badge color="amber" active={projection.flags.degraded}>降级 {projection.degradedReason ? `· ${projection.degradedReason}` : ""}</Badge>
@@ -664,11 +677,11 @@ function ProviderCard({ data }: { data: ProjectionSummary }) {
   const color = statusTone(provider.providerState);
   return (
     <DataCard
-      title="Provider"
+      title="提供方"
       color={color}
       badge={<Badge color={color}>{displayValue(provider.providerState)}</Badge>}
     >
-      <ValueRow label="Provider 角色" value={displayValue(provider.providerRole)} />
+      <ValueRow label="提供方角色" value={displayValue(provider.providerRole)} />
       <ValueRow label="模型角色" value={displayValue(provider.modelRole)} />
       <ValueRow label="模型策略" value={displayValue(provider.modelSelection.policy)} />
       <ValueRow label="熔断器" value={displayValue(provider.breakerState)} />
@@ -678,7 +691,7 @@ function ProviderCard({ data }: { data: ProjectionSummary }) {
       <div className="df-badge-list">
         <Badge color="amber" active={provider.degraded}>降级 {provider.degradedReason ? `· ${provider.degradedReason}` : ""}</Badge>
         <Badge color="purple" active={provider.blocked}>阻断 {provider.blockedReason ? `· ${provider.blockedReason}` : ""}</Badge>
-        <Badge color="blue" active={provider.fallbackTriggered}>fallback {provider.fallbackReason ? `· ${provider.fallbackReason}` : ""}</Badge>
+        <Badge color="blue" active={provider.fallbackTriggered}>回退 {provider.fallbackReason ? `· ${displayMessage(provider.fallbackReason)}` : ""}</Badge>
       </div>
     </DataCard>
   );
@@ -703,7 +716,7 @@ function ReadinessCard({ data }: { data: RemoteProviderReadiness | null | undefi
       <CheckItem label="观测告警" status={data.alertCount === 0 ? "pass" : "warn"} statusLabel={`${data.alertCount} 个`} />
       <CheckItem label="下一安全 hook" status={checkStatusFromValue(data.nextSafeHook)} statusLabel={data.nextSafeHook} />
       <Section title="就绪详情">
-        <div className={alertClass(statusTone(data.readinessStatus))}>{data.summary}</div>
+      <div className={alertClass(statusTone(data.readinessStatus))}>{displayMessage(data.summary)}</div>
         <ValueRow label="建议动作" value={displayValue(data.recommendedAction)} />
         <ValueRow label="检查时间" value={data.checkedAt} />
         <ValueRow label="就绪 receipt" value={data.readinessReceipt.receiptId} />
@@ -731,14 +744,14 @@ function GuardCard({ data }: { data: UiSmokePreview | null | undefined }) {
         />
       ))}
       {guards.length === 0 ? <Skeleton lines={4} /> : null}
-      <Section title="远程 Provider Dry-run 防护">
+      <Section title="远程提供方试运行防护">
         {guards.map((guard) => (
           <div key={guard.targetHook} className={alertClass(statusTone(guard.decision))}>
             <ValueRow label={guard.targetHook} value={displayValue(guard.decision)} />
             <ValueRow label="预检状态" value={displayValue(guard.matchedPreflightStatus)} />
             <ValueRow label="shouldContactRemoteProvider" value={guard.shouldContactRemoteProvider} />
             <ValueRow label="doesAuthorizeRemoteExecution" value={guard.doesAuthorizeRemoteExecution} />
-            <ValueRow label="Dry-run 回执" value={guard.receiptId} />
+            <ValueRow label="试运行回执" value={guard.receiptId} />
             {guard.blockingCodes.length > 0 ? <div>阻断代码 <span className="df-code">{displayList(guard.blockingCodes)}</span></div> : null}
           </div>
         ))}
@@ -750,10 +763,10 @@ function GuardCard({ data }: { data: UiSmokePreview | null | undefined }) {
 function StaticGuardCard({ data }: { data: ProjectionSummary }) {
   return (
     <DataCard title="防护门禁" color={statusTone(data.runtimeImpact.operatorAction)} badge={<Badge color={statusTone(data.runtimeImpact.operatorAction)}>{displayValue(data.runtimeImpact.operatorAction)}</Badge>}>
-      <CheckItem label="Journal 事实来源" status="pass" statusLabel="通过" />
+      <CheckItem label="日志事实来源" status="pass" statusLabel="通过" />
       <CheckItem label="投影非权威" status={data.authoritative ? "fail" : "pass"} statusLabel={data.authoritative ? "失败" : "通过"} />
       <CheckItem label="终态不推进" status={data.runtimeImpact.terminalStateAdvanced ? "fail" : "pass"} statusLabel={yesNo(data.runtimeImpact.terminalStateAdvanced)} />
-      <CheckItem label="Provider 动作" status={checkStatusFromValue(data.runtimeImpact.operatorAction)} statusLabel={String(displayValue(data.runtimeImpact.operatorAction))} />
+      <CheckItem label="提供方动作" status={checkStatusFromValue(data.runtimeImpact.operatorAction)} statusLabel={String(displayValue(data.runtimeImpact.operatorAction))} />
     </DataCard>
   );
 }
@@ -819,7 +832,7 @@ function ObservabilityCard({ data }: { data: RemoteObservabilitySnapshot }) {
           <div key={alert.code} className={alertClass(getStatusColor(alert.severity))}>
             {displayValue(alert.code)}：{alert.message}；分类：{displayValue(alert.failureClass)}
           </div>
-        )) : <div className="df-alert df-alert--info">当前采样窗口内没有远程 Provider 告警候选。</div>}
+        )) : <div className="df-alert df-alert--info">当前采样窗口内没有远程提供方告警候选。</div>}
       </Section>
     </DataCard>
   );
@@ -859,13 +872,13 @@ function UiSmokePreviewCard({
         </div>
         {data ? (
           <>
-            <div className={alertClass(statusTone(data.previewStatus))}>{data.readiness.summary}</div>
+            <div className={alertClass(statusTone(data.previewStatus))}>{displayMessage(data.readiness.summary)}</div>
             <ValueRow label="预览状态" value={displayValue(data.previewStatus)} />
-            <ValueRow label="Host 上下文" value={data.hostContextId} />
+            <ValueRow label="主机上下文" value={data.hostContextId} />
             <ValueRow label="就绪状态" value={displayValue(data.readiness.readinessStatus)} />
             <ValueRow label="下一安全 hook" value={data.readiness.nextSafeHook} />
-            <ValueRow label="执行 dry-run" value={displayValue(executeGuard?.decision)} />
-            <ValueRow label="Dry-run 回执" value={optionalText(executeGuard?.receiptId)} />
+            <ValueRow label="执行试运行" value={displayValue(executeGuard?.decision)} />
+            <ValueRow label="试运行回执" value={optionalText(executeGuard?.receiptId)} />
             <ValueRow label="事实来源" value={data.truthSource} />
             <ValueRow label="是否权威" value={data.authoritative} />
             <ValueRow label="是否推进终态" value={data.terminalStateAdvanced} />
@@ -943,7 +956,7 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
           </button>
         )}
       />
-      <p className="df-disclaimer">仅投影 · Journal 为事实来源 · 非权威</p>
+      <p className="df-disclaimer">仅投影 · 日志为事实来源 · 非权威</p>
       <div className="df-alert df-alert--info">重新水合请求只提交一个意图 receipt；不会推进终态成功，也不会让该投影变成权威记录。</div>
       {rehydrateError ? <div role="alert" className="df-alert df-alert--error">重新水合请求失败：{rehydrateError}</div> : null}
       <div className="df-grid">
@@ -1003,7 +1016,7 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
   return (
     <Root>
       <Header actions={<button type="button" className="df-btn" disabled>重新水合</button>} />
-      <p className="df-disclaimer">仅投影 · Journal 为事实来源 · 非权威</p>
+      <p className="df-disclaimer">仅投影 · 日志为事实来源 · 非权威</p>
       <div className="df-alert df-alert--info">Mock 投影模式不会保存 token 或 secret。远程模式只显示凭据引用和诊断结果，不展示凭据值。</div>
       <div className="df-settings-grid">
         <ProjectionCard data={data} />
@@ -1025,7 +1038,7 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
           scenario={uiSmokePreviewScenario}
           onScenarioChange={setUiSmokePreviewScenario}
         />
-        {remoteReadinessError ? <div className="df-card df-card--full"><div className="df-alert df-alert--error">远程 Provider 就绪状态错误：{remoteReadinessError.message}</div></div> : null}
+        {remoteReadinessError ? <div className="df-card df-card--full"><div className="df-alert df-alert--error">远程提供方就绪状态错误：{remoteReadinessError.message}</div></div> : null}
       </div>
     </Root>
   );
