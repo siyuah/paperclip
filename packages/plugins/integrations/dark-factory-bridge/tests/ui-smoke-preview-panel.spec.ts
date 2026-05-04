@@ -12,11 +12,16 @@ describe("Dark Factory UI smoke preview panel source wiring", () => {
     expect(source).toContain("是否权威");
     expect(source).toContain("是否推进终态");
     expect(source).toContain("远程 Provider Dry-run 防护");
-    expect(source).toContain("Dry-run 防护 receipt");
+    expect(source).toContain("Dry-run 回执");
     expect(source).toContain("shouldContactRemoteProvider");
     expect(source).toContain("doesAuthorizeRemoteExecution");
     expect(source).toContain("displayValue(guard.decision)");
     expect(source).toContain("translatedBadge(badge)");
+    expect(source).toContain("className=\"df-card\"");
+    expect(source).toContain("className=\"df-settings-grid\"");
+    expect(source).toContain("/_plugins/paperclipai.dark-factory-bridge/ui/index.css");
+    expect(source).not.toContain("panelStyle");
+    expect(source).not.toContain("rowStyle");
     expect(source).toContain("healthy");
     expect(source).toContain("warning_latency");
     expect(source).toContain("blocked_failures");

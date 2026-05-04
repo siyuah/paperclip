@@ -25,52 +25,110 @@ export function buildUiSmokePreviewBrowserHarness(
   <title>${escapeHtml(title)}</title>
   <style>
     :root {
-      color-scheme: light;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f8fafc;
-      color: #111827;
+      color-scheme: dark;
+      --df-bg-primary: #0f1419;
+      --df-bg-secondary: #1a1f2e;
+      --df-bg-card: #1e2538;
+      --df-bg-card-hover: #252d42;
+      --df-border: #2a3350;
+      --df-border-focus: #4a6cf7;
+      --df-text-primary: #e8eaed;
+      --df-text-secondary: #9aa0b4;
+      --df-status-healthy: #34d399;
+      --df-status-healthy-bg: rgba(52, 211, 153, 0.08);
+      --df-status-warning: #fbbf24;
+      --df-status-warning-bg: rgba(251, 191, 36, 0.08);
+      --df-status-error: #f87171;
+      --df-status-error-bg: rgba(248, 113, 113, 0.08);
+      --df-status-info: #60a5fa;
+      --df-status-info-bg: rgba(96, 165, 250, 0.08);
+      --df-status-blocked: #c084fc;
+      --df-status-blocked-bg: rgba(192, 132, 252, 0.08);
+      --df-font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      --df-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: var(--df-font-sans);
+      background: var(--df-bg-primary);
+      color: var(--df-text-primary);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 24px; }
+    body { margin: 0; padding: 24px; min-width: 320px; }
     main { max-width: 1120px; margin: 0 auto; display: grid; gap: 16px; }
     header { display: grid; gap: 6px; }
-    h1 { margin: 0; font-size: 24px; line-height: 1.2; }
-    .subtitle { color: #475569; font-size: 14px; }
-    .panel { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
-    .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 24px; line-height: 1.2; letter-spacing: 0; }
+    .subtitle { color: var(--df-text-secondary); font-size: 14px; }
+    .df-card {
+      background: var(--df-bg-card);
+      border: 1px solid var(--df-border);
+      border-radius: 10px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    .df-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+    .df-toolbar-main { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    h2, h3 { margin: 0; line-height: 1.25; letter-spacing: 0; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 16px; }
     label { font-weight: 600; }
-    select { border: 1px solid #94a3b8; border-radius: 6px; padding: 8px 10px; font: inherit; background: #fff; min-width: 220px; }
-    .notice { border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; border-radius: 6px; padding: 8px 10px; }
-    .critical { border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; border-radius: 6px; padding: 8px 10px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-    .field { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; min-width: 0; }
-    .field span { display: block; color: #64748b; font-size: 12px; margin-bottom: 4px; }
-    .field strong, code { overflow-wrap: anywhere; }
-    .guard-list { display: grid; gap: 8px; }
-    .guard { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; display: grid; gap: 4px; }
-    .guard.review_required { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
-    .guard.blocked { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
-    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
-    .badge { border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 999px; padding: 3px 8px; font-size: 12px; }
+    select {
+      border: 1px solid var(--df-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font: inherit;
+      background: var(--df-bg-secondary);
+      color: var(--df-text-primary);
+      min-width: 220px;
+    }
+    select:focus-visible { outline: 2px solid var(--df-border-focus); outline-offset: 2px; }
+    .df-alert { border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+    .df-alert.info { border: 1px solid rgba(96, 165, 250, 0.15); background: var(--df-status-info-bg); color: var(--df-status-info); }
+    .df-alert.warning { border: 1px solid rgba(251, 191, 36, 0.2); background: var(--df-status-warning-bg); color: var(--df-status-warning); }
+    .df-alert.error { border: 1px solid rgba(248, 113, 113, 0.2); background: var(--df-status-error-bg); color: var(--df-status-error); }
+    .df-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .df-field { border: 1px solid var(--df-border); border-radius: 6px; padding: 10px; min-width: 0; background: rgba(15, 20, 25, 0.35); }
+    .df-field span { display: block; color: var(--df-text-secondary); font-size: 12px; margin-bottom: 4px; }
+    .df-field strong, code { overflow-wrap: anywhere; font-family: var(--df-font-mono); }
+    .df-section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .df-guard-list { display: grid; gap: 8px; }
+    .df-guard { border: 1px solid var(--df-border); border-radius: 6px; padding: 10px; display: grid; gap: 4px; background: rgba(15, 20, 25, 0.28); font-size: 13px; }
+    .df-guard.allowed { border-color: rgba(52, 211, 153, 0.2); background: var(--df-status-healthy-bg); color: var(--df-status-healthy); }
+    .df-guard.review_required { border-color: rgba(251, 191, 36, 0.2); background: var(--df-status-warning-bg); color: var(--df-status-warning); }
+    .df-guard.blocked { border-color: rgba(248, 113, 113, 0.2); background: var(--df-status-error-bg); color: var(--df-status-error); }
+    .df-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .df-badge { border: 1px solid rgba(96, 165, 250, 0.15); background: var(--df-status-info-bg); color: var(--df-status-info); border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 600; }
+    .df-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--df-status-info); margin-right: 4px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .df-toolbar { align-items: stretch; }
+      select { width: 100%; }
+    }
   </style>
 </head>
 <body>
   <main>
     <header>
       <h1>${escapeHtml(title)}</h1>
-      <div class="subtitle">生成时间 ${escapeHtml(generatedAt)}。仅本地预览。Dark Factory Journal 仍是唯一事实来源。</div>
+      <div class="subtitle">生成时间 ${escapeHtml(generatedAt)}。仅本地预览。Dark Factory Journal remains truth source。</div>
     </header>
-    <section class="panel" aria-labelledby="preview-title">
-      <div class="toolbar">
-        <h2 id="preview-title" style="margin:0;font-size:18px;">UI 烟雾预览</h2>
-        <label for="scenario">场景</label>
-        <select id="scenario" aria-label="场景"></select>
+    <section class="df-card" aria-labelledby="preview-title">
+      <div class="df-toolbar">
+        <div class="df-toolbar-main">
+          <h2 id="preview-title"><span class="df-dot" aria-hidden="true"></span>UI 烟雾预览</h2>
+          <label for="scenario">场景</label>
+          <select id="scenario" aria-label="场景"></select>
+        </div>
+        <span class="df-badge">非权威投影</span>
       </div>
       <div id="summary"></div>
-      <div id="fields" class="grid"></div>
-      <h3 style="margin:0;font-size:16px;">远程 Provider Dry-run 防护</h3>
-      <div id="dry-run-guards" class="guard-list" aria-label="远程 Provider dry-run 防护决策"></div>
-      <div id="badges" class="badges" aria-label="UI 徽标"></div>
+      <div id="fields" class="df-grid"></div>
+      <div class="df-section-title">
+        <h3>远程 Provider Dry-run 防护</h3>
+        <span class="df-badge">shouldContactRemoteProvider / doesAuthorizeRemoteExecution 固定 false</span>
+      </div>
+      <div id="dry-run-guards" class="df-guard-list" aria-label="远程 Provider dry-run 防护决策"></div>
+      <div id="badges" class="df-badges" aria-label="UI 徽标"></div>
     </section>
   </main>
   <script type="application/json" id="preview-data">${previewJson}</script>
@@ -125,7 +183,7 @@ export function buildUiSmokePreviewBrowserHarness(
 
     function field(label, value) {
       const node = document.createElement("div");
-      node.className = "field";
+      node.className = "df-field";
       const labelNode = document.createElement("span");
       labelNode.textContent = label;
       const valueNode = document.createElement("strong");
@@ -136,7 +194,7 @@ export function buildUiSmokePreviewBrowserHarness(
 
     function render() {
       const preview = previews.find((item) => item.scenario === scenarioSelect.value) ?? previews[0];
-      summary.className = preview.previewStatus === "blocked" ? "critical" : preview.previewStatus === "needs_attention" ? "notice" : "";
+      summary.className = preview.previewStatus === "blocked" ? "df-alert error" : preview.previewStatus === "needs_attention" ? "df-alert warning" : "df-alert info";
       summary.textContent = preview.readiness.summary;
       fields.replaceChildren(
         field("预览状态", displayValue(preview.previewStatus)),
@@ -157,7 +215,7 @@ export function buildUiSmokePreviewBrowserHarness(
       );
       dryRunGuards.replaceChildren(...preview.dryRunGuards.map((guard) => {
         const node = document.createElement("div");
-        node.className = "guard " + guard.decision;
+        node.className = "df-guard " + guard.decision;
         node.textContent = guard.targetHook + "：决策 " + displayValue(guard.decision)
           + " | 预检状态 " + displayValue(guard.matchedPreflightStatus)
           + " | 是否联系 Provider " + (guard.shouldContactRemoteProvider ? "是" : "否")
@@ -168,7 +226,7 @@ export function buildUiSmokePreviewBrowserHarness(
       }));
       badges.replaceChildren(...preview.uiBadges.map((item) => {
         const node = document.createElement("span");
-        node.className = "badge";
+        node.className = "df-badge";
         node.textContent = badgeLabel(item);
         return node;
       }));

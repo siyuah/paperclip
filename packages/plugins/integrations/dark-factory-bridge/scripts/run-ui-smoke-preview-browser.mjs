@@ -241,7 +241,7 @@ async function evaluateScenario(cdp, sessionId, scenario) {
     const scenarioSelect = document.getElementById("scenario");
     scenarioSelect.value = ${JSON.stringify(scenario)};
     scenarioSelect.dispatchEvent(new Event("change", { bubbles: true }));
-    const fields = Object.fromEntries(Array.from(document.querySelectorAll(".field")).map((field) => {
+    const fields = Object.fromEntries(Array.from(document.querySelectorAll(".df-field, .field")).map((field) => {
       const label = field.querySelector("span")?.textContent ?? "";
       const value = field.querySelector("strong")?.textContent ?? "";
       return [label, value];
@@ -250,7 +250,7 @@ async function evaluateScenario(cdp, sessionId, scenario) {
       scenario: scenarioSelect.value,
       summary: document.getElementById("summary")?.textContent ?? "",
       fields,
-      badges: Array.from(document.querySelectorAll(".badge")).map((badge) => badge.textContent ?? "")
+      badges: Array.from(document.querySelectorAll(".df-badge, .badge")).map((badge) => badge.textContent ?? "")
     };
   })()`;
   const result = await cdp.send("Runtime.evaluate", {
@@ -267,13 +267,19 @@ function assertPageState(pageState, scenario, expectedStatus) {
   const fields = pageState.fields;
   const checks = [
     [pageState.scenario === scenario, `scenario selector should be ${scenario}`],
-    [fields["预览状态"] === expectedStatus, `${scenario} preview status should be ${expectedStatus}`],
+    [
+      fields["预览状态"] === expectedStatus || fields["预览状态"]?.includes(`(${expectedStatus})`),
+      `${scenario} preview status should retain ${expectedStatus}`,
+    ],
     [fields["事实来源"] === "dark-factory-journal", `${scenario} truth source should remain Journal`],
     [fields["是否权威"] === "否", `${scenario} must remain non-authoritative`],
     [fields["是否推进终态"] === "否", `${scenario} must not advance terminal state`],
     [typeof fields["下一安全 hook"] === "string" && fields["下一安全 hook"].length > 0, `${scenario} should render next safe hook`],
     [typeof fields["熔断器状态"] === "string" && fields["熔断器状态"].length > 0, `${scenario} should render breaker state`],
-    [Array.isArray(pageState.badges) && pageState.badges.includes("journal-truth-source"), `${scenario} should render Journal truth badge`],
+    [
+      Array.isArray(pageState.badges) && pageState.badges.some((badge) => badge.includes("journal-truth-source")),
+      `${scenario} should render Journal truth badge`,
+    ],
   ];
   const failed = checks.find(([ok]) => !ok);
   if (failed) {

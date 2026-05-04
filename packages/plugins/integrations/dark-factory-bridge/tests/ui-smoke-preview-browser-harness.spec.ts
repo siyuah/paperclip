@@ -31,7 +31,11 @@ describe("UI smoke preview browser harness", () => {
     expect(html).toContain("dark-factory-journal");
     expect(html).toContain("journal-truth-source");
     expect(html).toContain("df-remote-dry-run-");
-    expect(html).toContain("Dark Factory Journal 仍是唯一事实来源");
+    expect(html).toContain("Dark Factory Journal remains truth source");
+    expect(html).toContain("class=\"df-card\"");
+    expect(html).toContain("class=\"df-grid\"");
+    expect(html).toContain("class=\"df-guard-list\"");
+    expect(html).not.toContain("style=\"margin:0");
     expect(html).not.toContain("contactProvider=");
     expect(html).not.toContain("authorizes=");
     expect(html).not.toContain("preflight=");
