@@ -26,12 +26,12 @@ export function buildUiSmokePreviewBrowserHarness(
   <style>
     :root {
       color-scheme: dark;
-      --df-bg-primary: #111111;
-      --df-bg-secondary: #171717;
-      --df-bg-card: rgba(26, 26, 26, 0.72);
-      --df-bg-card-solid: #1a1a1a;
-      --df-border: rgba(255, 255, 255, 0.08);
-      --df-border-focus: rgba(255, 255, 255, 0.24);
+      --df-bg-primary: #0f0f0f;
+      --df-bg-secondary: rgba(255, 255, 255, 0.035);
+      --df-bg-card: rgba(255, 255, 255, 0.024);
+      --df-bg-card-solid: rgba(255, 255, 255, 0.04);
+      --df-border: rgba(255, 255, 255, 0.075);
+      --df-border-focus: rgba(255, 255, 255, 0.18);
       --df-text-primary: #e5e5e5;
       --df-text-secondary: #888888;
       --df-status-healthy: #34d399;
@@ -85,12 +85,12 @@ export function buildUiSmokePreviewBrowserHarness(
     .df-alert.warning { border: 1px solid rgba(245, 158, 11, 0.18); background: var(--df-status-warning-bg); color: var(--df-status-warning); }
     .df-alert.error { border: 1px solid rgba(239, 68, 68, 0.18); background: var(--df-status-error-bg); color: var(--df-status-error); }
     .df-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-    .df-field { border: 1px solid var(--df-border); border-radius: 6px; padding: 10px; min-width: 0; background: rgba(23, 23, 23, 0.72); }
+    .df-field { border: 1px solid var(--df-border); border-radius: 6px; padding: 10px; min-width: 0; background: var(--df-bg-secondary); }
     .df-field span { display: block; color: var(--df-text-secondary); font-size: 12px; margin-bottom: 4px; }
     .df-field strong, code { overflow-wrap: anywhere; font-family: var(--df-font-mono); }
     .df-section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .df-guard-list { display: grid; gap: 8px; }
-    .df-guard { border: 1px solid var(--df-border); border-radius: 6px; padding: 10px; display: grid; gap: 4px; background: rgba(23, 23, 23, 0.72); font-size: 13px; }
+    .df-guard { border: 1px solid var(--df-border); border-radius: 6px; padding: 10px; display: grid; gap: 4px; background: var(--df-bg-secondary); font-size: 13px; }
     .df-guard.allowed { border-color: rgba(52, 211, 153, 0.18); background: var(--df-status-healthy-bg); color: var(--df-status-healthy); }
     .df-guard.review_required { border-color: rgba(245, 158, 11, 0.18); background: var(--df-status-warning-bg); color: var(--df-status-warning); }
     .df-guard.blocked { border-color: rgba(239, 68, 68, 0.18); background: var(--df-status-error-bg); color: var(--df-status-error); }

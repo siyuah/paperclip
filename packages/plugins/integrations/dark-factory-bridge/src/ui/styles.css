@@ -2,12 +2,12 @@
 
 /* --- Tokens --- */
 :root {
-  --df-bg: #111111;
-  --df-bg-subtle: #171717;
-  --df-bg-card: rgba(26, 26, 26, 0.72);
-  --df-bg-card-solid: #1a1a1a;
-  --df-border: rgba(255, 255, 255, 0.08);
-  --df-border-hover: rgba(255, 255, 255, 0.16);
+  --df-bg: transparent;
+  --df-bg-subtle: rgba(255, 255, 255, 0.035);
+  --df-bg-card: rgba(255, 255, 255, 0.024);
+  --df-bg-card-solid: rgba(255, 255, 255, 0.04);
+  --df-border: rgba(255, 255, 255, 0.075);
+  --df-border-hover: rgba(255, 255, 255, 0.13);
   --df-radius: 6px;
 
   --df-text: #e5e5e5;
@@ -38,7 +38,7 @@
   max-width: 100%;
   overflow-x: clip;
   border-radius: var(--df-radius);
-  background: var(--df-bg);
+  background: transparent;
   color: var(--df-text);
   font-family: var(--df-font);
   font-size: 13px;
