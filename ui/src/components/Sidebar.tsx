@@ -55,31 +55,31 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-60 h-full min-h-0 border-r border-border bg-background flex flex-col">
+    <aside className="w-60 h-full min-h-0 border-r border-border/60 bg-sidebar flex flex-col">
       {/* Top bar: Company name (bold) + Search — aligned with top sections (no visible border) */}
-      <div className="flex items-center gap-1 px-3 h-12 shrink-0">
+      <div className="flex items-center gap-1 border-b border-border/40 px-3 h-12 shrink-0">
         <SidebarCompanyMenu />
         <Button
           variant="ghost"
           size="icon-sm"
-          className="text-muted-foreground shrink-0"
+          className="text-muted-foreground hover:bg-accent/50 shrink-0"
           onClick={openSearch}
         >
           <Search className="h-4 w-4" />
         </Button>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-auto-hide flex flex-col gap-4 px-3 py-2">
-        <div className="flex flex-col gap-0.5">
+      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-auto-hide flex flex-col gap-5 px-3 py-4">
+        <div className="flex flex-col gap-1">
           {/* New Issue button aligned with nav items */}
           <button
             onClick={() => openNewIssue()}
-            className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+            className="flex items-center gap-2.5 rounded-md border border-border/50 bg-card/40 px-3 py-2 text-[13px] font-medium text-muted-foreground hover:border-border hover:bg-accent/50 hover:text-foreground transition-colors"
           >
             <SquarePen className="h-4 w-4 shrink-0" />
             <span className="truncate">New Issue</span>
           </button>
-          <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} className="rounded-md" />
           <SidebarNavItem
             to="/inbox"
             label="Inbox"
@@ -87,22 +87,23 @@ export function Sidebar() {
             badge={inboxBadge.inbox}
             badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
             alert={inboxBadge.failedRuns > 0}
+            className="rounded-md"
           />
           <PluginSlotOutlet
             slotTypes={["sidebar"]}
             context={pluginContext}
-            className="flex flex-col gap-0.5"
+            className="flex flex-col gap-1"
             itemClassName="text-[13px] font-medium"
             missingBehavior="placeholder"
           />
         </div>
 
         <SidebarSection label="Work">
-          <SidebarNavItem to="/issues" label="Issues" icon={CircleDot} />
-          <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
-          <SidebarNavItem to="/goals" label="Goals" icon={Target} />
+          <SidebarNavItem to="/issues" label="Issues" icon={CircleDot} className="rounded-md" />
+          <SidebarNavItem to="/routines" label="Routines" icon={Repeat} className="rounded-md" />
+          <SidebarNavItem to="/goals" label="Goals" icon={Target} className="rounded-md" />
           {showWorkspacesLink ? (
-            <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
+            <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} className="rounded-md" />
           ) : null}
         </SidebarSection>
 
@@ -111,18 +112,18 @@ export function Sidebar() {
         <SidebarAgents />
 
         <SidebarSection label="Company">
-          <SidebarNavItem to="/org" label="Org" icon={Network} />
-          <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
-          <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
-          <SidebarNavItem to="/activity" label="Activity" icon={History} />
-          <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
+          <SidebarNavItem to="/org" label="Org" icon={Network} className="rounded-md" />
+          <SidebarNavItem to="/skills" label="Skills" icon={Boxes} className="rounded-md" />
+          <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} className="rounded-md" />
+          <SidebarNavItem to="/activity" label="Activity" icon={History} className="rounded-md" />
+          <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} className="rounded-md" />
         </SidebarSection>
 
         <PluginSlotOutlet
           slotTypes={["sidebarPanel"]}
           context={pluginContext}
           className="flex flex-col gap-3"
-          itemClassName="rounded-lg border border-border p-3"
+          itemClassName="rounded-md border border-border/60 bg-card/40 p-3"
           missingBehavior="placeholder"
         />
       </nav>

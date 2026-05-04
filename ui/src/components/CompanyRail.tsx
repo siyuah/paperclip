@@ -81,7 +81,7 @@ function SortableCompanyItem({
             {/* Selection indicator pill */}
             <div
               className={cn(
-                "absolute left-[-14px] w-1 rounded-r-full bg-foreground transition-[height] duration-150",
+                "absolute left-[-14px] w-px rounded-r-full bg-foreground transition-[height] duration-150",
                 isSelected
                   ? "h-5"
                   : "h-0 group-hover:h-2"
@@ -96,21 +96,21 @@ function SortableCompanyItem({
                 brandColor={company.brandColor}
                 className={cn(
                   isSelected
-                    ? "rounded-[14px]"
-                    : "rounded-[22px] group-hover:rounded-[14px]",
-                  isDragging && "shadow-lg",
+                    ? "rounded-md ring-1 ring-foreground/25"
+                    : "rounded-md ring-1 ring-border/60 group-hover:ring-border",
+                  isDragging && "scale-105",
                 )}
               />
               {hasLiveAgents && (
                 <span className="pointer-events-none absolute -right-0.5 -top-0.5 z-10">
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-blue-400 opacity-80" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ring-background" />
+                    <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-sky-400 opacity-40" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sky-400 ring-2 ring-background" />
                   </span>
                 </span>
               )}
               {hasUnreadInbox && (
-                <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 z-10 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
+                <span className="pointer-events-none absolute -bottom-0.5 -right-0.5 z-10 h-2.5 w-2.5 rounded-full bg-red-400 ring-2 ring-background" />
               )}
             </div>
           </a>
@@ -199,14 +199,14 @@ export function CompanyRail() {
   );
 
   return (
-    <div className="flex flex-col items-center w-[72px] shrink-0 h-full bg-background border-r border-border">
+    <div className="flex flex-col items-center w-[72px] shrink-0 h-full bg-sidebar border-r border-border/60">
       {/* Paperclip icon - aligned with top sections (implied line, no visible border) */}
-      <div className="flex items-center justify-center h-12 w-full shrink-0">
-        <Paperclip className="h-5 w-5 text-foreground" />
+      <div className="flex items-center justify-center h-12 w-full shrink-0 border-b border-border/40">
+        <Paperclip className="h-5 w-5 text-foreground/90" />
       </div>
 
       {/* Company list */}
-      <div className="flex-1 flex flex-col items-center gap-2 py-3 w-full overflow-y-auto overflow-x-hidden scrollbar-none">
+      <div className="flex-1 flex flex-col items-center gap-2.5 py-4 w-full overflow-y-auto overflow-x-hidden scrollbar-none">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -236,7 +236,7 @@ export function CompanyRail() {
       </div>
 
       {/* Separator before add button */}
-      <div className="w-8 h-px bg-border mx-auto shrink-0" />
+      <div className="w-8 h-px bg-border/60 mx-auto shrink-0" />
 
       {/* Add company button */}
       <div className="flex items-center justify-center py-2 shrink-0">
@@ -244,7 +244,7 @@ export function CompanyRail() {
           <TooltipTrigger asChild>
             <button
               onClick={() => openOnboarding()}
-              className="flex items-center justify-center w-11 h-11 rounded-[22px] hover:rounded-[14px] border-2 border-dashed border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground transition-[border-color,color,border-radius] duration-150"
+              className="flex items-center justify-center w-11 h-11 rounded-md border border-dashed border-border/70 text-muted-foreground hover:border-border hover:bg-accent/50 hover:text-foreground transition-[background-color,border-color,color] duration-150"
               aria-label="添加公司"
             >
               <Plus className="h-5 w-5" />

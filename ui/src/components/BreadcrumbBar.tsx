@@ -23,9 +23,9 @@ function GlobalToolbarPlugins({ context }: { context: GlobalToolbarContext }) {
   const { launchers } = usePluginLaunchers({ placementZones: ["globalToolbarButton"], companyId: context.companyId, enabled: !!context.companyId });
   if (slots.length === 0 && launchers.length === 0) return null;
   return (
-    <div className="flex items-center gap-1 ml-auto shrink-0 pl-2">
-      <PluginSlotOutlet slotTypes={["globalToolbarButton"]} context={context} className="flex items-center gap-1" />
-      <PluginLauncherOutlet placementZones={["globalToolbarButton"]} context={context} className="flex items-center gap-1" />
+    <div className="flex items-center gap-1.5 ml-auto shrink-0 pl-3">
+      <PluginSlotOutlet slotTypes={["globalToolbarButton"]} context={context} className="flex items-center gap-1.5" />
+      <PluginLauncherOutlet placementZones={["globalToolbarButton"]} context={context} className="flex items-center gap-1.5" />
     </div>
   );
 }
@@ -47,7 +47,7 @@ export function BreadcrumbBar() {
 
   if (isMobile && mobileToolbar) {
     return (
-      <div className="border-b border-border px-2 h-12 shrink-0 flex items-center">
+      <div className="border-b border-border/50 bg-background/95 px-2 h-12 shrink-0 flex items-center backdrop-blur supports-[backdrop-filter]:bg-background/85">
         {mobileToolbar}
       </div>
     );
@@ -55,7 +55,7 @@ export function BreadcrumbBar() {
 
   if (breadcrumbs.length === 0) {
     return (
-      <div className="border-b border-border px-4 md:px-6 h-12 shrink-0 flex items-center justify-end">
+      <div className="border-b border-border/50 bg-background/95 px-4 md:px-8 h-12 shrink-0 flex items-center justify-end backdrop-blur supports-[backdrop-filter]:bg-background/85">
         {globalToolbarSlots}
       </div>
     );
@@ -65,7 +65,7 @@ export function BreadcrumbBar() {
     <Button
       variant="ghost"
       size="icon-sm"
-      className="mr-2 shrink-0"
+      className="mr-2 shrink-0 text-muted-foreground hover:text-foreground"
       onClick={toggleSidebar}
       aria-label="Open sidebar"
     >
@@ -76,10 +76,10 @@ export function BreadcrumbBar() {
   // Single breadcrumb = page title (uppercase)
   if (breadcrumbs.length === 1) {
     return (
-      <div className="border-b border-border px-4 md:px-6 h-12 shrink-0 flex items-center">
+      <div className="border-b border-border/50 bg-background/95 px-4 md:px-8 h-12 shrink-0 flex items-center backdrop-blur supports-[backdrop-filter]:bg-background/85">
         {menuButton}
         <div className="min-w-0 overflow-hidden flex-1">
-          <h1 className="text-sm font-semibold uppercase tracking-wider truncate">
+          <h1 className="text-[13px] font-medium uppercase tracking-widest text-foreground/90 truncate">
             {breadcrumbs[0].label}
           </h1>
         </div>
@@ -90,7 +90,7 @@ export function BreadcrumbBar() {
 
   // Multiple breadcrumbs = breadcrumb trail
   return (
-    <div className="border-b border-border px-4 md:px-6 h-12 shrink-0 flex items-center">
+    <div className="border-b border-border/50 bg-background/95 px-4 md:px-8 h-12 shrink-0 flex items-center backdrop-blur supports-[backdrop-filter]:bg-background/85">
       {menuButton}
       <div className="min-w-0 overflow-hidden flex-1">
         <Breadcrumb className="min-w-0 overflow-hidden">

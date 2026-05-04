@@ -306,13 +306,13 @@ export function Layout() {
     <GeneralSettingsProvider value={{ keyboardShortcutsEnabled }}>
       <div
       className={cn(
-        "bg-background text-foreground pt-[env(safe-area-inset-top)]",
+        "bg-background text-foreground pt-[env(safe-area-inset-top)] selection:bg-primary/10 selection:text-foreground",
         isMobile ? "min-h-dvh" : "flex h-dvh flex-col overflow-hidden",
       )}
       >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-md focus:border focus:border-border/60 focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         Skip to Main Content
       </a>
@@ -322,7 +322,7 @@ export function Layout() {
         {isMobile && sidebarOpen && (
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-black/50"
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[1px]"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close sidebar"
           />
@@ -331,7 +331,7 @@ export function Layout() {
         {isMobile ? (
           <div
             className={cn(
-              "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-100 ease-out",
+              "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden border-r border-border/60 bg-background pt-[env(safe-area-inset-top)] transition-transform duration-150 ease-out",
               sidebarOpen ? "translate-x-0" : "-translate-x-full"
             )}
           >
@@ -381,7 +381,7 @@ export function Layout() {
         <div className={cn("flex min-w-0 flex-col", isMobile ? "w-full" : "h-full flex-1")}>
           <div
             className={cn(
-              isMobile && "sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
+              isMobile && "sticky top-0 z-20 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
             )}
           >
             <BreadcrumbBar />
@@ -392,7 +392,7 @@ export function Layout() {
               ref={mainContentRef}
               tabIndex={-1}
               className={cn(
-                "flex-1 p-4 outline-none md:p-6",
+                "flex-1 bg-background px-4 py-5 outline-none md:px-8 md:py-7",
                 isMobile ? "overflow-visible pb-[calc(5rem+env(safe-area-inset-bottom))]" : "overflow-auto",
               )}
             >
