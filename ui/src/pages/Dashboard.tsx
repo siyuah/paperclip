@@ -194,20 +194,20 @@ export function Dashboard() {
   const hasNoAgents = agents !== undefined && agents.length === 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       {error && <p className="text-sm text-destructive">{error.message}</p>}
 
       {hasNoAgents && (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-500/25 dark:bg-amber-950/60">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-amber-500/25 bg-amber-500/10 px-4 py-3">
           <div className="flex items-center gap-2.5">
             <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="text-sm text-amber-900 dark:text-amber-100">
+            <p className="text-sm text-amber-200">
               你还没有代理。
             </p>
           </div>
           <button
             onClick={() => openOnboarding({ initialStep: 2, companyId: selectedCompanyId! })}
-            className="text-sm font-medium text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100 underline underline-offset-2 shrink-0"
+            className="shrink-0 text-sm font-medium text-amber-300 underline underline-offset-2 hover:text-amber-100"
           >
             在这里新建一个
           </button>
@@ -219,7 +219,7 @@ export function Dashboard() {
       {data && (
         <>
           {data.budgets.activeIncidents > 0 ? (
-            <div className="flex items-start justify-between gap-3 rounded-xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(255,80,80,0.12),rgba(255,255,255,0.02))] px-4 py-3">
+            <div className="flex items-start justify-between gap-3 rounded-md border border-red-500/25 bg-red-500/10 px-4 py-3">
               <div className="flex items-start gap-2.5">
                 <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
                 <div>
@@ -237,7 +237,7 @@ export function Dashboard() {
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-1 sm:gap-2">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <MetricCard
               icon={Bot}
               value={data.agents.active + data.agents.running + data.agents.paused + data.agents.error}
@@ -291,7 +291,7 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <ChartCard title="运行活动" subtitle="最近 14 天">
               <RunActivityChart activity={data.runActivity} />
             </ChartCard>
@@ -310,17 +310,17 @@ export function Dashboard() {
             slotTypes={["dashboardWidget"]}
             context={{ companyId: selectedCompanyId }}
             className="grid gap-4 md:grid-cols-2"
-            itemClassName="rounded-lg border bg-card p-4 shadow-sm"
+            itemClassName="rounded-md border border-border/60 bg-card/40 p-4 shadow-none"
           />
 
           <div className="grid md:grid-cols-2 gap-4">
             {/* Recent Activity */}
             {recentActivity.length > 0 && (
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                <h3 className="mb-3 font-mono text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
                   最近活动
                 </h3>
-                <div className="border border-border divide-y divide-border overflow-hidden">
+                <div className="overflow-hidden rounded-md border border-border/60 bg-card/40 divide-y divide-border/60">
                   {recentActivity.map((event) => (
                     <ActivityRow
                       key={event.id}
@@ -338,20 +338,20 @@ export function Dashboard() {
 
             {/* Recent Tasks */}
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              <h3 className="mb-3 font-mono text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
                 最近任务
               </h3>
               {recentIssues.length === 0 ? (
-                <div className="border border-border p-4">
+                <div className="rounded-md border border-border/60 bg-card/40 p-4">
                   <p className="text-sm text-muted-foreground">暂无任务。</p>
                 </div>
               ) : (
-                <div className="border border-border divide-y divide-border overflow-hidden">
+                <div className="overflow-hidden rounded-md border border-border/60 bg-card/40 divide-y divide-border/60">
                   {recentIssues.slice(0, 10).map((issue) => (
                     <Link
                       key={issue.id}
                       to={`/issues/${issue.identifier ?? issue.id}`}
-                      className="px-4 py-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors no-underline text-inherit block"
+                      className="block cursor-pointer px-4 py-3 text-sm text-inherit no-underline transition-colors hover:bg-accent/40"
                     >
                       <div className="flex items-start gap-2 sm:items-center sm:gap-3">
                         {/* Status icon - left column on mobile */}

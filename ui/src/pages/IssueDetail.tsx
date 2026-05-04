@@ -2940,7 +2940,7 @@ export function IssueDetail() {
         disabled={uploadAttachment.isPending || importMarkdownDocument.isPending}
         className={cn(
           "shadow-none",
-          attachmentDragActive && "border-primary bg-primary/5",
+          attachmentDragActive && "border-primary/60 bg-primary/10",
         )}
       >
         <Paperclip className="h-3.5 w-3.5 mr-1.5" />
@@ -2955,10 +2955,10 @@ export function IssueDetail() {
   );
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-7">
       {/* Parent chain breadcrumb */}
       {ancestors.length > 0 && (
-        <nav className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+        <nav className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-muted-foreground">
           {[...ancestors].reverse().map((ancestor, i) => (
             <span key={ancestor.id} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="h-3 w-3 shrink-0" />}
@@ -2984,13 +2984,13 @@ export function IssueDetail() {
       )}
 
       {issue.hiddenAt && (
-        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div className="flex items-center gap-2 rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <EyeOff className="h-4 w-4 shrink-0" />
           此事项已隐藏
         </div>
       )}
       {activePauseHold && (
-        <div className="rounded-md border border-amber-500/35 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+        <div className="rounded-md border border-amber-400/25 bg-amber-400/10 p-3 text-sm text-amber-200">
           {activePauseHold.isRoot ? (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -3066,7 +3066,8 @@ export function IssueDetail() {
       )}
 
       <div className="space-y-3">
-        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+        <div className="min-w-0 space-y-4 rounded-md border border-border/60 bg-card/40 p-4">
+          <div className="flex flex-wrap items-center gap-2">
           <StatusIcon
             status={issue.status}
             blockerAttention={issue.blockerAttention}
@@ -3076,7 +3077,7 @@ export function IssueDetail() {
             priority={issue.priority}
             onChange={(priority) => updateIssue.mutate({ priority })}
           />
-          <span className="text-sm font-mono text-muted-foreground shrink-0">{issue.identifier ?? issue.id.slice(0, 8)}</span>
+          <span className="font-geek-mono shrink-0 text-sm text-muted-foreground">{issue.identifier ?? issue.id.slice(0, 8)}</span>
 
           {hasLiveRuns && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-medium text-cyan-600 dark:text-cyan-400 shrink-0">
@@ -3169,7 +3170,7 @@ export function IssueDetail() {
             </div>
           )}
 
-          <div className="hidden md:flex items-center md:ml-auto shrink-0">
+          <div className="hidden items-center md:ml-auto md:flex shrink-0">
             {canArchiveFromInbox && (
               <Button
                 variant="ghost"
@@ -3325,20 +3326,20 @@ export function IssueDetail() {
             </PopoverContent>
             </Popover>
           </div>
-        </div>
+          </div>
 
         <InlineEditor
           value={issue.title}
           onSave={(title) => updateIssue.mutateAsync({ title })}
           as="h2"
-          className="text-xl font-bold"
+          className="text-2xl font-semibold leading-tight"
         />
 
         <InlineEditor
           value={issue.description ?? ""}
           onSave={(description) => updateIssue.mutateAsync({ description })}
           as="p"
-          className="text-[15px] leading-7 text-foreground"
+          className="text-[15px] leading-7 text-foreground/90"
           placeholder="添加描述..."
           multiline
           foldable
@@ -3351,6 +3352,7 @@ export function IssueDetail() {
             await uploadAttachment.mutateAsync(file);
           }}
         />
+        </div>
       </div>
 
       <PluginSlotOutlet

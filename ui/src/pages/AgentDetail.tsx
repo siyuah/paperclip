@@ -915,20 +915,20 @@ export function AgentDetail() {
   const showConfigActionBar = (activeView === "configuration" || activeView === "instructions") && (configDirty || configSaving);
 
   return (
-    <div className={cn("space-y-6", isMobile && showConfigActionBar && "pb-24")}>
+    <div className={cn("space-y-7", isMobile && showConfigActionBar && "pb-24")}>
       {/* Header */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-card/40 p-4">
         <div className="flex items-center gap-3 min-w-0">
           <AgentIconPicker
             value={agent.icon}
             onChange={(icon) => updateIcon.mutate(icon)}
           >
-            <button className="shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-accent hover:bg-accent/80 transition-colors">
+            <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-border/60 bg-accent/50 transition-colors hover:bg-accent/70">
               <AgentIcon icon={agent.icon} className="h-6 w-6" />
             </button>
           </AgentIconPicker>
           <div className="min-w-0">
-            <h2 className="text-2xl font-bold truncate">{agent.name}</h2>
+            <h2 className="truncate text-2xl font-semibold">{agent.name}</h2>
             <p className="text-sm text-muted-foreground truncate">
               {roleLabels[agent.role] ?? agent.role}
               {agent.title ? ` - ${agent.title}` : ""}
@@ -959,11 +959,11 @@ export function AgentDetail() {
           {mobileLiveRun && (
             <Link
               to={`/agents/${canonicalAgentRef}/runs/${mobileLiveRun.id}`}
-              className="sm:hidden flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 transition-colors no-underline"
+              className="sm:hidden flex items-center gap-1.5 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 no-underline transition-colors hover:bg-blue-400/15"
             >
               <span className="relative flex h-2 w-2">
-                <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-blue-400 opacity-40" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-400" />
               </span>
               <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">Live</span>
             </Link>
@@ -1034,7 +1034,7 @@ export function AgentDetail() {
 
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
       {isPendingApproval && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/30 dark:text-amber-200">
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
           <span>This agent is pending board approval and cannot be invoked yet.</span>
           <Button
             variant="outline"
@@ -1051,7 +1051,7 @@ export function AgentDetail() {
       {/* Floating Save/Cancel (desktop) */}
       {!isMobile && showConfigActionBar && (
         <div className="fixed bottom-6 right-6 z-30">
-          <div className="flex items-center gap-2 bg-background/90 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 shadow-lg">
+          <div className="flex items-center gap-2 rounded-md border border-border/60 bg-background/90 px-3 py-1.5 shadow-none backdrop-blur-sm">
             <Button
               variant="ghost"
               size="sm"
@@ -1073,7 +1073,7 @@ export function AgentDetail() {
 
       {/* Mobile bottom Save/Cancel bar */}
       {isMobile && showConfigActionBar && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur-sm">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 backdrop-blur-sm">
           <div
             className="flex items-center justify-end gap-2 px-3 py-2"
             style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.5rem)" }}
@@ -1282,12 +1282,12 @@ function AgentOverview({
   agentRouteId: string;
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-7">
       {/* Latest Run */}
       <LatestRunCard runs={runs} agentId={agentRouteId} />
 
       {/* Charts */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ChartCard title="Run Activity" subtitle="Last 14 days">
           <RunActivityChart runs={runs} />
         </ChartCard>
@@ -1305,7 +1305,7 @@ function AgentOverview({
       {/* Recent Issues */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Recent Issues</h3>
+          <h3 className="font-mono text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Recent Issues</h3>
           <Link
             to={`/issues?participantAgentId=${agentId}`}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -1316,7 +1316,7 @@ function AgentOverview({
         {assignedIssues.length === 0 ? (
           <p className="text-sm text-muted-foreground">No recent issues.</p>
         ) : (
-          <div className="border border-border rounded-lg">
+          <div className="overflow-hidden rounded-md border border-border/60 bg-card/40">
             {assignedIssues.slice(0, 10).map((issue) => (
               <EntityRow
                 key={issue.id}
@@ -1327,7 +1327,7 @@ function AgentOverview({
               />
             ))}
             {assignedIssues.length > 10 && (
-              <div className="px-3 py-2 text-xs text-muted-foreground text-center border-t border-border">
+              <div className="border-t border-border/60 px-3 py-2 text-center text-xs text-muted-foreground">
                 +{assignedIssues.length - 10} more issues
               </div>
             )}
@@ -1337,7 +1337,7 @@ function AgentOverview({
 
       {/* Costs */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium">Costs</h3>
+        <h3 className="font-mono text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Costs</h3>
         <CostsSection runtimeState={runtimeState} runs={runs} />
       </div>
     </div>
@@ -1363,32 +1363,32 @@ function CostsSection({
   return (
     <div className="space-y-4">
       {runtimeState && (
-        <div className="border border-border rounded-lg p-4">
+        <div className="rounded-md border border-border/60 bg-card/40 p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 tabular-nums">
             <div>
               <span className="text-xs text-muted-foreground block">Input tokens</span>
-              <span className="text-lg font-semibold">{formatTokens(runtimeState.totalInputTokens)}</span>
+              <span className="font-geek-mono text-lg font-semibold">{formatTokens(runtimeState.totalInputTokens)}</span>
             </div>
             <div>
               <span className="text-xs text-muted-foreground block">Output tokens</span>
-              <span className="text-lg font-semibold">{formatTokens(runtimeState.totalOutputTokens)}</span>
+              <span className="font-geek-mono text-lg font-semibold">{formatTokens(runtimeState.totalOutputTokens)}</span>
             </div>
             <div>
               <span className="text-xs text-muted-foreground block">Cached tokens</span>
-              <span className="text-lg font-semibold">{formatTokens(runtimeState.totalCachedInputTokens)}</span>
+              <span className="font-geek-mono text-lg font-semibold">{formatTokens(runtimeState.totalCachedInputTokens)}</span>
             </div>
             <div>
               <span className="text-xs text-muted-foreground block">Total cost</span>
-              <span className="text-lg font-semibold">{formatCents(runtimeState.totalCostCents)}</span>
+              <span className="font-geek-mono text-lg font-semibold">{formatCents(runtimeState.totalCostCents)}</span>
             </div>
           </div>
         </div>
       )}
       {runsWithCost.length > 0 && (
-        <div className="border border-border rounded-lg overflow-hidden">
+        <div className="overflow-hidden rounded-md border border-border/60 bg-card/40">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border bg-accent/20">
+              <tr className="border-b border-border/60 bg-accent/20">
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground">Run</th>
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground">Input</th>
@@ -1400,7 +1400,7 @@ function CostsSection({
               {runsWithCost.slice(0, 10).map((run) => {
                 const metrics = runMetrics(run);
                 return (
-                  <tr key={run.id} className="border-b border-border last:border-b-0">
+                  <tr key={run.id} className="border-b border-border/60 last:border-b-0">
                     <td className="px-3 py-2">{formatDate(run.createdAt)}</td>
                     <td className="px-3 py-2 font-mono">{run.id.slice(0, 8)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatTokens(metrics.input)}</td>

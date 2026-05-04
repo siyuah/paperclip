@@ -1172,13 +1172,13 @@ export function IssuesList({
   let remainingRowsToRender = viewState.viewMode === "list" ? renderedIssueRowLimit : Number.POSITIVE_INFINITY;
 
   return (
-    <div ref={rootRef} className="space-y-4">
+    <div ref={rootRef} className="space-y-5">
       {progressSummary ? (
         <SubIssueProgressSummaryStrip summary={progressSummary} issueLinkState={issueLinkState} />
       ) : null}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 sm:gap-3">
+      <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-card/40 p-3 sm:gap-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Button size="sm" variant="outline" onClick={() => openCreateIssueDialog()}>
             <Plus className="h-4 w-4 sm:mr-1" />
@@ -1195,16 +1195,16 @@ export function IssuesList({
 
         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           {/* View mode toggle */}
-          <div className="flex items-center border border-border rounded-md overflow-hidden mr-1">
+          <div className="mr-1 flex items-center overflow-hidden rounded-md border border-border/60">
             <button
-              className={`p-1.5 transition-colors ${viewState.viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`p-1.5 transition-colors ${viewState.viewMode === "list" ? "bg-accent/60 text-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "list" })}
               title="列表视图"
             >
               <List className="h-3.5 w-3.5" />
             </button>
             <button
-              className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent/60 text-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "board" })}
               title="看板视图"
             >
@@ -1268,8 +1268,8 @@ export function IssuesList({
                   ] as const).map(([field, label]) => (
                     <button
                       key={field}
-                      className={`flex items-center justify-between w-full px-2 py-1.5 text-sm rounded-sm ${
-                        viewState.sortField === field ? "bg-accent/50 text-foreground" : "hover:bg-accent/50 text-muted-foreground"
+                    className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm ${
+                        viewState.sortField === field ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/40"
                       }`}
                       onClick={() => {
                         if (viewState.sortField === field) {
@@ -1312,8 +1312,8 @@ export function IssuesList({
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}
-                      className={`flex items-center justify-between w-full px-2 py-1.5 text-sm rounded-sm ${
-                        viewState.groupBy === value ? "bg-accent/50 text-foreground" : "hover:bg-accent/50 text-muted-foreground"
+                    className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm ${
+                        viewState.groupBy === value ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/40"
                       }`}
                       onClick={() => updateView({ groupBy: value })}
                     >

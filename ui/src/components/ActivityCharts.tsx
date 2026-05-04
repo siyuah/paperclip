@@ -19,11 +19,11 @@ function formatDayLabel(dateStr: string): string {
 
 function DateLabels({ days }: { days: string[] }) {
   return (
-    <div className="flex gap-[3px] mt-1.5">
+    <div className="mt-1.5 flex gap-[3px]">
       {days.map((day, i) => (
         <div key={day} className="flex-1 text-center">
           {(i === 0 || i === 6 || i === 13) ? (
-            <span className="text-[9px] text-muted-foreground tabular-nums">{formatDayLabel(day)}</span>
+            <span className="font-geek-mono text-[9px] text-muted-foreground tabular-nums">{formatDayLabel(day)}</span>
           ) : null}
         </div>
       ))}
@@ -33,7 +33,7 @@ function DateLabels({ days }: { days: string[] }) {
 
 function ChartLegend({ items }: { items: { color: string; label: string }[] }) {
   return (
-    <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 mt-2">
+    <div className="mt-2 flex flex-wrap gap-x-2.5 gap-y-0.5">
       {items.map(item => (
         <span key={item.label} className="flex items-center gap-1 text-[9px] text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
@@ -46,7 +46,7 @@ function ChartLegend({ items }: { items: { color: string; label: string }[] }) {
 
 export function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="border border-border rounded-lg p-4 space-y-3">
+    <div className="space-y-3 rounded-md border border-border/60 bg-card/40 p-4">
       <div>
         <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
         {subtitle && <span className="text-[10px] text-muted-foreground/60">{subtitle}</span>}
@@ -96,18 +96,18 @@ export function RunActivityChart(props: RunChartProps) {
 
   return (
     <div>
-      <div className="flex items-end gap-[3px] h-20">
+      <div className="flex h-20 items-end gap-[3px]">
         {days.map(day => {
           const entry = grouped.get(day) ?? { date: day, succeeded: 0, failed: 0, other: 0, total: 0 };
           const total = entry.total;
           const heightPct = (total / maxValue) * 100;
           return (
-            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={`${day}: ${total} runs`}>
+            <div key={day} className="flex h-full flex-1 flex-col justify-end" title={`${day}: ${total} runs`}>
               {total > 0 ? (
-                <div className="flex flex-col-reverse gap-px overflow-hidden" style={{ height: `${heightPct}%`, minHeight: 2 }}>
-                  {entry.succeeded > 0 && <div className="bg-emerald-500" style={{ flex: entry.succeeded }} />}
-                  {entry.failed > 0 && <div className="bg-red-500" style={{ flex: entry.failed }} />}
-                  {entry.other > 0 && <div className="bg-neutral-500" style={{ flex: entry.other }} />}
+                <div className="flex flex-col-reverse gap-px overflow-hidden rounded-[2px]" style={{ height: `${heightPct}%`, minHeight: 2 }}>
+                  {entry.succeeded > 0 && <div className="bg-emerald-400/80" style={{ flex: entry.succeeded }} />}
+                  {entry.failed > 0 && <div className="bg-red-400/80" style={{ flex: entry.failed }} />}
+                  {entry.other > 0 && <div className="bg-neutral-500/70" style={{ flex: entry.other }} />}
                 </div>
               ) : (
                 <div className="bg-muted/30 rounded-sm" style={{ height: 2 }} />
@@ -148,15 +148,15 @@ export function PriorityChart({ issues }: { issues: { priority: string; createdA
 
   return (
     <div>
-      <div className="flex items-end gap-[3px] h-20">
+      <div className="flex h-20 items-end gap-[3px]">
         {days.map(day => {
           const entry = grouped.get(day)!;
           const total = Object.values(entry).reduce((a, b) => a + b, 0);
           const heightPct = (total / maxValue) * 100;
           return (
-            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={`${day}: ${total} issues`}>
+            <div key={day} className="flex h-full flex-1 flex-col justify-end" title={`${day}: ${total} issues`}>
               {total > 0 ? (
-                <div className="flex flex-col-reverse gap-px overflow-hidden" style={{ height: `${heightPct}%`, minHeight: 2 }}>
+                <div className="flex flex-col-reverse gap-px overflow-hidden rounded-[2px]" style={{ height: `${heightPct}%`, minHeight: 2 }}>
                   {priorityOrder.map(p => entry[p] > 0 ? (
                     <div key={p} style={{ flex: entry[p], backgroundColor: priorityColors[p] }} />
                   ) : null)}
@@ -215,15 +215,15 @@ export function IssueStatusChart({ issues }: { issues: { status: string; created
 
   return (
     <div>
-      <div className="flex items-end gap-[3px] h-20">
+      <div className="flex h-20 items-end gap-[3px]">
         {days.map(day => {
           const entry = grouped.get(day)!;
           const total = Object.values(entry).reduce((a, b) => a + b, 0);
           const heightPct = (total / maxValue) * 100;
           return (
-            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={`${day}: ${total} issues`}>
+            <div key={day} className="flex h-full flex-1 flex-col justify-end" title={`${day}: ${total} issues`}>
               {total > 0 ? (
-                <div className="flex flex-col-reverse gap-px overflow-hidden" style={{ height: `${heightPct}%`, minHeight: 2 }}>
+                <div className="flex flex-col-reverse gap-px overflow-hidden rounded-[2px]" style={{ height: `${heightPct}%`, minHeight: 2 }}>
                   {statusOrder.map(s => (entry[s] ?? 0) > 0 ? (
                     <div key={s} style={{ flex: entry[s], backgroundColor: statusColors[s] ?? "#6b7280" }} />
                   ) : null)}
@@ -251,15 +251,15 @@ export function SuccessRateChart(props: RunChartProps) {
 
   return (
     <div>
-      <div className="flex items-end gap-[3px] h-20">
+      <div className="flex h-20 items-end gap-[3px]">
         {days.map(day => {
           const entry = grouped.get(day) ?? { date: day, succeeded: 0, failed: 0, other: 0, total: 0 };
           const rate = entry.total > 0 ? entry.succeeded / entry.total : 0;
           const color = entry.total === 0 ? undefined : rate >= 0.8 ? "#10b981" : rate >= 0.5 ? "#eab308" : "#ef4444";
           return (
-            <div key={day} className="flex-1 h-full flex flex-col justify-end" title={`${day}: ${entry.total > 0 ? Math.round(rate * 100) : 0}% (${entry.succeeded}/${entry.total})`}>
+            <div key={day} className="flex h-full flex-1 flex-col justify-end" title={`${day}: ${entry.total > 0 ? Math.round(rate * 100) : 0}% (${entry.succeeded}/${entry.total})`}>
               {entry.total > 0 ? (
-                <div style={{ height: `${rate * 100}%`, minHeight: 2, backgroundColor: color }} />
+                <div className="rounded-[2px]" style={{ height: `${rate * 100}%`, minHeight: 2, backgroundColor: color }} />
               ) : (
                 <div className="bg-muted/30 rounded-sm" style={{ height: 2 }} />
               )}

@@ -131,7 +131,7 @@ export function Agents() {
   const filteredOrg = filterOrgTree(orgTree ?? [], tab, showTerminated);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={tab} onValueChange={(v) => navigate(`/agents/${v}`)}>
           <PageTabBar
@@ -150,8 +150,8 @@ export function Agents() {
           <div className="relative">
             <button
               className={cn(
-                "flex items-center gap-1.5 px-2 py-1.5 text-xs transition-colors border border-border",
-                filtersOpen || showTerminated ? "text-foreground bg-accent" : "text-muted-foreground hover:bg-accent/50"
+                "flex items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-xs transition-colors",
+                filtersOpen || showTerminated ? "bg-accent/60 text-foreground" : "text-muted-foreground hover:bg-accent/40"
               )}
               onClick={() => setFiltersOpen(!filtersOpen)}
             >
@@ -160,9 +160,9 @@ export function Agents() {
               {showTerminated && <span className="ml-0.5 px-1 bg-foreground/10 rounded text-[10px]">1</span>}
             </button>
             {filtersOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 w-48 border border-border bg-popover shadow-md p-1">
+              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-border/60 bg-popover p-1 shadow-none">
                 <button
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-left hover:bg-accent/50 transition-colors"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent/40"
                   onClick={() => setShowTerminated(!showTerminated)}
                 >
                   <span className={cn(
@@ -178,11 +178,11 @@ export function Agents() {
           </div>
           {/* View toggle */}
           {!forceListView && (
-            <div className="flex items-center border border-border">
+            <div className="flex items-center overflow-hidden rounded-md border border-border/60">
               <button
                 className={cn(
                   "p-1.5 transition-colors",
-                  effectiveView === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50"
+                  effectiveView === "list" ? "bg-accent/60 text-foreground" : "text-muted-foreground hover:bg-accent/40"
                 )}
                 onClick={() => setView("list")}
               >
@@ -191,7 +191,7 @@ export function Agents() {
               <button
                 className={cn(
                   "p-1.5 transition-colors",
-                  effectiveView === "org" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50"
+                  effectiveView === "org" ? "bg-accent/60 text-foreground" : "text-muted-foreground hover:bg-accent/40"
                 )}
                 onClick={() => setView("org")}
               >
@@ -223,7 +223,7 @@ export function Agents() {
 
       {/* List view */}
       {effectiveView === "list" && filtered.length > 0 && (
-        <div className="border border-border">
+        <div className="overflow-hidden rounded-md border border-border/60 bg-card/40">
           {filtered.map((agent) => {
             return (
               <EntityRow
@@ -292,7 +292,7 @@ export function Agents() {
 
       {/* Org chart view */}
       {effectiveView === "org" && filteredOrg.length > 0 && (
-        <div className="border border-border py-1">
+        <div className="overflow-hidden rounded-md border border-border/60 bg-card/40 py-1">
           {filteredOrg.map((node) => (
             <OrgTreeNode key={node.id} node={node} depth={0} agentMap={agentMap} liveRunByAgent={liveRunByAgent} tab={tab} />
           ))}
@@ -335,7 +335,7 @@ function OrgTreeNode({
     <div style={{ paddingLeft: depth * 24 }}>
       <Link
         to={agent ? agentUrl(agent) : `/agents/${node.id}`}
-        className={cn("flex items-center gap-3 px-3 py-2 hover:bg-accent/30 transition-colors w-full text-left no-underline text-inherit", agent?.pausedAt && tab !== "paused" && "opacity-50")}
+        className={cn("flex w-full items-center gap-3 px-3 py-2 text-left text-inherit no-underline transition-colors hover:bg-accent/40", agent?.pausedAt && tab !== "paused" && "opacity-50")}
       >
         <span className="relative flex h-2.5 w-2.5 shrink-0">
           <span className={`absolute inline-flex h-full w-full rounded-full ${statusColor}`} />
@@ -390,7 +390,7 @@ function OrgTreeNode({
         </div>
       </Link>
       {node.reports && node.reports.length > 0 && (
-        <div className="border-l border-border/50 ml-4">
+        <div className="ml-4 border-l border-border/50">
           {node.reports.map((child) => (
             <OrgTreeNode key={child.id} node={child} depth={depth + 1} agentMap={agentMap} liveRunByAgent={liveRunByAgent} tab={tab} />
           ))}
@@ -412,12 +412,12 @@ function LiveRunIndicator({
   return (
     <Link
       to={`/agents/${agentRef}/runs/${runId}`}
-      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 transition-colors no-underline"
+      className="flex items-center gap-1.5 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 no-underline transition-colors hover:bg-blue-400/15"
       onClick={(e) => e.stopPropagation()}
     >
       <span className="relative flex h-2 w-2">
-        <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+        <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-blue-400 opacity-40" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-400" />
       </span>
       <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
         Live{liveCount > 1 ? ` (${liveCount})` : ""}
