@@ -1,4 +1,4 @@
-import { Children, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   usePluginAction,
   usePluginData,
@@ -121,19 +121,16 @@ function translatedBadge(value: string): string {
   return String(displayValue(value));
 }
 
-function statusTone(value: string | null | undefined): Tone {
-  if (!value) return "info";
-  if (["available", "ready", "current", "closed", "pass", "allowed"].includes(value)) return "healthy";
-  if (["degraded", "needs_attention", "warning", "warn", "half_open", "review_required", "stale"].includes(value)) return "warning";
-  if (["blocked", "open", "critical", "fail", "error"].includes(value)) return "blocked";
-  return "info";
+function statusTone(value: string | null | undefined): Color {
+  if (!value) return "muted";
+  return getStatusColor(value);
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "未知错误";
 }
 
-type Tone = "healthy" | "warning" | "error" | "blocked" | "info";
+type Color = "green" | "red" | "amber" | "blue" | "purple" | "muted";
 
 type ProjectionSummary = {
   source: "dark-factory-projection";
@@ -426,398 +423,461 @@ function StyleMount() {
   return null;
 }
 
-function StatusDot({ tone }: { tone: Tone }) {
-  return <span className={`df-status-dot ${tone}`} aria-hidden="true" />;
+function getStatusColor(value: string | null | undefined): Color {
+  const normalized = String(value ?? "").toLowerCase();
+  if (!normalized) return "muted";
+  if (normalized === "blocked" || normalized.includes("runtime_blocked")) return "purple";
+  if (["ready", "pass", "closed", "allowed", "available", "healthy", "clear", "execute_allowed", "current"].some((item) => normalized.includes(item))) return "green";
+  if (["error", "failed", "fail", "open", "critical"].some((item) => normalized.includes(item))) return "red";
+  if (["degraded", "warning", "warn", "half_open", "review_required", "stale", "needs_attention"].some((item) => normalized.includes(item))) return "amber";
+  if (["info", "observed", "requested", "remote"].some((item) => normalized.includes(item))) return "blue";
+  return "muted";
+}
+
+function alertClass(color: Color): string {
+  if (color === "red") return "df-alert df-alert--error";
+  if (color === "amber" || color === "purple") return "df-alert df-alert--warning";
+  return "df-alert df-alert--info";
+}
+
+function checkStatusFromValue(value: string | boolean | null | undefined): "pass" | "warn" | "fail" {
+  if (typeof value === "boolean") return value ? "pass" : "fail";
+  const color = getStatusColor(value);
+  if (color === "red" || color === "purple") return "fail";
+  if (color === "amber") return "warn";
+  return "pass";
+}
+
+function Dot({ color = "green", pulse = false }: { color?: Color; pulse?: boolean }) {
+  return <span className={`df-dot df-dot--${color}${pulse ? " df-dot--pulse" : ""}`} aria-hidden="true" />;
 }
 
 function Badge({
-  label,
-  tone = "info",
+  children,
+  color = "green",
   active = true,
-  reason,
 }: {
-  label: string;
-  tone?: Tone;
+  children: ReactNode;
+  color?: Color;
   active?: boolean;
-  reason?: string | null;
 }) {
   if (!active) return null;
+  return <span className={`df-badge df-badge--${color}`}>{children}</span>;
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <span className={`df-badge ${tone}`}>
-      <StatusDot tone={tone} />
-      {label}{reason ? `: ${reason}` : ""}
-    </span>
+    <div className="df-row">
+      <span className="df-label">{label}</span>
+      <span className="df-value">{children}</span>
+    </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
+function ValueRow({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
   return (
-    <div className="df-row">
-      <span className="df-row-label">{label}</span>
-      <span className="df-row-value">{typeof value === "boolean" ? yesNo(value) : optionalText(value)}</span>
+    <Row label={label}>
+      {typeof value === "boolean" ? yesNo(value) : optionalText(value)}
+    </Row>
+  );
+}
+
+function CheckItem({
+  label,
+  status,
+  statusLabel,
+}: {
+  label: string;
+  status: "pass" | "warn" | "fail";
+  statusLabel: string;
+}) {
+  const icon = status === "pass" ? "✓" : status === "warn" ? "!" : "×";
+  const color = status === "pass" ? "green" : status === "warn" ? "amber" : "red";
+  return (
+    <div className="df-check">
+      <span className="df-check-label">
+        <span className={`df-check-icon df-check-icon--${status}`}>{icon}</span>
+        {label}
+      </span>
+      <Badge color={color}>{statusLabel}</Badge>
+    </div>
+  );
+}
+
+function Skeleton({ lines = 3 }: { lines?: number }) {
+  const widths = ["df-skeleton--w1", "df-skeleton--w2", "df-skeleton--w3", "df-skeleton--w4"];
+  return (
+    <div className="df-skeleton-stack" aria-busy="true">
+      {Array.from({ length: lines }, (_, index) => (
+        <div key={index} className={`df-skeleton ${widths[index % widths.length]}`} />
+      ))}
+    </div>
+  );
+}
+
+function Root({ children }: { children: ReactNode }) {
+  return (
+    <div className="df-root">
+      <StyleMount />
+      {children}
+    </div>
+  );
+}
+
+function Header({
+  title = "Dark Factory Bridge",
+  subtitle = "仅投影 · Journal 为事实来源 · 非权威",
+  actions,
+}: {
+  title?: string;
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="df-header">
+      <div className="df-title-block">
+        <h3 className="df-title">
+          {title}
+          <span className="df-online">
+            <Dot color="green" pulse />
+            在线
+          </span>
+        </h3>
+        <p className="df-subtitle">{subtitle}</p>
+      </div>
+      {actions ? <div className="df-header-actions">{actions}</div> : null}
+    </header>
+  );
+}
+
+function DataCard({
+  title,
+  color = "blue",
+  badge,
+  children,
+}: {
+  title: string;
+  color?: Color;
+  badge?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="df-card">
+      <div className="df-card-header">
+        <h4 className="df-card-title">
+          <Dot color={color} />
+          {title}
+        </h4>
+        {badge}
+      </div>
+      <div className="df-card-body">{children}</div>
     </div>
   );
 }
 
 function Section({
   title,
-  tone = "info",
-  summary,
-  defaultOpen = true,
+  defaultOpen = false,
   children,
 }: {
   title: string;
-  tone?: Tone;
-  summary?: string;
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="df-section">
+    <div className="df-section">
       <button
         type="button"
-        className="df-section-header"
+        className="df-section-toggle"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="df-section-title">
-          <StatusDot tone={tone} />
-          {title}
-        </span>
-        {summary ? <span className="df-section-summary">{summary}</span> : null}
-        <span className={`df-section-chevron ${open ? "expanded" : ""}`}>›</span>
+        <span>{title}</span>
+        <span className={`df-chevron${open ? " df-chevron--open" : ""}`}>▶</span>
       </button>
       {open ? <div className="df-section-body">{children}</div> : null}
-    </section>
-  );
-}
-
-function Card({
-  title,
-  subtitle,
-  tone = "info",
-  actions,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  tone?: Tone;
-  actions?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div className="df-plugin">
-      <StyleMount />
-      <article className="df-card">
-        <header className="df-header">
-          <div>
-            <h3 className="df-header-title">
-              <StatusDot tone={tone} />
-              {title}
-            </h3>
-            {subtitle ? <p className="df-header-subtitle">{subtitle}</p> : null}
-          </div>
-          {actions}
-        </header>
-        <Disclaimer />
-        <div className="df-card-body">
-          {Children.toArray(children)}
-        </div>
-      </article>
-    </div>
-  );
-}
-
-function Disclaimer() {
-  return (
-    <div className="df-disclaimer">
-      <StatusDot tone="info" />
-      {DISCLAIMER}
     </div>
   );
 }
 
 function LoadingCard({ title }: { title: string }) {
   return (
-    <Card title={title} subtitle="正在加载 Dark Factory 投影数据" tone="info">
-      <div className="df-skeleton-stack" aria-busy="true">
-        <div className="df-skeleton" />
-        <div className="df-skeleton" />
-        <div className="df-skeleton" />
-      </div>
-    </Card>
+    <Root>
+      <DataCard title={title} color="blue">
+        <p className="df-disclaimer">正在加载 Dark Factory 投影数据</p>
+        <Skeleton lines={4} />
+      </DataCard>
+    </Root>
   );
 }
 
 function ErrorCard({ title, message }: { title: string; message: string }) {
   return (
-    <Card title={title} tone="error">
-      <div role="alert" className="df-alert error">{message}</div>
-    </Card>
+    <Root>
+      <DataCard title={title} color="red">
+        <div role="alert" className="df-alert df-alert--error">{message}</div>
+      </DataCard>
+    </Root>
   );
 }
 
-function Metric({ label, value, tone = "info" }: { label: string; value: string | number; tone?: Tone }) {
+function StatusCard({ title, color, message }: { title: string; color: Color; message: ReactNode }) {
   return (
-    <div className="df-metric">
-      <span className="df-metric-label">
-        <StatusDot tone={tone} />
-        {label}
-      </span>
-      <strong className="df-metric-value">{value}</strong>
-    </div>
+    <DataCard title={title} color={color}>
+      {typeof message === "string" ? <div className={alertClass(color)}>{message}</div> : message}
+    </DataCard>
   );
 }
 
-function ProjectionMetrics({ data }: { data: ProjectionSummary }) {
-  return (
-    <div className="df-summary-grid">
-      <Metric label="投影状态" value={displayValue(data.projection.projectionStatus)} tone={statusTone(data.projection.projectionStatus)} />
-      <Metric label="Provider 状态" value={displayValue(data.providerHealth.providerState)} tone={statusTone(data.providerHealth.providerState)} />
-      <Metric label="熔断器" value={displayValue(data.providerHealth.breakerState)} tone={statusTone(data.providerHealth.breakerState)} />
-      <Metric label="最后序号" value={data.projection.lastSequenceNo} tone="info" />
-    </div>
-  );
+function LoadingDataCard({ title }: { title: string }) {
+  return <DataCard title={title} color="blue"><Skeleton lines={4} /></DataCard>;
 }
 
-function ProjectionSection({ data, defaultOpen = true }: { data: ProjectionSummary; defaultOpen?: boolean }) {
+function ProjectionCard({ data }: { data: ProjectionSummary }) {
   const projection = data.projection;
+  const color = statusTone(projection.projectionStatus);
   return (
-    <Section title="运行投影" tone={statusTone(projection.projectionStatus)} summary={String(displayValue(projection.projectionStatus))} defaultOpen={defaultOpen}>
-      <Row label="关联 Run ID" value={projection.linkedRunId} />
-      <Row label="Journal 游标" value={projection.journalCursorMetadata.journalCursor} />
-      <Row label="来源 Journal 引用" value={projection.journalCursorMetadata.sourceJournalRef} />
-      <Row label="最后序号" value={projection.lastSequenceNo} />
-      <Row label="投影状态" value={displayValue(projection.projectionStatus)} />
-      <Row label="回调 receipt" value={projection.callbackReceiptId} />
-      <Row label="receipt 状态" value={displayValue(projection.callbackReceipt.status)} />
-      <Row label="最后更新" value={projection.lastUpdatedAt} />
+    <DataCard
+      title="投影状态"
+      color={color}
+      badge={<Badge color={color}>{displayValue(projection.projectionStatus)}</Badge>}
+    >
+      <ValueRow label="运行 ID" value={projection.runId} />
+      <ValueRow label="关联 Run" value={projection.linkedRunId} />
+      <ValueRow label="Journal 游标" value={projection.journalCursorMetadata.journalCursor} />
+      <ValueRow label="序列号" value={projection.lastSequenceNo} />
+      <ValueRow label="回调 receipt" value={projection.callbackReceiptId} />
+      <ValueRow label="最后更新" value={projection.lastUpdatedAt} />
       <div className="df-badge-list">
-        <Badge label="降级" tone="warning" active={projection.flags.degraded} reason={projection.degradedReason} />
-        <Badge label="阻断" tone="blocked" active={projection.flags.blocked} reason={projection.blockedReason} />
-        <Badge label="过期" tone="warning" active={projection.flags.stale} reason={projection.staleReason} />
-        <Badge label="需要审批" tone="info" active={projection.flags.needsApproval} />
+        <Badge color="amber" active={projection.flags.degraded}>降级 {projection.degradedReason ? `· ${projection.degradedReason}` : ""}</Badge>
+        <Badge color="purple" active={projection.flags.blocked}>阻断 {projection.blockedReason ? `· ${projection.blockedReason}` : ""}</Badge>
+        <Badge color="amber" active={projection.flags.stale}>过期 {projection.staleReason ? `· ${projection.staleReason}` : ""}</Badge>
+        <Badge color="blue" active={projection.flags.needsApproval}>需要审批</Badge>
       </div>
-    </Section>
+    </DataCard>
   );
 }
 
-function ProviderHealthSection({ data, defaultOpen = true }: { data: ProjectionSummary; defaultOpen?: boolean }) {
+function ProviderCard({ data }: { data: ProjectionSummary }) {
+  const provider = data.providerHealth;
+  const color = statusTone(provider.providerState);
   return (
-    <Section title="Provider 健康" tone={statusTone(data.providerHealth.providerState)} summary={`${displayValue(data.providerHealth.providerState)} / ${displayValue(data.runtimeImpact.severity)}`} defaultOpen={defaultOpen}>
-      <Row label="Provider 角色" value={displayValue(data.providerHealth.providerRole)} />
-      <Row label="模型角色" value={displayValue(data.providerHealth.modelRole)} />
-      <Row label="模型策略" value={displayValue(data.providerHealth.modelSelection.policy)} />
-      <Row label="协议必须指定具体模型" value={data.providerHealth.modelSelection.protocolMustSpecifyConcreteModel} />
-      <Row label="熔断器状态" value={displayValue(data.providerHealth.breakerState)} />
-      <Row label="Provider 状态" value={displayValue(data.providerHealth.providerState)} />
-      <Row label="运行时影响" value={`${displayValue(data.runtimeImpact.mode)} / ${displayValue(data.runtimeImpact.severity)}`} />
-      <Row label="操作员动作" value={displayValue(data.runtimeImpact.operatorAction)} />
-      <Row label="Paperclip 终态" value={displayValue(data.runtimeImpact.paperclipTerminalState)} />
-      <Row label="是否推进终态" value={data.runtimeImpact.terminalStateAdvanced} />
-      <Row label="最后更新" value={data.providerHealth.lastUpdatedAt} />
-      <Row label="最后成功" value={optionalText(data.providerHealth.lastSuccessAt)} />
-      <Row label="最后失败" value={optionalText(data.providerHealth.lastFailureAt)} />
-      <Row label="打开原因" value={optionalText(data.providerHealth.openReason)} />
+    <DataCard
+      title="Provider"
+      color={color}
+      badge={<Badge color={color}>{displayValue(provider.providerState)}</Badge>}
+    >
+      <ValueRow label="Provider 角色" value={displayValue(provider.providerRole)} />
+      <ValueRow label="模型角色" value={displayValue(provider.modelRole)} />
+      <ValueRow label="模型策略" value={displayValue(provider.modelSelection.policy)} />
+      <ValueRow label="熔断器" value={displayValue(provider.breakerState)} />
+      <ValueRow label="最后成功" value={optionalText(provider.lastSuccessAt)} />
+      <ValueRow label="最后失败" value={optionalText(provider.lastFailureAt)} />
+      <ValueRow label="终态推进" value={data.runtimeImpact.terminalStateAdvanced} />
       <div className="df-badge-list">
-        <Badge label="Provider 降级" tone="warning" active={data.providerHealth.degraded} reason={data.providerHealth.degradedReason} />
-        <Badge label="Provider 阻断" tone="blocked" active={data.providerHealth.blocked} reason={data.providerHealth.blockedReason} />
-        <Badge label="已触发 fallback" tone="info" active={data.providerHealth.fallbackTriggered} reason={data.providerHealth.fallbackReason} />
+        <Badge color="amber" active={provider.degraded}>降级 {provider.degradedReason ? `· ${provider.degradedReason}` : ""}</Badge>
+        <Badge color="purple" active={provider.blocked}>阻断 {provider.blockedReason ? `· ${provider.blockedReason}` : ""}</Badge>
+        <Badge color="blue" active={provider.fallbackTriggered}>fallback {provider.fallbackReason ? `· ${provider.fallbackReason}` : ""}</Badge>
       </div>
-    </Section>
+    </DataCard>
   );
 }
 
-function RemoteObservabilitySection({ data }: { data: RemoteObservabilitySnapshot }) {
-  const snapshot = data.snapshot;
-  const tone = data.alerts.some((alert) => alert.severity === "critical") ? "blocked" : data.alerts.length > 0 ? "warning" : "healthy";
+function ReadinessCard({ data }: { data: RemoteProviderReadiness | null | undefined }) {
+  if (!data) {
+    return (
+      <DataCard title="就绪检查" color="muted" badge={<Badge color="muted">暂无</Badge>}>
+        <Skeleton lines={4} />
+      </DataCard>
+    );
+  }
   return (
-    <Section title="远程 Provider 可观测性" tone={tone} summary={`${data.sampledObservationCount} 条采样，${data.alerts.length} 个告警`} defaultOpen={false}>
-      <Row label="采样观测数" value={data.sampledObservationCount} />
-      <Row label="请求数" value={snapshot.requestCount} />
-      <Row label="成功 / 失败" value={`${snapshot.successCount} / ${snapshot.failureCount}`} />
-      <Row label="重试 / 可重试失败" value={`${snapshot.retryCount} / ${snapshot.retryableFailureCount}`} />
-      <Row label="平均延迟" value={`${snapshot.averageLatencyMs}ms`} />
-      <Row label="最大延迟" value={`${snapshot.maxLatencyMs}ms`} />
-      <Row label="最新序号" value={optionalUnknownText(snapshot.latestSequenceNo)} />
-      <Row label="游标滞后" value={optionalUnknownText(snapshot.cursorLag)} />
-      <Row label="最新 Journal 游标" value={optionalText(snapshot.latestJournalCursor)} />
-      <Row label="最新错误" value={optionalText(snapshot.latestErrorCode)} />
-      <Row label="失败分类" value={Object.entries(snapshot.failureClassCounts).map(([key, value]) => `${displayValue(key)}:${value}`).join(" ")} />
-      {data.alerts.length > 0 ? data.alerts.map((alert) => (
-        <div key={alert.code} role="status" className={`df-alert ${alert.severity === "critical" ? "error" : "warning"}`}>
-          {displayValue(alert.code)}：{alert.message}；分类：{displayValue(alert.failureClass)}；级别：{displayValue(alert.severity)}
-        </div>
-      )) : (
-        <div className="df-alert info">当前采样窗口内没有远程 Provider 告警候选。</div>
-      )}
-      <Row label="是否推进终态" value={snapshot.terminalStateAdvanced} />
-    </Section>
+    <DataCard
+      title="就绪检查"
+      color={statusTone(data.readinessStatus)}
+      badge={<Badge color={statusTone(data.readinessStatus)}>{displayValue(data.readinessStatus)}</Badge>}
+    >
+      <CheckItem label="凭据就绪" status={checkStatusFromValue(data.credentialOk)} statusLabel={data.credentialOk ? "通过" : "失败"} />
+      <CheckItem label="熔断器" status={checkStatusFromValue(data.breakerState)} statusLabel={String(displayValue(data.breakerState))} />
+      <CheckItem label="观测告警" status={data.alertCount === 0 ? "pass" : "warn"} statusLabel={`${data.alertCount} 个`} />
+      <CheckItem label="下一安全 hook" status={checkStatusFromValue(data.nextSafeHook)} statusLabel={data.nextSafeHook} />
+      <Section title="就绪详情">
+        <div className={alertClass(statusTone(data.readinessStatus))}>{data.summary}</div>
+        <ValueRow label="建议动作" value={displayValue(data.recommendedAction)} />
+        <ValueRow label="检查时间" value={data.checkedAt} />
+        <ValueRow label="就绪 receipt" value={data.readinessReceipt.receiptId} />
+        <ValueRow label="授权远程执行" value={data.readinessReceipt.doesAuthorizeRemoteExecution} />
+      </Section>
+    </DataCard>
   );
 }
 
-function RemoteCredentialDiagnosticsSection({ data }: { data: RemoteCredentialDiagnostics }) {
+function GuardCard({ data }: { data: UiSmokePreview | null | undefined }) {
+  const guards = data?.dryRunGuards ?? [];
+  const executeGuard = guards.find((guard) => guard.targetHook === "onEnvironmentExecute");
   return (
-    <Section title="远程凭据诊断" tone={data.ok ? "healthy" : "warning"} summary={data.ok ? "就绪" : "需要处理"} defaultOpen={false}>
-      <Row label="状态" value={data.ok ? "就绪" : "需要处理"} />
-      <Row label="凭据来源" value={optionalText(data.credentialSource)} />
-      <Row label="已提供配置" value={data.checkedConfig.configSupplied} />
-      <Row label="已配置 endpoint" value={data.checkedConfig.endpointPresent} />
-      <Row label="已配置内联 key" value={data.checkedConfig.apiKeyPresent} />
-      <Row label="已配置 secret 引用" value={data.checkedConfig.apiKeySecretRefPresent} />
-      <Row label="secret 引用 scheme" value={data.checkedConfig.apiKeySecretRefScheme} />
-      {data.diagnostics.map((diagnostic) => (
-        <div key={diagnostic.code} role="status" className={`df-alert ${diagnostic.severity === "error" ? "error" : diagnostic.severity === "warning" ? "warning" : "info"}`}>
-          <div>{displayValue(diagnostic.code)}：{diagnostic.message}</div>
-          {diagnostic.remediation.length > 0 ? (
-            <ul className="df-list">
-              {diagnostic.remediation.map((hint) => <li key={hint}>{hint}</li>)}
-            </ul>
-          ) : null}
-        </div>
+    <DataCard
+      title="防护门禁"
+      color={statusTone(executeGuard?.decision)}
+      badge={<Badge color={statusTone(executeGuard?.decision)}>{displayValue(executeGuard?.decision)}</Badge>}
+    >
+      {(guards.length > 0 ? guards.slice(0, 4) : []).map((guard) => (
+        <CheckItem
+          key={guard.targetHook}
+          label={guard.targetHook}
+          status={checkStatusFromValue(guard.decision)}
+          statusLabel={String(displayValue(guard.decision))}
+        />
       ))}
-      <Row label="是否推进终态" value={data.terminalStateAdvanced} />
-    </Section>
-  );
-}
-
-function RemoteBreakerSection({ data }: { data: RemoteBreakerEvaluation }) {
-  return (
-    <Section title="远程熔断器" tone={statusTone(data.breakerState)} summary={String(displayValue(data.breakerState))} defaultOpen={false}>
-      <Row label="当前状态" value={displayValue(data.breakerState)} />
-      <Row label="上一状态" value={displayValue(data.previousBreakerState)} />
-      <Row label="连续失败" value={data.consecutiveFailures} />
-      <Row label="半开成功" value={data.consecutiveHalfOpenSuccesses} />
-      <Row label="最后失败分类" value={displayValue(data.lastFailureClass)} />
-      <Row label="打开原因" value={optionalText(data.openReason)} />
-      <Row label="打开时间" value={optionalText(data.openedAt)} />
-      <Row label="冷却到" value={optionalText(data.cooldownUntil)} />
-      <Row label="运行时影响" value={`${displayValue(data.runtimeImpact.mode)} / ${displayValue(data.runtimeImpact.severity)}`} />
-      <Row label="操作员动作" value={displayValue(data.runtimeImpact.operatorAction)} />
-      <Row label="是否推进终态" value={data.terminalStateAdvanced} />
-    </Section>
-  );
-}
-
-function RemoteReadinessSection({ data }: { data: RemoteProviderReadiness }) {
-  return (
-    <Section title="远程 Provider 就绪状态" tone={statusTone(data.readinessStatus)} summary={String(displayValue(data.readinessStatus))}>
-      <div className={`df-alert ${data.readinessStatus === "blocked" ? "error" : data.readinessStatus === "needs_attention" ? "warning" : "info"}`}>
-        {data.summary}
-      </div>
-      <Row label="状态" value={displayValue(data.readinessStatus)} />
-      <Row label="凭据正常" value={data.credentialOk} />
-      <Row label="熔断器状态" value={displayValue(data.breakerState)} />
-      <Row label="采样观测数" value={data.sampledObservationCount} />
-      <Row label="告警数" value={data.alertCount} />
-      <Row label="建议动作" value={displayValue(data.recommendedAction)} />
-      <Row label="下一安全 hook" value={data.nextSafeHook} />
-      <Row label="检查时间" value={data.checkedAt} />
-      <Row label="就绪 receipt" value={data.readinessReceipt.receiptId} />
-      <Row label="证据 digest" value={`${data.readinessReceipt.digestAlgorithm}:${data.readinessReceipt.digest}`} />
-      <Row label="授权远程执行" value={data.readinessReceipt.doesAuthorizeRemoteExecution} />
-      <Row label="状态转换" value={displayValue(data.readinessTransition.transitionKind)} />
-      <Row label="转换摘要" value={data.readinessTransition.summary} />
-      <Row label="上一状态" value={displayValue(data.readinessTransition.previousStatus)} />
-      <Row label="当前状态" value={displayValue(data.readinessTransition.currentStatus)} />
-      <Row label="上一 hook" value={optionalText(data.readinessTransition.previousNextSafeHook)} />
-      <Row label="当前 hook" value={data.readinessTransition.currentNextSafeHook} />
-      <Row label="receipt 已变化" value={data.readinessTransition.receiptChanged} />
-      <Section title="预检计划" tone="info" summary={`${data.preflightPlan.length} 个 hook`} defaultOpen={false}>
-        {data.preflightPlan.map((step) => (
-          <div key={step.code} role="status" className={`df-alert ${step.status === "blocked" ? "error" : step.status === "review_required" ? "warning" : "info"}`}>
-            <div>{step.label}: {displayValue(step.status)}</div>
-            <Row label="Hook" value={step.hook} />
-            <div>{step.message}</div>
-            {step.blockingCodes.length > 0 ? <div>阻断代码 <span className="df-code">{displayList(step.blockingCodes)}</span></div> : null}
-          </div>
-        ))}
-      </Section>
-      <Section title="就绪清单" tone="info" summary={`${data.readinessChecklist.length} 项`} defaultOpen={false}>
-        {data.readinessChecklist.map((item) => (
-          <div key={item.code} role="status" className={`df-alert ${item.status === "fail" ? "error" : item.status === "warn" ? "warning" : "info"}`}>
-            <div>{item.label}: {displayValue(item.status)}</div>
-            <div>{item.message}</div>
-            <div>要求早于 <span className="df-code">{item.requiredBefore}</span></div>
-          </div>
-        ))}
-      </Section>
-      <Section title="信号" tone="info" summary={`${data.signals.length} 条`} defaultOpen={false}>
-        {data.signals.map((signal) => (
-          <div key={`${signal.category}:${signal.code}`} role="status" className={`df-alert ${signal.severity === "critical" ? "error" : signal.severity === "warning" ? "warning" : "info"}`}>
-            <div>{displayValue(signal.category)} / {displayValue(signal.code)}：{signal.message}</div>
-            {signal.remediation.length > 0 ? (
-              <ul className="df-list">
-                {signal.remediation.map((hint) => <li key={hint}>{hint}</li>)}
-              </ul>
-            ) : null}
-          </div>
-        ))}
-      </Section>
-      <Row label="是否推进终态" value={data.terminalStateAdvanced} />
-    </Section>
-  );
-}
-
-function UiSmokePreviewSection({
-  data,
-  scenario,
-  onScenarioChange,
-}: {
-  data: UiSmokePreview;
-  scenario: UiSmokePreviewScenario;
-  onScenarioChange: (scenario: UiSmokePreviewScenario) => void;
-}) {
-  const executeGuard = data.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute");
-  return (
-    <Section title="UI 烟雾预览" tone={statusTone(data.previewStatus)} summary={String(displayValue(data.previewStatus))}>
-      <div className="df-pill-tabs" role="tablist" aria-label="UI 烟雾预览场景">
-        {uiSmokePreviewScenarios.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            className={`df-pill-tab ${scenario === item.value ? "active" : ""}`}
-            onClick={() => onScenarioChange(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <div className={`df-alert ${data.previewStatus === "blocked" ? "error" : data.previewStatus === "needs_attention" ? "warning" : "info"}`}>
-        {data.readiness.summary}
-      </div>
-      <Row label="预览状态" value={displayValue(data.previewStatus)} />
-      <Row label="Host 上下文" value={data.hostContextId} />
-      <Row label="就绪状态" value={displayValue(data.readiness.readinessStatus)} />
-      <Row label="下一安全 hook" value={data.readiness.nextSafeHook} />
-      <Row label="熔断器状态" value={displayValue(data.breakerEvaluation.breakerState)} />
-      <Row label="采样观测数" value={data.observability.sampledObservationCount} />
-      <Row label="最大延迟" value={`${data.observability.snapshot.maxLatencyMs}ms`} />
-      <Row label="游标滞后" value={optionalUnknownText(data.observability.snapshot.cursorLag)} />
-      <Row label="告警数" value={data.observability.alerts.length} />
-      <Row label="凭据来源" value={optionalText(data.credentialDiagnostics.credentialSource)} />
-      <Row label="执行 dry-run" value={displayValue(executeGuard?.decision)} />
-      <Row label="Dry-run 回执" value={optionalText(executeGuard?.receiptId)} />
-      <Row label="事实来源" value={data.truthSource} />
-      <Row label="是否权威" value={data.authoritative} />
-      <Row label="是否推进终态" value={data.terminalStateAdvanced} />
-      <Section title="远程 Provider Dry-run 防护" tone={statusTone(executeGuard?.decision)} summary="shouldContactRemoteProvider / doesAuthorizeRemoteExecution 固定 false" defaultOpen={false}>
-        {data.dryRunGuards.map((guard) => (
-          <div key={guard.targetHook} role="status" className={`df-alert ${guard.decision === "blocked" ? "error" : guard.decision === "review_required" ? "warning" : "info"}`}>
-            <Row label={guard.targetHook} value={displayValue(guard.decision)} />
-            <Row label="预检状态" value={displayValue(guard.matchedPreflightStatus)} />
-            <Row label="shouldContactRemoteProvider" value={guard.shouldContactRemoteProvider} />
-            <Row label="doesAuthorizeRemoteExecution" value={guard.doesAuthorizeRemoteExecution} />
-            <Row label="Receipt" value={guard.receiptId} />
+      {guards.length === 0 ? <Skeleton lines={4} /> : null}
+      <Section title="远程 Provider Dry-run 防护">
+        {guards.map((guard) => (
+          <div key={guard.targetHook} className={alertClass(statusTone(guard.decision))}>
+            <ValueRow label={guard.targetHook} value={displayValue(guard.decision)} />
+            <ValueRow label="预检状态" value={displayValue(guard.matchedPreflightStatus)} />
+            <ValueRow label="shouldContactRemoteProvider" value={guard.shouldContactRemoteProvider} />
+            <ValueRow label="doesAuthorizeRemoteExecution" value={guard.doesAuthorizeRemoteExecution} />
+            <ValueRow label="Dry-run 回执" value={guard.receiptId} />
             {guard.blockingCodes.length > 0 ? <div>阻断代码 <span className="df-code">{displayList(guard.blockingCodes)}</span></div> : null}
           </div>
         ))}
       </Section>
-      <div className="df-badge-list">
-        {data.uiBadges.map((badge) => <Badge key={badge} label={translatedBadge(badge)} tone={statusTone(badge)} />)}
+    </DataCard>
+  );
+}
+
+function StaticGuardCard({ data }: { data: ProjectionSummary }) {
+  return (
+    <DataCard title="防护门禁" color={statusTone(data.runtimeImpact.operatorAction)} badge={<Badge color={statusTone(data.runtimeImpact.operatorAction)}>{displayValue(data.runtimeImpact.operatorAction)}</Badge>}>
+      <CheckItem label="Journal 事实来源" status="pass" statusLabel="通过" />
+      <CheckItem label="投影非权威" status={data.authoritative ? "fail" : "pass"} statusLabel={data.authoritative ? "失败" : "通过"} />
+      <CheckItem label="终态不推进" status={data.runtimeImpact.terminalStateAdvanced ? "fail" : "pass"} statusLabel={yesNo(data.runtimeImpact.terminalStateAdvanced)} />
+      <CheckItem label="Provider 动作" status={checkStatusFromValue(data.runtimeImpact.operatorAction)} statusLabel={String(displayValue(data.runtimeImpact.operatorAction))} />
+    </DataCard>
+  );
+}
+
+function CredentialCard({ data }: { data: RemoteCredentialDiagnostics }) {
+  return (
+    <DataCard
+      title="凭据诊断"
+      color={data.ok ? "green" : "amber"}
+      badge={<Badge color={data.ok ? "green" : "amber"}>{data.ok ? "就绪" : "需要处理"}</Badge>}
+    >
+      <ValueRow label="凭据来源" value={optionalText(data.credentialSource)} />
+      <ValueRow label="已提供配置" value={data.checkedConfig.configSupplied} />
+      <ValueRow label="已配置 endpoint" value={data.checkedConfig.endpointPresent} />
+      <ValueRow label="已配置 secret 引用" value={data.checkedConfig.apiKeySecretRefPresent} />
+      <ValueRow label="secret 引用 scheme" value={data.checkedConfig.apiKeySecretRefScheme} />
+      <ValueRow label="是否推进终态" value={data.terminalStateAdvanced} />
+      <Section title="诊断建议">
+        {data.diagnostics.length > 0 ? data.diagnostics.map((diagnostic) => (
+          <div key={diagnostic.code} className={alertClass(getStatusColor(diagnostic.severity))}>
+            <div>{displayValue(diagnostic.code)}：{diagnostic.message}</div>
+            {diagnostic.remediation.length > 0 ? (
+              <ul className="df-list">
+                {diagnostic.remediation.map((hint) => <li key={hint}>{hint}</li>)}
+              </ul>
+            ) : null}
+          </div>
+        )) : <div className="df-alert df-alert--info">当前没有凭据诊断提示。</div>}
+      </Section>
+    </DataCard>
+  );
+}
+
+function BreakerCard({ data }: { data: RemoteBreakerEvaluation }) {
+  const color = statusTone(data.breakerState);
+  return (
+    <DataCard title="熔断器" color={color} badge={<Badge color={color}>{displayValue(data.breakerState)}</Badge>}>
+      <ValueRow label="上一状态" value={displayValue(data.previousBreakerState)} />
+      <ValueRow label="连续失败" value={data.consecutiveFailures} />
+      <ValueRow label="半开成功" value={data.consecutiveHalfOpenSuccesses} />
+      <ValueRow label="最后失败分类" value={displayValue(data.lastFailureClass)} />
+      <ValueRow label="打开原因" value={optionalText(data.openReason)} />
+      <ValueRow label="冷却到" value={optionalText(data.cooldownUntil)} />
+      <ValueRow label="是否推进终态" value={data.terminalStateAdvanced} />
+    </DataCard>
+  );
+}
+
+function ObservabilityCard({ data }: { data: RemoteObservabilitySnapshot }) {
+  const snapshot = data.snapshot;
+  const color = data.alerts.some((alert) => alert.severity === "critical") ? "red" : data.alerts.length > 0 ? "amber" : "green";
+  return (
+    <DataCard title="可观测性" color={color} badge={<Badge color={color}>{data.alerts.length} 告警</Badge>}>
+      <ValueRow label="采样观测" value={data.sampledObservationCount} />
+      <ValueRow label="成功 / 失败" value={`${snapshot.successCount} / ${snapshot.failureCount}`} />
+      <ValueRow label="重试" value={snapshot.retryCount} />
+      <ValueRow label="平均延迟" value={`${snapshot.averageLatencyMs}ms`} />
+      <ValueRow label="最大延迟" value={`${snapshot.maxLatencyMs}ms`} />
+      <ValueRow label="游标滞后" value={optionalUnknownText(snapshot.cursorLag)} />
+      <ValueRow label="是否推进终态" value={snapshot.terminalStateAdvanced} />
+      <Section title="告警">
+        {data.alerts.length > 0 ? data.alerts.map((alert) => (
+          <div key={alert.code} className={alertClass(getStatusColor(alert.severity))}>
+            {displayValue(alert.code)}：{alert.message}；分类：{displayValue(alert.failureClass)}
+          </div>
+        )) : <div className="df-alert df-alert--info">当前采样窗口内没有远程 Provider 告警候选。</div>}
+      </Section>
+    </DataCard>
+  );
+}
+
+function UiSmokePreviewCard({
+  data,
+  scenario,
+  onScenarioChange,
+}: {
+  data: UiSmokePreview | null | undefined;
+  scenario: UiSmokePreviewScenario;
+  onScenarioChange: (scenario: UiSmokePreviewScenario) => void;
+}) {
+  const executeGuard = data?.dryRunGuards.find((guard) => guard.targetHook === "onEnvironmentExecute");
+  return (
+    <div className="df-card df-card--full">
+      <div className="df-card-header">
+        <h4 className="df-card-title">
+          <Dot color={statusTone(data?.previewStatus)} />
+          UI 烟雾预览
+        </h4>
+        <Badge color={statusTone(data?.previewStatus)}>{displayValue(data?.previewStatus)}</Badge>
       </div>
-    </Section>
+      <div className="df-card-body">
+        <div className="df-pills" role="tablist" aria-label="UI 烟雾预览场景">
+          {uiSmokePreviewScenarios.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              className={`df-pill${scenario === item.value ? " df-pill--active" : ""}`}
+              onClick={() => onScenarioChange(item.value)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        {data ? (
+          <>
+            <div className={alertClass(statusTone(data.previewStatus))}>{data.readiness.summary}</div>
+            <ValueRow label="预览状态" value={displayValue(data.previewStatus)} />
+            <ValueRow label="Host 上下文" value={data.hostContextId} />
+            <ValueRow label="就绪状态" value={displayValue(data.readiness.readinessStatus)} />
+            <ValueRow label="下一安全 hook" value={data.readiness.nextSafeHook} />
+            <ValueRow label="执行 dry-run" value={displayValue(executeGuard?.decision)} />
+            <ValueRow label="Dry-run 回执" value={optionalText(executeGuard?.receiptId)} />
+            <ValueRow label="事实来源" value={data.truthSource} />
+            <ValueRow label="是否权威" value={data.authoritative} />
+            <ValueRow label="是否推进终态" value={data.terminalStateAdvanced} />
+            <div className="df-badge-list">
+              {data.uiBadges.map((badge) => <Badge key={badge} color={getStatusColor(badge)}>{translatedBadge(badge)}</Badge>)}
+            </div>
+          </>
+        ) : (
+          <Skeleton lines={4} />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -826,16 +886,21 @@ export function DashboardWidget({ context }: PluginWidgetProps) {
     companyId: context.companyId,
   });
 
-  if (loading) return <LoadingCard title="Dark Factory Bridge 投影" />;
+  if (loading) return <LoadingCard title="Dark Factory Bridge" />;
   if (error) return <ErrorCard title="Dark Factory Bridge 错误" message={error.message} />;
   if (!data) return null;
 
   return (
-    <Card title="Dark Factory Bridge 投影" subtitle="Provider 健康与 Journal 游标的非权威摘要" tone={statusTone(data.providerHealth.providerState)}>
-      <ProjectionMetrics data={data} />
-      <ProjectionSection data={data} defaultOpen={false} />
-      <ProviderHealthSection data={data} defaultOpen={false} />
-    </Card>
+    <Root>
+      <Header />
+      <p className="df-disclaimer">{DISCLAIMER}</p>
+      <div className="df-grid">
+        <ProjectionCard data={data} />
+        <ProviderCard data={data} />
+        <ReadinessCard data={null} />
+        <StaticGuardCard data={data} />
+      </div>
+    </Root>
   );
 }
 
@@ -848,44 +913,44 @@ export function IssuePanel({ context }: PluginDetailTabProps) {
   const [rehydrateError, setRehydrateError] = useState<string | null>(null);
   const [rehydratePending, setRehydratePending] = useState(false);
 
-  if (loading) return <LoadingCard title="Dark Factory 投影" />;
+  if (loading) return <LoadingCard title="Dark Factory Bridge" />;
   if (error) return <ErrorCard title="Dark Factory Bridge 错误" message={error.message} />;
   if (!data) return null;
 
   return (
-    <Card
-      title="Dark Factory 投影"
-      subtitle="任务详情页中的 Journal-backed projection 视图"
-      tone={statusTone(data.projection.projectionStatus)}
-      actions={(
-        <button
-          type="button"
-          className="df-btn df-btn-primary"
-          title="只提交 receipt 级重放意图，不代表终态成功。"
-          disabled={rehydratePending}
-          onClick={async () => {
-            setRehydrateError(null);
-            setRehydratePending(true);
-            try {
-              await requestRehydrate({ companyId: context.companyId, issueId: context.entityId, reason: "operator refresh from task detail tab" });
-              refresh();
-            } catch (error) {
-              setRehydrateError(errorMessage(error));
-            } finally {
-              setRehydratePending(false);
-            }
-          }}
-        >
-          {rehydratePending ? "请求中..." : "请求重新水合"}
-        </button>
-      )}
-    >
-      <div className="df-alert info">重新水合请求只提交一个意图 receipt；不会推进终态成功，也不会让该投影变成权威记录。</div>
-      {rehydrateError ? <div role="alert" className="df-alert error">重新水合请求失败：{rehydrateError}</div> : null}
-      <ProjectionMetrics data={data} />
-      <ProjectionSection data={data} />
-      <ProviderHealthSection data={data} />
-    </Card>
+    <Root>
+      <Header
+        actions={(
+          <button
+            type="button"
+            className="df-btn df-btn--action"
+            title="只提交 receipt 级重放意图，不代表终态成功。"
+            disabled={rehydratePending}
+            onClick={async () => {
+              setRehydrateError(null);
+              setRehydratePending(true);
+              try {
+                await requestRehydrate({ companyId: context.companyId, issueId: context.entityId, reason: "operator refresh from task detail tab" });
+                refresh();
+              } catch (error) {
+                setRehydrateError(errorMessage(error));
+              } finally {
+                setRehydratePending(false);
+              }
+            }}
+          >
+            {rehydratePending ? "请求中..." : "重新水合"}
+          </button>
+        )}
+      />
+      <p className="df-disclaimer">仅投影 · Journal 为事实来源 · 非权威</p>
+      <div className="df-alert df-alert--info">重新水合请求只提交一个意图 receipt；不会推进终态成功，也不会让该投影变成权威记录。</div>
+      {rehydrateError ? <div role="alert" className="df-alert df-alert--error">重新水合请求失败：{rehydrateError}</div> : null}
+      <div className="df-grid">
+        <ProjectionCard data={data} />
+        <ProviderCard data={data} />
+      </div>
+    </Root>
   );
 }
 
@@ -931,47 +996,37 @@ export function SettingsPage({ context }: PluginSettingsPageProps) {
     companyId: context.companyId,
   });
 
-  if (loading) return <LoadingCard title="Dark Factory Bridge 设置" />;
+  if (loading) return <LoadingCard title="Dark Factory Bridge" />;
   if (error) return <ErrorCard title="Dark Factory Bridge 设置错误" message={error.message} />;
   if (!data) return null;
 
   return (
-    <Card title="Dark Factory Bridge 设置" subtitle="Mock、HTTP 与远程 Provider alpha 状态面板" tone={statusTone(remoteReadiness?.readinessStatus ?? data.providerHealth.providerState)}>
-      <div className="df-alert info">Mock 投影模式不会保存 token 或 secret。远程模式只显示凭据引用和诊断结果，不展示凭据值。</div>
-      <ProjectionMetrics data={data} />
+    <Root>
+      <Header actions={<button type="button" className="df-btn" disabled>重新水合</button>} />
+      <p className="df-disclaimer">仅投影 · Journal 为事实来源 · 非权威</p>
+      <div className="df-alert df-alert--info">Mock 投影模式不会保存 token 或 secret。远程模式只显示凭据引用和诊断结果，不展示凭据值。</div>
       <div className="df-settings-grid">
-        <div>
-          <ProjectionSection data={data} defaultOpen={false} />
-          <ProviderHealthSection data={data} defaultOpen={false} />
-        </div>
-        <div>
-          {uiSmokePreviewLoading ? <div className="df-alert info">正在加载 UI 烟雾预览...</div> : null}
-          {uiSmokePreviewError ? <div className="df-alert error">UI 烟雾预览错误：{uiSmokePreviewError.message}</div> : null}
-          {uiSmokePreview ? (
-            <UiSmokePreviewSection
-              data={uiSmokePreview}
-              scenario={uiSmokePreviewScenario}
-              onScenarioChange={setUiSmokePreviewScenario}
-            />
-          ) : null}
-        </div>
-        <div>
-          {remoteReadinessLoading ? <div className="df-alert info">正在加载远程 Provider 就绪状态...</div> : null}
-          {remoteReadinessError ? <div className="df-alert error">远程 Provider 就绪状态错误：{remoteReadinessError.message}</div> : null}
-          {remoteReadiness ? <RemoteReadinessSection data={remoteReadiness} /> : null}
-        </div>
-        <div>
-          {remoteCredentialDiagnosticsLoading ? <div className="df-alert info">正在加载远程凭据诊断...</div> : null}
-          {remoteCredentialDiagnosticsError ? <div className="df-alert error">远程凭据诊断错误：{remoteCredentialDiagnosticsError.message}</div> : null}
-          {remoteCredentialDiagnostics ? <RemoteCredentialDiagnosticsSection data={remoteCredentialDiagnostics} /> : null}
-          {remoteBreakerLoading ? <div className="df-alert info">正在加载远程熔断器...</div> : null}
-          {remoteBreakerError ? <div className="df-alert error">远程熔断器错误：{remoteBreakerError.message}</div> : null}
-          {remoteBreaker ? <RemoteBreakerSection data={remoteBreaker} /> : null}
-          {remoteObservabilityLoading ? <div className="df-alert info">正在加载远程 Provider 可观测性...</div> : null}
-          {remoteObservabilityError ? <div className="df-alert error">远程可观测性错误：{remoteObservabilityError.message}</div> : null}
-          {remoteObservability ? <RemoteObservabilitySection data={remoteObservability} /> : null}
-        </div>
+        <ProjectionCard data={data} />
+        <ProviderCard data={data} />
+        {remoteReadinessLoading ? <LoadingDataCard title="就绪检查" /> : <ReadinessCard data={remoteReadiness} />}
+        {uiSmokePreviewLoading ? <LoadingDataCard title="防护门禁" /> : <GuardCard data={uiSmokePreview} />}
+        {remoteCredentialDiagnosticsLoading ? <LoadingDataCard title="凭据诊断" /> : null}
+        {remoteCredentialDiagnosticsError ? <StatusCard title="凭据诊断" color="red" message={`远程凭据诊断错误：${remoteCredentialDiagnosticsError.message}`} /> : null}
+        {remoteCredentialDiagnostics ? <CredentialCard data={remoteCredentialDiagnostics} /> : null}
+        {remoteBreakerLoading ? <LoadingDataCard title="熔断器" /> : null}
+        {remoteBreakerError ? <StatusCard title="熔断器" color="red" message={`远程熔断器错误：${remoteBreakerError.message}`} /> : null}
+        {remoteBreaker ? <BreakerCard data={remoteBreaker} /> : null}
+        {remoteObservabilityLoading ? <LoadingDataCard title="可观测性" /> : null}
+        {remoteObservabilityError ? <StatusCard title="可观测性" color="red" message={`远程可观测性错误：${remoteObservabilityError.message}`} /> : null}
+        {remoteObservability ? <ObservabilityCard data={remoteObservability} /> : null}
+        {uiSmokePreviewError ? <div className="df-card df-card--full"><div className="df-alert df-alert--error">UI 烟雾预览错误：{uiSmokePreviewError.message}</div></div> : null}
+        <UiSmokePreviewCard
+          data={uiSmokePreview}
+          scenario={uiSmokePreviewScenario}
+          onScenarioChange={setUiSmokePreviewScenario}
+        />
+        {remoteReadinessError ? <div className="df-card df-card--full"><div className="df-alert df-alert--error">远程 Provider 就绪状态错误：{remoteReadinessError.message}</div></div> : null}
       </div>
-    </Card>
+    </Root>
   );
 }
