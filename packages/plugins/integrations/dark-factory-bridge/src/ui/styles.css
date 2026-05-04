@@ -6,7 +6,7 @@
   --df-bg-card: #1a1a1a;
   --df-border: #222222;
   --df-border-hover: #333333;
-  --df-radius: 8px;
+  --df-radius: 6px;
 
   --df-text: #e5e5e5;
   --df-text-secondary: #888888;
@@ -334,20 +334,14 @@
 .df-skeleton {
   height: 16px;
   border-radius: 4px;
-  background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
-  background-size: 200% 100%;
-  animation: df-shimmer 1.5s ease infinite;
+  background: #222222;
+  animation: df-pulse 1.5s ease-in-out infinite;
 }
 
 .df-skeleton--w1 { width: 92%; }
 .df-skeleton--w2 { width: 76%; }
 .df-skeleton--w3 { width: 64%; }
 .df-skeleton--w4 { width: 84%; }
-
-@keyframes df-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
 
 /* --- Pill tabs (scenario selector) --- */
 .df-pills {
