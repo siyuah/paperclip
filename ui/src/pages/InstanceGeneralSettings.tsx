@@ -166,7 +166,7 @@ export function InstanceGeneralSettings() {
             checked={keyboardShortcuts}
             onCheckedChange={() => updateGeneralMutation.mutate({ keyboardShortcuts: !keyboardShortcuts })}
             disabled={updateGeneralMutation.isPending}
-            aria-label="Toggle keyboard shortcuts"
+            aria-label="切换键盘快捷键"
           />
         </div>
       </section>

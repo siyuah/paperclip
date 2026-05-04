@@ -275,3 +275,164 @@ Final full-page browser-harness rerun after the last two cleanup fixes:
     `导入 and export have moved to dedicated pages accessible from the 组织 Chart header.`
 - Final evidence file:
   `C:\Users\76914\AppData\Local\Temp\paperclip-localization-final-full-sweep-20260504-after-fix.json`.
+
+## Single-Tab Browser-Harness Follow-Up Sweep
+
+Date: 2026-05-04
+
+This follow-up was performed after the operator reported that too many Chrome
+pages had been left open during inspection. The browser-harness workflow was
+changed to a strict single-tab policy:
+
+- Reuse the existing Chrome page target with `ensure_real_tab()` and
+  `goto_url(...)`.
+- Do not call `new_tab()`.
+- Check `/json/list` / `Target.getTargets` during the run.
+- Confirm the final `pageTargets` count is `1`.
+
+Additional fixes completed in this follow-up:
+
+- Command palette search, empty state, section headings, actions, and page
+  entries are Chinese.
+- Agent instruction file editor labels were localized, including `Files`,
+  `Create`, `Cancel`, `Delete`, `Copy as markdown`, `Deprecated virtual file`,
+  `New file in this bundle`, `File contents`, `virtual file`, and `entry`.
+- Import/export pages now use `GitHub 地址`, `本地压缩包`, and
+  `Paperclip 压缩包`; generated README copy now describes the package as
+  `Paperclip 代理公司包（Agent Company）`.
+- Dark Factory bridge plugin metadata now displays `日志游标`, `提供方健康`,
+  and `重建回执` instead of mixed English operator text.
+- The runtime zh-CN display layer now allows common Chinese punctuation in
+  safe text nodes and includes phrase rules for browser-discovered mixed
+  Chinese/English fragments.
+
+Single-tab browser-harness route coverage:
+
+- 27/27 main routes opened successfully: dashboard, live dashboard, inbox, join
+  requests, issues, projects, agents, org chart, skills, costs, company
+  settings, environments, access, invites, company export, company import,
+  activity, routines, goals, approvals, profile, general instance settings,
+  instance access, heartbeats, experimental settings, plugin manager, and
+  adapters.
+- All 27 route checks ended with `0` suspicious ordinary UI English candidates
+  after filtering known product names, package names, command snippets,
+  adapter IDs, file names, and user/seed content.
+- The final route sweep reported `pageTargets: 1`.
+
+Single-tab safe functional coverage:
+
+- Opened and closed the command palette.
+- Opened the company menu path without creating extra tabs.
+- Attempted account/profile menu inspection without changing account state.
+- Opened the new issue dialog and closed it without creating an issue.
+- Clicked costs tabs: overview, budget, providers, billers, and finance.
+- Opened plugin install/configure entry points and closed them.
+- Opened adapter install entry point and closed it.
+- Rechecked import and export page main content after cleanup.
+
+Latest verification results:
+
+- `pnpm exec vitest run --config ./vitest.config.ts src/lib/zhCnLocalization.test.ts`: pass, 9/9 tests.
+- `pnpm typecheck` in `ui/`: pass.
+- Browser-harness plugin metadata check:
+  - old `Journal 游标`: false
+  - new `日志游标`: true
+  - old `Provider 健康`: false
+  - new `提供方健康`: true
+  - old `rehydrate receipt`: false
+  - new `重建回执`: true
+  - page target count: 1
+
+Allowed English still visible by design:
+
+- Brand/product names: Paperclip, Dark Factory, Agent Company, OpenClaw.
+- Technical labels that are clearer as identifiers: GitHub, API, CLI, JSON,
+  HTTP, SSH, npm, pnpm, gzip.
+- File names and package paths: `COMPANY.md`, `README.md`, `.paperclip.yaml`,
+  `@paperclipai/...`.
+- Commands and code examples.
+- Adapter IDs and model/provider IDs such as `codex_local`, `claude_local`,
+  `openclaw_gateway`, `cursor`, `http`, and `process`.
+- User/seed content such as issue titles, company names, email addresses, and
+  bundled skill markdown.
+
+## Single-Tab Full Route Re-Sweep After Operator Feedback
+
+Date: 2026-05-04
+
+Reason: the operator reported that visible English remained across many pages
+and asked for browser-harness plus visual inspection across every page, button,
+subpage, and module. The run preserved the stricter browser policy:
+
+- Reused the existing Chrome CDP page target only.
+- Did not call `new_tab()`.
+- Restarted only the browser-harness daemon when CDP evaluation stalled.
+- Rechecked `http://127.0.0.1:9222/json/list`; final state stayed at one
+  `type: page` target plus one service worker.
+
+Additional browser-discovered fixes completed:
+
+- Dashboard visible labels and empty states were converted to Chinese at the
+  component source: no-agent prompt, agent run empty state, metric labels,
+  metric summaries, chart titles, recent activity, recent tasks, and empty
+  tasks.
+- Join request queue was converted to Chinese for breadcrumbs, loading state,
+  empty state, filters, action buttons, toast titles, request detail headings,
+  and fallback requester labels.
+- Plugin manager was converted to Chinese for the page title, install dialog,
+  alpha warning, example plugin section, installed plugin section, empty state,
+  actions, uninstall confirmation, and error details dialog.
+- Company access and company invite breadcrumbs were converted to Chinese.
+- Generic `Loading...`, `Loading...` with Unicode ellipsis, and legacy encoded
+  loading fragments now normalize to Chinese.
+- The zh-CN runtime display layer gained follow-up rules for join request
+  details such as submitted time, source IP, join invite, default role, and
+  missing invite metadata.
+
+Final single-tab route coverage:
+
+- 35/35 checked routes completed with zero suspicious ordinary English
+  candidates after filtering product names, package names, commands, URLs,
+  adapter/model IDs, and user/seed content.
+- Routes covered: dashboard, live dashboard, companies, company settings,
+  company environments, company access, company invites, company export,
+  company import, skills, org chart, agents, new agent, projects, workspaces,
+  issues, routines, goals, approvals, costs, activity, inbox, join requests,
+  design guide, profile settings, general instance settings, instance access,
+  heartbeats, experimental settings, plugin manager, adapter manager, auth
+  redirect, onboarding, and global not-found route.
+
+Single-tab functional smoke coverage:
+
+- New agent page rendered Chinese labels and no audited onboarding English.
+- Company import page rendered Chinese import/source/target labels.
+- Adapter manager rendered Chinese alpha and external adapter copy.
+- Plugin manager rendered Chinese alpha warning, install controls, installed
+  plugin controls, and Dark Factory plugin metadata.
+- Command palette opened with Chinese search/action/page entries and closed
+  without creating data.
+- Not-found route rendered Chinese missing-company/request-path copy.
+- Button, link, input, textarea, `aria-label`, `title`, and `placeholder`
+  sweeps across dashboard, new agent, company import, adapter manager, plugin
+  manager, and general settings returned zero suspicious ordinary English
+  candidates.
+
+Visual evidence:
+
+- `C:\Users\76914\AppData\Local\Temp\paperclip_zhcn_dashboard.png`
+- `C:\Users\76914\AppData\Local\Temp\paperclip_zhcn_plugins.png`
+- `C:\Users\76914\AppData\Local\Temp\paperclip_zhcn_access.png`
+- `C:\Users\76914\AppData\Local\Temp\paperclip_zhcn_design-guide.png`
+
+Final verification results:
+
+- `pnpm exec vitest run --config ./vitest.config.ts src/lib/zhCnLocalization.test.ts`
+  in `ui/`: pass, 10/10 tests.
+- `pnpm typecheck` in `ui/`: pass.
+- `pnpm build` in `ui/`: pass; Vite large chunk warning remains non-blocking
+  and pre-existing.
+- `pnpm typecheck` in `packages/plugins/integrations/dark-factory-bridge/`:
+  pass.
+- `pnpm build` in `packages/plugins/integrations/dark-factory-bridge/`: pass.
+- `pnpm test` in `packages/plugins/integrations/dark-factory-bridge/`: pass,
+  185 passed and 1 skipped operator-gated remote test.

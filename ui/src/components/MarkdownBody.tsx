@@ -229,7 +229,7 @@ function CodeBlock({
     }, 1500);
   }, [children]);
 
-  const label = failed ? "Copy failed" : copied ? "Copied!" : "Copy";
+  const label = failed ? "复制失败" : copied ? "已复制" : "复制";
 
   return (
     <div className="paperclip-markdown-codeblock">
@@ -243,7 +243,7 @@ function CodeBlock({
       <button
         type="button"
         onClick={handleCopy}
-        aria-label="Copy code"
+        aria-label="复制代码"
         title={label}
         className="paperclip-markdown-codeblock-copy"
         data-copied={copied || undefined}

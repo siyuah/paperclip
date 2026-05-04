@@ -160,20 +160,20 @@ const ISSUE_COMMENT_PAGE_SIZE = 50;
 const ISSUE_COMMENT_AUTOLOAD_LIMIT = ISSUE_COMMENT_PAGE_SIZE * 3;
 const JUMP_TO_LATEST_MAX_COMMENT_PAGES = 10;
 const TREE_CONTROL_MODE_LABEL: Record<IssueTreeControlMode, string> = {
-  pause: "Pause subtree",
-  resume: "Resume subtree",
-  cancel: "Cancel subtree",
-  restore: "Restore subtree",
+  pause: "暂停子树",
+  resume: "恢复子树",
+  cancel: "取消子树",
+  restore: "恢复子树",
 };
 const LEAF_WORK_CONTROL_MODE_LABEL: Partial<Record<IssueTreeControlMode, string>> = {
-  pause: "Pause work",
-  resume: "Resume work",
+  pause: "暂停工作",
+  resume: "恢复工作",
 };
 const TREE_CONTROL_MODE_HELP_TEXT: Record<IssueTreeControlMode, string> = {
-  pause: "Pause active execution in this issue subtree until an explicit resume.",
-  resume: "Release the active subtree pause hold so held work can continue.",
-  cancel: "Cancel non-terminal issues in this subtree and stop queued/running work where possible.",
-  restore: "Restore issues cancelled by this subtree operation so work can resume.",
+  pause: "暂停此事项子树中的活跃执行，直到显式恢复。",
+  resume: "释放活跃子树暂停锁，让被暂停的工作继续。",
+  cancel: "取消此子树中的非终态事项，并尽可能停止已排队/正在运行的工作。",
+  restore: "恢复被此子树操作取消的事项，让工作可以继续。",
 };
 const LEAF_WORK_CONTROL_MODE_HELP_TEXT: Partial<Record<IssueTreeControlMode, string>> = {
   pause: "Pause active execution on this issue until an explicit resume.",
@@ -194,9 +194,9 @@ function issueTreeControlHelpText(mode: IssueTreeControlMode, scope: "leaf" | "s
 
 function treeControlPreviewErrorCopy(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 403) return "Only board users can preview subtree controls.";
-    if (error.status === 409) return "Preview is stale because subtree hold state changed. Retry to refresh.";
-    if (error.status === 422) return "This subtree action is currently invalid for the selected issues.";
+    if (error.status === 403) return "只有看板用户可以预览子树控制。";
+    if (error.status === 409) return "子树暂停状态已变化，预览已过期。请重试刷新。";
+    if (error.status === 422) return "此子树操作当前不适用于选中的事项。";
   }
   return error instanceof Error ? error.message : "Unable to load preview.";
 }
@@ -430,7 +430,7 @@ function IssueDetailLoadingState({
               ) : (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground opacity-50 px-1 -mx-1 py-0.5">
                   <Hexagon className="h-3 w-3 shrink-0" />
-                  No project
+                  无项目
                 </span>
               )}
             </>
@@ -526,7 +526,7 @@ function InboxMobileToolbar({
             size="icon-sm"
             onClick={onArchive}
             disabled={archivePending}
-            aria-label="Archive from inbox"
+            aria-label="从收件箱归档"
           >
             <Archive className="h-5 w-5" />
           </Button>
@@ -859,7 +859,7 @@ const IssueDetailChatTab = memo(function IssueDetailChatTab({
         interruptingQueuedRunId={interruptingQueuedRunId}
         stoppingRunId={pausingWorkRunId}
         onStopRun={onPauseWorkRun}
-        stopRunLabel="Pause work"
+        stopRunLabel="暂停工作"
         stoppingRunLabel="Pausing..."
         stopRunVariant="pause"
         onAcceptInteraction={onAcceptInteraction}
@@ -2882,15 +2882,15 @@ export function IssueDetail() {
   const treeControlPrimaryButtonLabel =
     treeControlMode === "pause"
       ? treeControlScope === "leaf"
-        ? "Pause work"
-        : "Pause and stop work"
+        ? "暂停工作"
+        : "暂停并停止工作"
       : treeControlMode === "cancel"
-        ? `Cancel ${previewAffectedIssueCount} issues`
+        ? `取消 ${previewAffectedIssueCount} 个事项`
       : treeControlMode === "restore"
-          ? `Restore ${previewAffectedIssueCount} issues`
+          ? `恢复 ${previewAffectedIssueCount} 个事项`
           : treeControlScope === "leaf"
-            ? "Resume work"
-            : "Resume subtree";
+            ? "恢复工作"
+            : "恢复子树";
   const treePreviewAffectedIssueRows = treePreviewDisplayIssues.map((candidate) => ({
     candidate,
     issue: {
@@ -2914,8 +2914,8 @@ export function IssueDetail() {
   const pausedComposerHint = activePauseHold
     ? (
       issue.assigneeAgentId
-        ? `Sending this comment will wake ${agentMap.get(issue.assigneeAgentId)?.name ?? "the assignee"} for triage while the subtree remains paused.`
-        : "Assign an agent to wake them for triage while the subtree remains paused."
+        ? `发送此评论会在子树暂停期间唤醒 ${agentMap.get(issue.assigneeAgentId)?.name ?? "负责人"} 进行分诊。`
+        : "分配一个代理，以便在子树暂停期间唤醒其进行分诊。"
     )
     : null;
   const composerHint = pausedComposerHint;
@@ -2986,7 +2986,7 @@ export function IssueDetail() {
       {issue.hiddenAt && (
         <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <EyeOff className="h-4 w-4 shrink-0" />
-          This issue is hidden
+          此事项已隐藏
         </div>
       )}
       {activePauseHold && (
@@ -2995,19 +2995,19 @@ export function IssueDetail() {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">
-                  {childIssues.length === 0 ? "Paused by board." : "Subtree pause is active."}
+                  {childIssues.length === 0 ? "已由看板暂停。" : "子树暂停已生效。"}
                 </span>
                 <span className="text-xs text-amber-900/80 dark:text-amber-100/80">
                   {childIssues.length === 0
-                    ? "Issue execution is held until resume. Human comments can still wake the assignee for triage."
-                    : "Root and descendant execution is held until resume. Human comments can still wake assignees for triage."}
+                    ? "事项执行会暂停到恢复为止。人工评论仍可唤醒负责人进行分诊。"
+                    : "根事项和后代事项的执行会暂停到恢复为止。人工评论仍可唤醒负责人进行分诊。"}
                 </span>
               </div>
               <div className="text-xs text-amber-900/80 dark:text-amber-100/80">
                 {childIssues.length === 0
-                  ? "1 issue held"
-                  : `${heldDescendantCount} descendant${heldDescendantCount === 1 ? "" : "s"} held`}
-                {activeRootPauseHold?.createdAt ? ` · started ${relativeTime(activeRootPauseHold.createdAt)}` : ""}
+                  ? "1 个事项已暂停"
+                  : `${heldDescendantCount} 个后代事项已暂停`}
+                {activeRootPauseHold?.createdAt ? ` · 开始于 ${relativeTime(activeRootPauseHold.createdAt)}` : ""}
               </div>
               {canShowSubtreeControls || canResumeLeafWork ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -3019,7 +3019,7 @@ export function IssueDetail() {
                       setTreeControlOpen(true);
                     }}
                   >
-                    {childIssues.length === 0 ? "Resume work" : "Resume subtree"}
+                    {childIssues.length === 0 ? "恢复工作" : "恢复子树"}
                   </Button>
                   <Button
                     variant="outline"
@@ -3030,7 +3030,7 @@ export function IssueDetail() {
                       setTreeControlOpen(true);
                     }}
                   >
-                    View affected ({childIssues.length === 0 ? 1 : heldDescendantCount})
+                    查看受影响项（{childIssues.length === 0 ? 1 : heldDescendantCount}）
                   </Button>
                   {canShowSubtreeControls ? (
                     <Button
@@ -3043,7 +3043,7 @@ export function IssueDetail() {
                         setTreeControlOpen(true);
                       }}
                     >
-                      Cancel subtree...
+                      取消子树...
                     </Button>
                   ) : null}
                 </div>
@@ -3123,7 +3123,7 @@ export function IssueDetail() {
           ) : (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground opacity-50 px-1 -mx-1 py-0.5">
               <Hexagon className="h-3 w-3 shrink-0" />
-              No project
+                无项目
             </span>
           )}
 
@@ -3154,7 +3154,7 @@ export function IssueDetail() {
                 variant="ghost"
                 size="icon-xs"
                 onClick={copyIssueToClipboard}
-                title="Copy issue as markdown"
+                title="复制事项为 Markdown"
               >
                 {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
@@ -3178,8 +3178,8 @@ export function IssueDetail() {
                   if (!archivePending && issue?.id) archiveFromInbox.mutate(issue.id);
                 }}
                 disabled={archivePending}
-                title="Archive from inbox"
-                aria-label="Archive from inbox"
+                title="从收件箱归档"
+                aria-label="从收件箱归档"
               >
                 <Archive className="h-4 w-4" />
               </Button>
@@ -3188,7 +3188,7 @@ export function IssueDetail() {
               variant="ghost"
               size="icon-xs"
               onClick={copyIssueToClipboard}
-              title="Copy issue as markdown"
+              title="复制事项为 Markdown"
             >
               {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
@@ -3200,7 +3200,7 @@ export function IssueDetail() {
                 panelVisible ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100",
               )}
               onClick={() => setPanelVisible(true)}
-              title="Show properties"
+              title="显示属性"
             >
               <SlidersHorizontal className="h-4 w-4" />
             </Button>
@@ -3211,8 +3211,8 @@ export function IssueDetail() {
                   variant="ghost"
                   size="icon-xs"
                   className="shrink-0"
-                  aria-label="More issue actions"
-                  title="More issue actions"
+                  aria-label="更多事项操作"
+                  title="更多事项操作"
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
@@ -3235,7 +3235,7 @@ export function IssueDetail() {
                   }}
                 >
                   <PauseCircle className="h-3 w-3" />
-                  Pause work...
+                  暂停工作...
                 </button>
               ) : null}
               {canResumeLeafWork ? (
@@ -3249,7 +3249,7 @@ export function IssueDetail() {
                   }}
                 >
                   <PlayCircle className="h-3 w-3" />
-                  Resume work
+                  恢复工作
                 </button>
               ) : null}
               {canShowSubtreeControls ? (
@@ -3264,7 +3264,7 @@ export function IssueDetail() {
                     }}
                   >
                     <PauseCircle className="h-3 w-3" />
-                    Pause subtree...
+                    暂停子树...
                   </button>
                   {canResumeSubtree ? (
                     <button
@@ -3277,7 +3277,7 @@ export function IssueDetail() {
                       }}
                     >
                       <PlayCircle className="h-3 w-3" />
-                      Resume subtree
+                      恢复子树
                     </button>
                   ) : null}
                   <button
@@ -3290,7 +3290,7 @@ export function IssueDetail() {
                     }}
                   >
                     <XCircle className="h-3 w-3" />
-                    Cancel subtree...
+                    取消子树...
                   </button>
                   {canRestoreSubtree ? (
                     <button
@@ -3304,7 +3304,7 @@ export function IssueDetail() {
                       }}
                     >
                       <Repeat className="h-3 w-3" />
-                      Restore subtree...
+                      恢复子树...
                     </button>
                   ) : null}
                 </>
@@ -3320,7 +3320,7 @@ export function IssueDetail() {
                 }}
               >
                 <EyeOff className="h-3 w-3" />
-                Hide this Issue
+                隐藏此事项
               </button>
             </PopoverContent>
             </Popover>
@@ -3339,7 +3339,7 @@ export function IssueDetail() {
           onSave={(description) => updateIssue.mutateAsync({ description })}
           as="p"
           className="text-[15px] leading-7 text-foreground"
-          placeholder="Add a description..."
+          placeholder="添加描述..."
           multiline
           foldable
           mentions={mentionOptions}
@@ -3397,7 +3397,7 @@ export function IssueDetail() {
       {showRichSubIssuesSection ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Sub-issues</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">子事项</h3>
           </div>
           <IssuesList
             issues={childIssues}
@@ -3413,7 +3413,7 @@ export function IssueDetail() {
             searchFilters={{ descendantOf: issue.id, includeBlockedBy: true }}
             searchWithinLoadedIssues
             baseCreateIssueDefaults={buildSubIssueDefaultsForViewer(issue, currentUserId)}
-            createIssueLabel="Sub-issue"
+            createIssueLabel="子事项"
             defaultSortField="workflow"
             showProgressSummary
             onUpdateIssue={handleChildIssueUpdate}
@@ -3724,18 +3724,18 @@ export function IssueDetail() {
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-4">
             {treeControlMode === "cancel" ? (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-                Cancelling a subtree is destructive. Non-terminal issues will be marked cancelled, and running or queued work will be interrupted where possible.
+                取消子树是破坏性操作。非终态事项会被标记为已取消，并会尽可能中断正在运行或排队的工作。
               </div>
             ) : null}
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">
-                Reason (optional)
+                原因（可选）
               </label>
               <Textarea
                 value={treeControlReason}
                 onChange={(event) => setTreeControlReason(event.target.value)}
-                placeholder="Explain why this subtree control is being applied..."
+                placeholder="说明为什么应用此子树控制..."
                 className="min-h-[88px]"
               />
             </div>
@@ -3751,7 +3751,7 @@ export function IssueDetail() {
                     onChange={(event) => setTreeControlWakeAgentsOnResume(event.target.checked)}
                   />
                   <span>
-                    <span className="block font-medium">Wake affected agents ({previewAffectedAgentCount})</span>
+                    <span className="block font-medium">唤醒受影响代理（{previewAffectedAgentCount}）</span>
                     <span className="text-xs text-muted-foreground">
                       {previewAffectedAgentCount === 0
                         ? "No assigned agents are eligible to wake from this preview."

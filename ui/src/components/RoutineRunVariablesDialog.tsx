@@ -356,8 +356,8 @@ export function RoutineRunVariablesDialog({
                 recentOptionIds={recentAssigneeIds}
                 placeholder="Agent"
                 noneLabel="Select an agent"
-                searchPlaceholder="Search agents..."
-                emptyMessage="No agents found."
+                searchPlaceholder="搜索代理..."
+                emptyMessage="未找到代理。"
                 disablePortal
                 openOnFocus={false}
                 onChange={(assigneeAgentId) => {
@@ -522,7 +522,7 @@ export function RoutineRunVariablesDialog({
 
         <DialogFooter showCloseButton={false}>
           {!selection.assigneeAgentId ? (
-            <p className="mr-auto text-xs text-amber-600">Default agent required for this run.</p>
+            <p className="mr-auto text-xs text-amber-600">此运行需要默认代理。</p>
           ) : missingRequired.length > 0 ? (
             <p className="mr-auto text-xs text-amber-600">
               Missing: {missingRequired.join(", ")}

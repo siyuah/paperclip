@@ -1721,7 +1721,7 @@ function IssueChatFeedbackButtons({
               disabled={isSaving || !downvoteReason.trim()}
               onClick={handleSubmitReason}
             >
-              {isSaving ? "Saving..." : "Save note"}
+              {isSaving ? "正在保存..." : "保存说明"}
             </Button>
           </div>
         </PopoverContent>
@@ -1777,7 +1777,7 @@ function IssueChatFeedbackButtons({
                 ).then(() => setPendingSharingDialog(null));
               }}
             >
-              {isSaving ? "Saving..." : "Don't allow"}
+              {isSaving ? "正在保存..." : "不允许"}
             </Button>
             <Button
               type="button"
@@ -1790,7 +1790,7 @@ function IssueChatFeedbackButtons({
                 }).then(() => setPendingSharingDialog(null));
               }}
             >
-              {isSaving ? "Saving..." : "Always allow"}
+              {isSaving ? "正在保存..." : "始终允许"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3011,7 +3011,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
               size="icon-sm"
               onClick={() => attachInputRef.current?.click()}
               disabled={attaching}
-              title="Attach file"
+              title="附加文件"
             >
               <Paperclip className="h-4 w-4" />
             </Button>

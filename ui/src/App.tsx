@@ -153,15 +153,15 @@ function OnboardingRoutePage() {
     : null;
 
   const title = matchedCompany
-    ? `Add another agent to ${matchedCompany.name}`
+    ? `为 ${matchedCompany.name} 添加另一个代理`
     : companies.length > 0
-      ? "Create another company"
-      : "Create your first company";
+      ? "创建另一个公司"
+      : "创建你的第一个公司";
   const description = matchedCompany
-    ? "Run onboarding again to add an agent and a starter task for this company."
+    ? "再次运行引导流程，为该公司添加代理和起始任务。"
     : companies.length > 0
-      ? "Run onboarding again to create another company and seed its first agent."
-      : "Get started by creating a company and your first agent.";
+      ? "再次运行引导流程，创建另一个公司并初始化第一个代理。"
+      : "先创建一个公司和第一个代理即可开始。";
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -176,7 +176,7 @@ function OnboardingRoutePage() {
                 : openOnboarding()
             }
           >
-            {matchedCompany ? "Add Agent" : "Start Onboarding"}
+            {matchedCompany ? "添加代理" : "开始引导"}
           </Button>
         </div>
       </div>

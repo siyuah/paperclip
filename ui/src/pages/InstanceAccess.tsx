@@ -10,6 +10,32 @@ import { useCompany } from "@/context/CompanyContext";
 import { useToast } from "@/context/ToastContext";
 import { queryKeys } from "@/lib/queryKeys";
 
+const ACCESS_ROLE_LABELS: Record<string, string> = {
+  owner: "所有者",
+  admin: "管理员",
+  operator: "操作员",
+  viewer: "查看者",
+  member: "成员",
+};
+
+const ACCESS_STATUS_LABELS: Record<string, string> = {
+  active: "活跃",
+  pending: "待处理",
+  suspended: "已暂停",
+  archived: "已归档",
+  paused: "已暂停",
+};
+
+function formatAccessRole(role: string | null | undefined) {
+  if (!role) return "未设置";
+  return ACCESS_ROLE_LABELS[role] ?? role.replaceAll("_", " ");
+}
+
+function formatAccessStatus(status: string | null | undefined) {
+  if (!status) return "未知";
+  return ACCESS_STATUS_LABELS[status] ?? status.replaceAll("_", " ");
+}
+
 export function InstanceAccess() {
   const { companies } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
@@ -21,8 +47,8 @@ export function InstanceAccess() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Instance Settings", href: "/instance/settings/general" },
-      { label: "Access" },
+      { label: "实例设置", href: "/instance/settings/general" },
+      { label: "访问权限" },
     ]);
   }, [setBreadcrumbs]);
 
@@ -64,13 +90,13 @@ export function InstanceAccess() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.access.userCompanyAccess(selectedUserId!) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.access.adminUsers(search) });
-      pushToast({ title: "Company access updated", tone: "success" });
+      pushToast({ title: "公司访问权限已更新", tone: "success" });
     },
   });
 
   const setAdminMutation = useMutation({
     mutationFn: async (makeAdmin: boolean) => {
-      if (!selectedUserId) throw new Error("No user selected");
+      if (!selectedUserId) throw new Error("未选择用户");
       if (makeAdmin) return accessApi.promoteInstanceAdmin(selectedUserId);
       return accessApi.demoteInstanceAdmin(selectedUserId);
     },
@@ -79,21 +105,21 @@ export function InstanceAccess() {
       if (selectedUserId) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.access.userCompanyAccess(selectedUserId) });
       }
-      pushToast({ title: "Instance role updated", tone: "success" });
+      pushToast({ title: "实例角色已更新", tone: "success" });
     },
   });
 
   if (usersQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading instance users…</div>;
+    return <div className="text-sm text-muted-foreground">正在加载实例用户...</div>;
   }
 
   if (usersQuery.error) {
     const message =
       usersQuery.error instanceof ApiError && usersQuery.error.status === 403
-        ? "Instance admin access is required to manage users."
+        ? "需要实例管理员权限才能管理用户。"
         : usersQuery.error instanceof Error
           ? usersQuery.error.message
-          : "Failed to load users.";
+          : "用户加载失败。";
     return <div className="text-sm text-destructive">{message}</div>;
   }
 
@@ -102,22 +128,22 @@ export function InstanceAccess() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Instance Access</h1>
+          <h1 className="text-lg font-semibold">实例访问权限</h1>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Search users, manage instance-admin status, and control which companies they can access.
+          搜索用户、管理实例管理员身份，并控制他们可以访问哪些公司。
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <section className="space-y-4 rounded-xl border border-border bg-card p-4">
           <label className="block space-y-2 text-sm">
-            <span className="font-medium">Search users</span>
+            <span className="font-medium">搜索用户</span>
             <input
               className="w-full rounded-md border border-border bg-background px-3 py-2"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name or email"
+              placeholder="按姓名或邮箱搜索"
             />
           </label>
           <div className="space-y-2">
@@ -142,7 +168,7 @@ export function InstanceAccess() {
                   ) : null}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {user.activeCompanyMembershipCount} active company memberships
+                  {user.activeCompanyMembershipCount} 个活跃公司成员身份
                 </div>
               </button>
             ))}
@@ -151,12 +177,12 @@ export function InstanceAccess() {
 
         <section className="space-y-4 rounded-xl border border-border bg-card p-5">
           {!selectedUserId ? (
-            <div className="text-sm text-muted-foreground">Select a user to inspect instance access.</div>
+            <div className="text-sm text-muted-foreground">选择一个用户以查看实例访问权限。</div>
           ) : userAccessQuery.isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading user access…</div>
+            <div className="text-sm text-muted-foreground">正在加载用户访问权限...</div>
           ) : userAccessQuery.error ? (
             <div className="text-sm text-destructive">
-              {userAccessQuery.error instanceof Error ? userAccessQuery.error.message : "Failed to load user access."}
+              {userAccessQuery.error instanceof Error ? userAccessQuery.error.message : "用户访问权限加载失败。"}
             </div>
           ) : (
             <>
@@ -174,15 +200,15 @@ export function InstanceAccess() {
                   onClick={() => setAdminMutation.mutate(!(selectedUser?.isInstanceAdmin ?? false))}
                   disabled={setAdminMutation.isPending}
                 >
-                  {selectedUser?.isInstanceAdmin ? "Remove instance admin" : "Promote to instance admin"}
+                  {selectedUser?.isInstanceAdmin ? "移除实例管理员" : "提升为实例管理员"}
                 </Button>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <h2 className="text-sm font-semibold">Company access</h2>
+                  <h2 className="text-sm font-semibold">公司访问权限</h2>
                   <p className="text-sm text-muted-foreground">
-                    Toggle company membership for this user. New access defaults to an active operator membership.
+                    为此用户开关公司成员身份。新增访问权限默认使用活跃的操作员成员身份。
                   </p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -214,13 +240,13 @@ export function InstanceAccess() {
                     onClick={() => updateCompanyAccessMutation.mutate()}
                     disabled={updateCompanyAccessMutation.isPending}
                   >
-                    {updateCompanyAccessMutation.isPending ? "Saving…" : "Save company access"}
+                    {updateCompanyAccessMutation.isPending ? "正在保存..." : "保存公司访问权限"}
                   </Button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-sm font-semibold">Current memberships</h2>
+                <h2 className="text-sm font-semibold">当前成员身份</h2>
                 <div className="space-y-2">
                   {(userAccessQuery.data?.companyAccess ?? []).map((membership) => (
                     <div
@@ -230,7 +256,7 @@ export function InstanceAccess() {
                       <div>
                         <div className="font-medium">{membership.companyName || membership.companyId}</div>
                         <div className="text-muted-foreground">
-                          {membership.membershipRole || "unset"} • {membership.status}
+                          {formatAccessRole(membership.membershipRole)} · {formatAccessStatus(membership.status)}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground">

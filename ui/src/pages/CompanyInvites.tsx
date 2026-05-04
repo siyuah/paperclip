@@ -13,29 +13,40 @@ import { queryKeys } from "@/lib/queryKeys";
 const inviteRoleOptions = [
   {
     value: "viewer",
-    label: "Viewer",
-    description: "Can view company work and follow along without operational permissions.",
-    gets: "No built-in grants.",
+    label: "查看者",
+    description: "可以查看公司工作并跟进进展，但没有操作权限。",
+    gets: "没有内置授权。",
   },
   {
     value: "operator",
-    label: "Operator",
-    description: "Recommended for people who need to help run work without managing access.",
-    gets: "Can assign tasks.",
+    label: "操作员",
+    description: "适合需要协助执行工作、但不管理访问权限的成员。",
+    gets: "可以分配任务。",
   },
   {
     value: "admin",
-    label: "Admin",
-    description: "Recommended for operators who need to invite people, create agents, and approve joins.",
-    gets: "Can create agents, invite users, assign tasks, and approve join requests.",
+    label: "管理员",
+    description: "适合需要邀请成员、创建代理并审批加入请求的操作员。",
+    gets: "可以创建代理、邀请用户、分配任务并审批加入请求。",
   },
   {
     value: "owner",
-    label: "Owner",
-    description: "Full company access, including membership and permission management.",
-    gets: "Everything in Admin, plus managing members and permission grants.",
+    label: "所有者",
+    description: "完整公司访问权限，包括成员和权限管理。",
+    gets: "包含管理员的全部权限，并可管理成员和权限授权。",
   },
 ] as const;
+
+const INVITE_ROLE_LABELS: Record<string, string> = Object.fromEntries(
+  inviteRoleOptions.map((option) => [option.value, option.label]),
+);
+
+const INVITE_STATE_LABELS: Record<"active" | "accepted" | "expired" | "revoked", string> = {
+  active: "活跃",
+  accepted: "已接受",
+  expired: "已过期",
+  revoked: "已撤销",
+};
 
 const INVITE_HISTORY_PAGE_SIZE = 5;
 
@@ -81,9 +92,9 @@ export function CompanyInvites() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: selectedCompany?.name ?? "Company", href: "/dashboard" },
-      { label: "Settings", href: "/company/settings" },
-      { label: "Invites" },
+      { label: selectedCompany?.name ?? "公司", href: "/dashboard" },
+      { label: "设置", href: "/company/settings" },
+      { label: "邀请" },
     ]);
   }, [selectedCompany?.name, setBreadcrumbs]);
 
@@ -151,7 +162,7 @@ export function CompanyInvites() {
   });
 
   if (!selectedCompanyId) {
-    return <div className="text-sm text-muted-foreground">Select a company to manage invites.</div>;
+    return <div className="text-sm text-muted-foreground">请选择公司以管理邀请。</div>;
   }
 
   if (invitesQuery.isLoading) {
@@ -211,7 +222,7 @@ export function CompanyInvites() {
                       <span className="text-sm font-medium">{option.label}</span>
                       {option.value === "operator" ? (
                         <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                          Default
+                          默认
                         </span>
                       ) : null}
                     </span>
@@ -312,7 +323,9 @@ export function CompanyInvites() {
                           {formatInviteState(invite.state)}
                         </span>
                       </td>
-                      <td className="px-5 py-3 align-top">{invite.humanRole ?? "—"}</td>
+                      <td className="px-5 py-3 align-top">
+                        {invite.humanRole ? INVITE_ROLE_LABELS[invite.humanRole] : "—"}
+                      </td>
                       <td className="px-5 py-3 align-top">
                         <div>{invite.invitedByUser?.name || invite.invitedByUser?.email || "Unknown inviter"}</div>
                         {invite.invitedByUser?.email && invite.invitedByUser.name ? (
@@ -370,5 +383,5 @@ export function CompanyInvites() {
 }
 
 function formatInviteState(state: "active" | "accepted" | "expired" | "revoked") {
-  return state.charAt(0).toUpperCase() + state.slice(1);
+  return INVITE_STATE_LABELS[state];
 }

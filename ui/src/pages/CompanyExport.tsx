@@ -391,7 +391,7 @@ function FrontmatterCard({
 
 const ROLE_LABELS: Record<string, string> = {
   ceo: "CEO", cto: "CTO", cmo: "CMO", cfo: "CFO", coo: "COO",
-  vp: "VP", manager: "Manager", engineer: "Engineer", agent: "Agent",
+  vp: "VP", manager: "经理", engineer: "工程师", agent: "代理",
 };
 
 /**
@@ -427,19 +427,19 @@ function generateReadmeFromSelection(
     lines.push("");
   }
 
-  lines.push("## What's Inside");
+  lines.push("## 包含内容");
   lines.push("");
-  lines.push("This is an [Agent Company](https://paperclip.ing) package.");
+  lines.push("这是一个 Paperclip 代理公司包（[Agent Company](https://paperclip.ing)）。");
   lines.push("");
 
   const counts: Array<[string, number]> = [];
-  if (agents.length > 0) counts.push(["Agents", agents.length]);
-  if (projects.length > 0) counts.push(["Projects", projects.length]);
-  if (skills.length > 0) counts.push(["Skills", skills.length]);
-  if (tasks.length > 0) counts.push(["Tasks", tasks.length]);
+  if (agents.length > 0) counts.push(["代理", agents.length]);
+  if (projects.length > 0) counts.push(["项目", projects.length]);
+  if (skills.length > 0) counts.push(["技能", skills.length]);
+  if (tasks.length > 0) counts.push(["任务", tasks.length]);
 
   if (counts.length > 0) {
-    lines.push("| Content | Count |");
+    lines.push("| 内容 | 数量 |");
     lines.push("|---------|-------|");
     for (const [label, count] of counts) {
       lines.push(`| ${label} | ${count} |`);
@@ -448,9 +448,9 @@ function generateReadmeFromSelection(
   }
 
   if (agents.length > 0) {
-    lines.push("### Agents");
+    lines.push("### 代理");
     lines.push("");
-    lines.push("| Agent | Role | Reports To |");
+    lines.push("| 代理 | 角色 | 汇报对象 |");
     lines.push("|-------|------|------------|");
     for (const agent of agents) {
       const roleLabel = ROLE_LABELS[agent.role] ?? agent.role;
@@ -461,7 +461,7 @@ function generateReadmeFromSelection(
   }
 
   if (projects.length > 0) {
-    lines.push("### Projects");
+    lines.push("### 项目");
     lines.push("");
     for (const project of projects) {
       const desc = project.description ? ` \u2014 ${project.description}` : "";
@@ -470,16 +470,16 @@ function generateReadmeFromSelection(
     lines.push("");
   }
 
-  lines.push("## Getting Started");
+  lines.push("## 开始使用");
   lines.push("");
   lines.push("```bash");
   lines.push("pnpm paperclipai company import this-github-url-or-folder");
   lines.push("```");
   lines.push("");
-  lines.push("See [Paperclip](https://paperclip.ing) for more information.");
+  lines.push("更多信息请查看 [Paperclip](https://paperclip.ing)。");
   lines.push("");
   lines.push("---");
-  lines.push(`Exported from [Paperclip](https://paperclip.ing) on ${new Date().toISOString().split("T")[0]}`);
+  lines.push(`导出自 [Paperclip](https://paperclip.ing)，日期：${new Date().toISOString().split("T")[0]}`);
   lines.push("");
 
   return lines.join("\n");
@@ -500,7 +500,7 @@ function ExportPreviewPane({
 }) {
   if (!selectedFile || content === null) {
     return (
-      <EmptyState icon={Package} message="Select a file to preview its contents." />
+      <EmptyState icon={Package} message="选择文件以预览内容。" />
     );
   }
 
@@ -546,7 +546,7 @@ function ExportPreviewPane({
           </pre>
         ) : (
           <div className="rounded-lg border border-border bg-accent/10 px-4 py-3 text-sm text-muted-foreground">
-            Binary asset preview is not available for this file type.
+            此文件类型暂不支持二进制资源预览。
           </div>
         )}
       </div>
@@ -672,8 +672,8 @@ export function CompanyExport() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Org Chart", href: "/org" },
-      { label: "Export" },
+      { label: "组织图表", href: "/org" },
+      { label: "导出" },
     ]);
   }, [setBreadcrumbs]);
 
@@ -719,8 +719,8 @@ export function CompanyExport() {
     onError: (err) => {
       pushToast({
         tone: "error",
-        title: "Export failed",
-        body: err instanceof Error ? err.message : "Failed to load export data.",
+        title: "导出失败",
+        body: err instanceof Error ? err.message : "加载导出数据失败。",
       });
     },
   });
@@ -737,15 +737,15 @@ export function CompanyExport() {
       downloadZip(result, resultCheckedFiles, result.files);
       pushToast({
         tone: "success",
-        title: "Export downloaded",
-        body: `${resultCheckedFiles.size} file${resultCheckedFiles.size === 1 ? "" : "s"} exported as ${result.rootPath}.zip`,
+        title: "导出已下载",
+        body: `${resultCheckedFiles.size} 个文件已导出为 ${result.rootPath}.zip`,
       });
     },
     onError: (err) => {
       pushToast({
         tone: "error",
-        title: "Export failed",
-        body: err instanceof Error ? err.message : "Failed to build export package.",
+        title: "导出失败",
+        body: err instanceof Error ? err.message : "生成导出包失败。",
       });
     },
   });
@@ -911,7 +911,7 @@ export function CompanyExport() {
   }
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Package} message="Select a company to export." />;
+    return <EmptyState icon={Package} message="请选择要导出的公司。" />;
   }
 
   if (exportPreviewMutation.isPending && !exportData) {
@@ -919,7 +919,7 @@ export function CompanyExport() {
   }
 
   if (!exportData) {
-    return <EmptyState icon={Package} message="Loading export data..." />;
+    return <EmptyState icon={Package} message="正在加载导出数据..." />;
   }
 
   const previewContent = selectedFile
@@ -935,14 +935,14 @@ export function CompanyExport() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4 text-sm">
             <span className="font-medium">
-              {selectedCompany?.name ?? "Company"} export
+              {selectedCompany?.name ?? "公司"} 导出
             </span>
             <span className="text-muted-foreground">
-              {selectedCount} / {totalFiles} file{totalFiles === 1 ? "" : "s"} selected
+              已选择 {selectedCount} / {totalFiles} 个文件
             </span>
             {warnings.length > 0 && (
               <span className="text-amber-500">
-                {warnings.length} warning{warnings.length === 1 ? "" : "s"}
+                {warnings.length} 条警告
               </span>
             )}
           </div>
@@ -953,8 +953,8 @@ export function CompanyExport() {
           >
             <Download className="mr-1.5 h-3.5 w-3.5" />
             {downloadMutation.isPending
-              ? "Building export..."
-              : `Export ${selectedCount} file${selectedCount === 1 ? "" : "s"}`}
+              ? "正在生成导出..."
+              : `导出 ${selectedCount} 个文件`}
           </Button>
         </div>
       </div>
@@ -972,7 +972,7 @@ export function CompanyExport() {
       <div className="grid h-[calc(100vh-12rem)] gap-0 xl:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="flex flex-col border-r border-border overflow-hidden">
           <div className="border-b border-border px-4 py-3 shrink-0">
-            <h2 className="text-base font-semibold">Package files</h2>
+            <h2 className="text-base font-semibold">包文件</h2>
           </div>
           <div className="border-b border-border px-3 py-2 shrink-0">
             <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
@@ -981,7 +981,7 @@ export function CompanyExport() {
                 type="text"
                 value={treeSearch}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search files..."
+                placeholder="搜索文件..."
                 className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 data-page-search-target="true"
               />
@@ -1004,7 +1004,7 @@ export function CompanyExport() {
                   onClick={() => setTaskLimit((prev) => prev + TASKS_PAGE_SIZE)}
                   className="w-full rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent/30 hover:text-foreground transition-colors"
                 >
-                  Show more issues ({visibleTaskChildren} of {totalTaskChildren})
+                  显示更多事项（{visibleTaskChildren} / {totalTaskChildren}）
                 </button>
               </div>
             )}

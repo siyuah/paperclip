@@ -5,7 +5,7 @@ const manifest: PaperclipPluginManifestV1 = {
   apiVersion: 1,
   version: "0.1.0",
   displayName: "Dark Factory Bridge（中文）",
-  description: "Dark Factory Bridge 插件：以中文界面显示投影、Journal 游标、Provider 健康和 rehydrate receipt；不会成为权威执行记录。",
+  description: "Dark Factory Bridge 插件：以中文界面显示投影、日志游标、提供方健康和重建回执；不会成为权威执行记录。",
   author: "Paperclip",
   categories: ["automation", "ui"],
   capabilities: [
@@ -33,7 +33,7 @@ const manifest: PaperclipPluginManifestV1 = {
       driverKey: "dark-factory-mock",
       kind: "environment_driver",
       displayName: "Dark Factory Bridge（中文）",
-      description: "Dark Factory environment driver：支持确定性 mock mode、本地 HTTP mode 和 remote provider alpha mode。所有投影均非权威；Dark Factory Journal remains truth source。",
+      description: "Dark Factory 环境驱动：支持确定性模拟模式、本地 HTTP mode 和远程提供方 alpha 模式。所有投影均非权威；Dark Factory Journal remains truth source。",
       configSchema: {
         type: "object",
         additionalProperties: false,
@@ -45,7 +45,7 @@ const manifest: PaperclipPluginManifestV1 = {
           },
           endpoint: {
             type: "string",
-            description: "http 或 remote 模式使用的 Dark Factory HTTP endpoint，例如 http://127.0.0.1:9701 或可信远程 URL。"
+            description: "HTTP endpoint：HTTP 或远程模式使用的 Dark Factory HTTP 端点，例如 http://127.0.0.1:9701 或可信远程 URL。"
           },
           projectionMode: {
             type: "string",
@@ -62,7 +62,7 @@ const manifest: PaperclipPluginManifestV1 = {
           },
           apiKeySecretRef: {
             type: "string",
-            description: "Dark Factory API key 的 secret 引用。支持 legacy env:NAME/env://NAME 以及 Host 托管 secret://NAME/host-secret://NAME 引用。插件只保存引用，不保存 secret 值。"
+            description: "Dark Factory API key 的密钥引用。支持旧版 env:NAME/env://NAME 以及宿主托管的 secret://NAME/host-secret://NAME 引用。插件只保存引用，不保存密钥值。"
           },
           requestedBy: {
             type: "string",
@@ -145,7 +145,7 @@ const manifest: PaperclipPluginManifestV1 = {
       {
         type: "dashboardWidget",
         id: "dark-factory-provider-health",
-        displayName: "Dark Factory Provider 健康",
+        displayName: "Dark Factory 提供方健康",
         exportName: "DashboardWidget"
       },
       {

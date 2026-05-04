@@ -78,12 +78,12 @@ export function providerDisplayName(provider: string): string {
 
 export function billingTypeDisplayName(billingType: BillingType): string {
   const map: Record<BillingType, string> = {
-    metered_api: "Metered API",
-    subscription_included: "Subscription",
-    subscription_overage: "Subscription overage",
-    credits: "Credits",
-    fixed: "Fixed",
-    unknown: "Unknown",
+    metered_api: "按量 API",
+    subscription_included: "订阅",
+    subscription_overage: "订阅超额",
+    credits: "额度",
+    fixed: "固定",
+    unknown: "未知",
   };
   return map[billingType];
 }
@@ -133,26 +133,26 @@ export function visibleRunCostUsd(
 
 export function financeEventKindDisplayName(eventKind: FinanceEventKind): string {
   const map: Record<FinanceEventKind, string> = {
-    inference_charge: "Inference charge",
-    platform_fee: "Platform fee",
-    credit_purchase: "Credit purchase",
-    credit_refund: "Credit refund",
-    credit_expiry: "Credit expiry",
-    byok_fee: "BYOK fee",
-    gateway_overhead: "Gateway overhead",
-    log_storage_charge: "Log storage",
-    logpush_charge: "Logpush",
-    provisioned_capacity_charge: "Provisioned capacity",
-    training_charge: "Training",
-    custom_model_import_charge: "Custom model import",
-    custom_model_storage_charge: "Custom model storage",
-    manual_adjustment: "Manual adjustment",
+    inference_charge: "推理费用",
+    platform_fee: "平台费用",
+    credit_purchase: "额度购买",
+    credit_refund: "额度退款",
+    credit_expiry: "额度过期",
+    byok_fee: "BYOK 费用",
+    gateway_overhead: "网关开销",
+    log_storage_charge: "日志存储",
+    logpush_charge: "日志推送",
+    provisioned_capacity_charge: "预置容量",
+    training_charge: "训练",
+    custom_model_import_charge: "自定义模型导入",
+    custom_model_storage_charge: "自定义模型存储",
+    manual_adjustment: "手动调整",
   };
   return map[eventKind];
 }
 
 export function financeDirectionDisplayName(direction: FinanceDirection): string {
-  return direction === "credit" ? "Credit" : "Debit";
+  return direction === "credit" ? "贷记" : "借记";
 }
 
 /** Build an issue URL using the human-readable identifier when available. */

@@ -258,14 +258,14 @@ export function CompanySettings() {
             />
           </Field>
           <Field
-            label="Description"
-            hint="Optional description shown in the company profile."
+            label="描述"
+            hint="显示在公司资料中的可选描述。"
           >
             <input
               className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
               type="text"
               value={description}
-              placeholder="Optional company description"
+              placeholder="可选公司描述"
               onChange={(e) => setDescription(e.target.value)}
             />
           </Field>
@@ -517,8 +517,8 @@ export function CompanySettings() {
         </div>
         <div className="rounded-md border border-border px-4 py-4">
           <p className="text-sm text-muted-foreground">
-            Import and export have moved to dedicated pages accessible from the{" "}
-            <a href="/org" className="underline hover:text-foreground">Org Chart</a> header.
+            导入和导出已移至专用页面，可从{" "}
+            <a href="/org" className="underline hover:text-foreground">组织图表</a>页头进入。
           </p>
           <div className="mt-3 flex items-center gap-2">
             <Button size="sm" variant="outline" asChild>

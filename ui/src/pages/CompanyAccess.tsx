@@ -71,9 +71,9 @@ export function CompanyAccess() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: selectedCompany?.name ?? "Company", href: "/dashboard" },
-      { label: "Settings", href: "/company/settings" },
-      { label: "Access" },
+      { label: selectedCompany?.name ?? "公司", href: "/dashboard" },
+      { label: "设置", href: "/company/settings" },
+      { label: "访问权限" },
     ]);
   }, [selectedCompany?.name, setBreadcrumbs]);
 
@@ -232,7 +232,7 @@ export function CompanyAccess() {
   }, [removingMember]);
 
   if (!selectedCompanyId) {
-    return <div className="text-sm text-muted-foreground">Select a company to manage access.</div>;
+    return <div className="text-sm text-muted-foreground">请选择公司以管理访问权限。</div>;
   }
 
   if (membersQuery.isLoading) {
