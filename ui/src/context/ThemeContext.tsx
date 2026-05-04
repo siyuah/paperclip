@@ -18,38 +18,47 @@ interface ThemeContextValue {
 
 const THEME_STORAGE_KEY = "paperclip.theme";
 const DARK_THEME_COLOR = "#111111";
+const LIGHT_THEME_COLOR = "#fafafa";
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function resolveThemeFromDocument(): Theme {
+  if (typeof document === "undefined") return "dark";
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {
+    // Ignore local storage read failures in restricted environments.
+  }
   return "dark";
 }
 
-function applyTheme(_theme: Theme) {
+function applyTheme(theme: Theme) {
   if (typeof document === "undefined") return;
+  const isDark = theme === "dark";
   const root = document.documentElement;
-  root.classList.add("dark");
-  root.style.colorScheme = "dark";
+  root.classList.toggle("dark", isDark);
+  root.style.colorScheme = isDark ? "dark" : "light";
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta instanceof HTMLMetaElement) {
-    themeColorMeta.setAttribute("content", DARK_THEME_COLOR);
+    themeColorMeta.setAttribute("content", isDark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
   }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => resolveThemeFromDocument());
 
-  const setTheme = useCallback((_nextTheme: Theme) => {
-    setThemeState("dark");
+  const setTheme = useCallback((nextTheme: Theme) => {
+    setThemeState(nextTheme);
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState("dark");
+    setThemeState((current) => (current === "dark" ? "light" : "dark"));
   }, []);
 
   useEffect(() => {
     applyTheme(theme);
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, "dark");
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // Ignore local storage write failures in restricted environments.
     }
