@@ -149,7 +149,7 @@ export function PluginSettings() {
   const driverLabel = environmentDriverNames.join(", ");
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="max-w-6xl space-y-7">
       <div className="flex items-center gap-4">
         <Link to="/instance/settings/plugins">
           <Button variant="outline" size="icon" className="h-8 w-8">
@@ -157,8 +157,8 @@ export function PluginSettings() {
           </Button>
         </Link>
         <div className="flex items-center gap-2">
-          <Puzzle className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-xl font-semibold">{plugin.manifestJson.displayName ?? plugin.packageName}</h1>
+          <Puzzle className="h-5 w-5 text-muted-foreground" />
+          <h1 className="text-lg font-semibold tracking-tight">{plugin.manifestJson.displayName ?? plugin.packageName}</h1>
           <Badge variant={statusVariant} className="ml-2">
             {displayStatus}
           </Badge>
@@ -180,8 +180,8 @@ export function PluginSettings() {
         />
 
         <TabsContent value="configuration" className="space-y-6">
-          <div className="space-y-8">
-            <section className="space-y-5">
+          <div className="space-y-6">
+            <section className="space-y-5 rounded-md border border-border/60 bg-card/40 p-5">
               <h2 className="text-base font-semibold">About</h2>
               <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.8fr)]">
                 <div className="space-y-2">
@@ -211,9 +211,7 @@ export function PluginSettings() {
               </div>
             </section>
 
-            <Separator />
-
-            <section className="space-y-4">
+            <section className="space-y-4 rounded-md border border-border/60 bg-card/40 p-5">
               <div className="space-y-1">
                 <h2 className="text-base font-semibold">Settings</h2>
               </div>
@@ -241,7 +239,7 @@ export function PluginSettings() {
                   supportsConfigTest={(plugin as unknown as { supportsConfigTest?: boolean }).supportsConfigTest === true}
                 />
               ) : environmentDrivers.length > 0 ? (
-                <div className="rounded-md border border-border/60 bg-muted/20 px-4 py-3 text-sm">
+                <div className="rounded-md border border-border/60 bg-background/60 px-4 py-3 text-sm">
                   <p className="font-medium text-foreground">Configure this plugin from Company Environments.</p>
                   <p className="mt-1 text-muted-foreground">
                     {driverLabel || "This plugin"} registers environment runtime settings there so credentials stay
@@ -285,21 +283,21 @@ export function PluginSettings() {
                         </h3>
                         {dashboardData.worker ? (
                           <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2">
                               <span className="text-muted-foreground">Status</span>
                               <Badge variant={dashboardData.worker.status === "running" ? "default" : "secondary"}>
                                 {dashboardData.worker.status}
                               </Badge>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2">
                               <span className="text-muted-foreground">PID</span>
-                              <span className="font-mono text-xs">{dashboardData.worker.pid ?? "—"}</span>
+                              <span className="font-geek-mono text-xs">{dashboardData.worker.pid ?? "—"}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2">
                               <span className="text-muted-foreground">Uptime</span>
                               <span className="text-xs">{formatUptime(dashboardData.worker.uptime)}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2">
                               <span className="text-muted-foreground">Pending RPCs</span>
                               <span className="text-xs">{dashboardData.worker.pendingRequests}</span>
                             </div>
@@ -340,11 +338,11 @@ export function PluginSettings() {
                             {dashboardData.recentJobRuns.map((run) => (
                               <div
                                 key={run.id}
-                                className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-sm"
+                                className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/50 px-2 py-1.5 text-sm"
                               >
                                 <div className="flex min-w-0 items-center gap-2">
                                   <JobStatusDot status={run.status} />
-                                  <span className="truncate font-mono text-xs" title={run.jobKey ?? run.jobId}>
+                                  <span className="truncate font-geek-mono text-xs" title={run.jobKey ?? run.jobId}>
                                     {run.jobKey ?? run.jobId.slice(0, 8)}
                                   </span>
                                   <Badge variant="outline" className="px-1 py-0 text-[10px]">
@@ -375,11 +373,11 @@ export function PluginSettings() {
                             {dashboardData.recentWebhookDeliveries.map((delivery) => (
                               <div
                                 key={delivery.id}
-                                className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-sm"
+                                className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/50 px-2 py-1.5 text-sm"
                               >
                                 <div className="flex min-w-0 items-center gap-2">
                                   <DeliveryStatusDot status={delivery.status} />
-                                  <span className="truncate font-mono text-xs" title={delivery.webhookKey}>
+                                  <span className="truncate font-geek-mono text-xs" title={delivery.webhookKey}>
                                     {delivery.webhookKey}
                                   </span>
                                 </div>
@@ -418,7 +416,7 @@ export function PluginSettings() {
                     <CardDescription>Last {recentLogs.length} log entries</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="max-h-64 space-y-1 overflow-y-auto font-mono text-xs">
+                    <div className="max-h-64 space-y-1 overflow-y-auto font-geek-mono text-xs">
                       {recentLogs.map((entry) => (
                         <div
                           key={entry.id}
@@ -510,11 +508,11 @@ export function PluginSettings() {
                 <CardContent className="space-y-3 text-sm text-muted-foreground">
                   <div className="flex justify-between gap-3">
                     <span>Plugin ID</span>
-                    <span className="font-mono text-xs text-right">{plugin.id}</span>
+                    <span className="text-right font-geek-mono text-xs">{plugin.id}</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span>Plugin Key</span>
-                    <span className="font-mono text-xs text-right">{plugin.pluginKey}</span>
+                    <span className="text-right font-geek-mono text-xs">{plugin.pluginKey}</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span>NPM Package</span>
@@ -540,7 +538,7 @@ export function PluginSettings() {
                   {pluginCapabilities.length > 0 ? (
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       {pluginCapabilities.map((cap) => (
-                        <li key={cap} className="rounded-md bg-muted/40 px-2.5 py-2 font-mono text-xs text-foreground/85">
+                        <li key={cap} className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2 font-geek-mono text-xs text-foreground/85">
                           {cap}
                         </li>
                       ))}
@@ -677,7 +675,7 @@ function PluginConfigForm({ pluginId, schema, initialValues, isLoading, pluginSt
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+      <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading configuration...
       </div>
@@ -697,9 +695,9 @@ function PluginConfigForm({ pluginId, schema, initialValues, isLoading, pluginSt
       {/* Status messages */}
       {saveMessage && (
         <div
-          className={`text-sm p-2 rounded border ${
+          className={`rounded-md border px-3 py-2 text-sm ${
             saveMessage.type === "success"
-              ? "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950/30 dark:border-green-900"
+              ? "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400"
               : "text-destructive bg-destructive/10 border-destructive/20"
           }`}
         >
@@ -709,9 +707,9 @@ function PluginConfigForm({ pluginId, schema, initialValues, isLoading, pluginSt
 
       {testResult && (
         <div
-          className={`text-sm p-2 rounded border ${
+          className={`rounded-md border px-3 py-2 text-sm ${
             testResult.type === "success"
-              ? "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950/30 dark:border-green-900"
+              ? "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400"
               : "text-destructive bg-destructive/10 border-destructive/20"
           }`}
         >

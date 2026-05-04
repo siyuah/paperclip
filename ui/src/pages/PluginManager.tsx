@@ -159,11 +159,11 @@ export function PluginManager() {
   if (error) return <div className="p-4 text-sm text-destructive">加载插件失败。</div>;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="max-w-6xl space-y-7">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Puzzle className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-xl font-semibold">插件管理器</h1>
+          <Puzzle className="h-5 w-5 text-muted-foreground" />
+          <h1 className="text-lg font-semibold tracking-tight">插件管理器</h1>
         </div>
         
         <Dialog open={installDialogOpen} onOpenChange={setInstallDialogOpen}>
@@ -204,9 +204,9 @@ export function PluginManager() {
         </Dialog>
       </div>
 
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
           <div className="space-y-1 text-sm">
             <p className="font-medium text-foreground">插件功能仍处于测试阶段。</p>
             <p className="text-muted-foreground">
@@ -232,7 +232,7 @@ export function PluginManager() {
             当前检出中没有找到内置示例插件。
           </div>
         ) : (
-          <ul className="divide-y rounded-md border bg-card">
+          <ul className="divide-y divide-border/60 rounded-md border border-border/60 bg-card/40">
             {examples.map((example) => {
               const installedPlugin = installedByPackageName.get(example.packageName);
               const installPending =
@@ -241,7 +241,7 @@ export function PluginManager() {
                 installMutation.variables.packageName === example.localPath;
 
               return (
-                <li key={example.packageName}>
+                <li key={example.packageName} className="transition-colors hover:bg-muted/20">
                   <div className="flex items-center gap-4 px-4 py-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -250,7 +250,7 @@ export function PluginManager() {
                         {installedPlugin ? (
                           <Badge
                             variant={installedPlugin.status === "ready" ? "default" : "secondary"}
-                            className={installedPlugin.status === "ready" ? "bg-green-600 hover:bg-green-700" : ""}
+                            className={installedPlugin.status === "ready" ? "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400 hover:bg-emerald-500/[0.08]" : ""}
                           >
                             {installedPlugin.status}
                           </Badge>
@@ -259,7 +259,7 @@ export function PluginManager() {
                         )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">{example.description}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{example.packageName}</p>
+                      <p className="mt-1 truncate font-geek-mono text-xs text-muted-foreground">{example.packageName}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {installedPlugin ? (
@@ -310,7 +310,7 @@ export function PluginManager() {
         </div>
 
         {!installedPlugins.length ? (
-          <Card className="bg-muted/30">
+          <Card className="border-dashed bg-card/30">
             <CardContent className="flex flex-col items-center justify-center py-10">
               <Puzzle className="h-10 w-10 text-muted-foreground mb-4" />
               <p className="text-sm font-medium">尚未安装插件</p>
@@ -320,15 +320,15 @@ export function PluginManager() {
             </CardContent>
           </Card>
         ) : (
-          <ul className="divide-y rounded-md border bg-card">
+          <ul className="divide-y divide-border/60 rounded-md border border-border/60 bg-card/40">
             {installedPlugins.map((plugin) => (
-              <li key={plugin.id}>
+              <li key={plugin.id} className="transition-colors hover:bg-muted/20">
                 <div className="flex items-start gap-4 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         to={`/instance/settings/plugins/${plugin.id}`}
-                        className="font-medium hover:underline truncate block"
+                        className="block truncate font-medium hover:text-foreground/80"
                         title={plugin.manifestJson.displayName ?? plugin.packageName}
                       >
                         {plugin.manifestJson.displayName ?? plugin.packageName}
@@ -338,7 +338,7 @@ export function PluginManager() {
                       )}
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate" title={plugin.packageName}>
+                      <p className="mt-0.5 truncate font-geek-mono text-xs text-muted-foreground" title={plugin.packageName}>
                         {plugin.packageName} · v{plugin.manifestJson.version ?? plugin.version}
                       </p>
                     </div>
@@ -346,15 +346,15 @@ export function PluginManager() {
                       {plugin.manifestJson.description || "未提供描述。"}
                     </p>
                     {plugin.status === "error" && (
-                      <div className="mt-3 rounded-md border border-red-500/25 bg-red-500/[0.06] px-3 py-2">
+                      <div className="mt-3 rounded-md border border-destructive/25 bg-destructive/[0.08] px-3 py-2">
                         <div className="flex flex-wrap items-start gap-3">
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 text-sm font-medium text-red-700 dark:text-red-300">
+                            <div className="flex items-center gap-2 text-sm font-medium text-destructive">
                               <AlertTriangle className="h-4 w-4 shrink-0" />
                               <span>插件错误</span>
                             </div>
                             <p
-                              className="mt-1 text-sm text-red-700/90 dark:text-red-200/90 break-words"
+                              className="mt-1 break-words text-sm text-destructive/90"
                               title={plugin.lastError ?? undefined}
                             >
                               {errorSummaryByPluginId.get(plugin.id)}
@@ -363,7 +363,7 @@ export function PluginManager() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-red-500/30 bg-background/60 text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:text-red-200 dark:hover:text-red-100"
+                            className="border-destructive/30 bg-background/60 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => setErrorDetailsPlugin(plugin)}
                           >
                             查看完整错误
@@ -385,7 +385,7 @@ export function PluginManager() {
                           }
                           className={cn(
                             "shrink-0",
-                            plugin.status === "ready" ? "bg-green-600 hover:bg-green-700" : ""
+                            plugin.status === "ready" ? "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400 hover:bg-emerald-500/[0.08]" : ""
                           )}
                         >
                           {plugin.status}
@@ -404,7 +404,7 @@ export function PluginManager() {
                           }}
                           disabled={enableMutation.isPending || disableMutation.isPending}
                         >
-                          <Power className={cn("h-4 w-4", plugin.status === "ready" ? "text-green-600" : "")} />
+                          <Power className={cn("h-4 w-4", plugin.status === "ready" ? "text-emerald-400" : "")} />
                         </Button>
                         <Button
                           variant="outline"
@@ -477,14 +477,14 @@ export function PluginManager() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-md border border-red-500/25 bg-red-500/[0.06] px-4 py-3">
+            <div className="rounded-md border border-destructive/25 bg-destructive/[0.08] px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-700 dark:text-red-300" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                 <div className="space-y-1 text-sm">
-                  <p className="font-medium text-red-700 dark:text-red-300">
+                  <p className="font-medium text-destructive">
                     错误内容
                   </p>
-                  <p className="text-red-700/90 dark:text-red-200/90 break-words">
+                  <p className="break-words text-destructive/90">
                     {errorDetailsPlugin ? getPluginErrorSummary(errorDetailsPlugin) : "没有可用的错误摘要。"}
                   </p>
                 </div>
@@ -492,7 +492,7 @@ export function PluginManager() {
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">完整错误输出</p>
-              <pre className="max-h-[50vh] overflow-auto rounded-md border bg-muted/40 p-3 text-xs leading-5 whitespace-pre-wrap break-words">
+              <pre className="max-h-[50vh] overflow-auto rounded-md border border-border/60 bg-background/70 p-3 font-geek-mono text-xs leading-5 whitespace-pre-wrap break-words">
                 {errorDetailsPlugin?.lastError ?? "没有存储错误消息。"}
               </pre>
             </div>

@@ -31,27 +31,27 @@ export function CompanySettingsSidebar() {
   });
 
   return (
-    <aside className="w-60 h-full min-h-0 border-r border-border bg-background flex flex-col">
-      <div className="flex flex-col gap-1 px-3 py-3 shrink-0">
+    <aside className="flex h-full min-h-0 w-60 flex-col border-r border-border/60 bg-sidebar">
+      <div className="flex shrink-0 flex-col gap-1 border-b border-border/60 px-3 py-3">
         <Link
           to="/dashboard"
           onClick={() => {
             if (isMobile) setSidebarOpen(false);
           }}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{selectedCompany?.name ?? "Company"}</span>
         </Link>
         <div className="flex items-center gap-2 px-2 py-1">
           <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="flex-1 truncate text-sm font-bold text-foreground">
+          <span className="flex-1 truncate text-sm font-semibold tracking-tight text-sidebar-foreground">
             Company Settings
           </span>
         </div>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-auto-hide px-3 py-2">
+      <nav className="scrollbar-auto-hide min-h-0 flex-1 overflow-y-auto px-3 py-2">
         <div className="flex flex-col gap-0.5">
           <SidebarNavItem to="/company/settings" label="General" icon={SlidersHorizontal} end />
           <SidebarNavItem

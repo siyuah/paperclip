@@ -267,11 +267,11 @@ export function CompanyAccess() {
   const assignedIssues = assignedIssuesQuery.data ?? [];
 
   return (
-    <div className="max-w-6xl space-y-8">
+    <div className="max-w-6xl space-y-7">
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Company Access</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Company Access</h1>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
           Manage company user memberships, membership status, and explicit permission grants for {selectedCompany?.name}.
@@ -279,7 +279,7 @@ export function CompanyAccess() {
       </div>
 
       {access && !access.currentUserRole && (
-        <div className="rounded-xl border border-amber-500/40 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 text-sm text-amber-200">
           This account can manage access here through instance-admin privileges, but it does not currently hold an active company membership.
         </div>
       )}
@@ -296,7 +296,7 @@ export function CompanyAccess() {
         </div>
 
         {access?.canApproveJoinRequests && pendingHumanJoinRequests.length > 0 ? (
-          <div className="space-y-3 rounded-xl border border-border px-4 py-4">
+          <div className="space-y-3 rounded-md border border-border/60 bg-card/40 px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-semibold">Pending human joins</h3>
@@ -339,8 +339,8 @@ export function CompanyAccess() {
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-xl border border-border">
-          <div className="grid grid-cols-[minmax(0,1.5fr)_120px_120px_minmax(0,1.2fr)_180px] gap-3 border-b border-border px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="overflow-hidden rounded-md border border-border/60 bg-card/40">
+          <div className="grid grid-cols-[minmax(0,1.5fr)_120px_120px_minmax(0,1.2fr)_180px] gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <div>User account</div>
             <div>Role</div>
             <div>Status</div>
@@ -356,11 +356,11 @@ export function CompanyAccess() {
               return (
                 <div
                   key={member.id}
-                  className="grid grid-cols-[minmax(0,1.5fr)_120px_120px_minmax(0,1.2fr)_180px] gap-3 border-b border-border px-4 py-3 last:border-b-0"
+                  className="grid grid-cols-[minmax(0,1.5fr)_120px_120px_minmax(0,1.2fr)_180px] gap-3 border-b border-border/60 px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/20"
                 >
                   <div className="min-w-0">
                     <div className="truncate font-medium">{member.user?.name?.trim() || member.user?.email || member.principalId}</div>
-                    <div className="truncate text-xs text-muted-foreground">{member.user?.email || member.principalId}</div>
+                    <div className="truncate font-geek-mono text-xs text-muted-foreground">{member.user?.email || member.principalId}</div>
                   </div>
                   <div className="text-sm">
                     {member.membershipRole
@@ -414,7 +414,7 @@ export function CompanyAccess() {
                 <label className="space-y-2 text-sm">
                   <span className="font-medium">Company role</span>
                   <select
-                    className="w-full rounded-md border border-border bg-background px-3 py-2"
+                    className="w-full rounded-md border border-border/60 bg-background px-3 py-2 transition-colors focus-visible:border-ring"
                     value={draftRole ?? ""}
                     onChange={(event) =>
                       setDraftRole((event.target.value || null) as CompanyMember["membershipRole"])
@@ -431,7 +431,7 @@ export function CompanyAccess() {
                 <label className="space-y-2 text-sm">
                   <span className="font-medium">Membership status</span>
                   <select
-                    className="w-full rounded-md border border-border bg-background px-3 py-2"
+                    className="w-full rounded-md border border-border/60 bg-background px-3 py-2 transition-colors focus-visible:border-ring"
                     value={draftStatus}
                     onChange={(event) =>
                       setDraftStatus(event.target.value as EditableMemberStatus)
@@ -451,7 +451,7 @@ export function CompanyAccess() {
                     Roles provide implicit grants automatically. Explicit grants below are only for overrides and extra access that should persist even if the role changes.
                   </p>
                 </div>
-                <div className="rounded-lg border border-border px-3 py-3">
+                <div className="rounded-md border border-border/60 bg-card/40 px-3 py-3">
                   <div className="text-sm font-medium">Implicit grants from role</div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {draftRole
@@ -472,7 +472,7 @@ export function CompanyAccess() {
                   {PERMISSION_KEYS.map((permissionKey) => (
                     <label
                       key={permissionKey}
-                      className="flex items-start gap-3 rounded-lg border border-border px-3 py-2"
+                      className="flex items-start gap-3 rounded-md border border-border/60 bg-card/40 px-3 py-2 transition-colors hover:bg-muted/20"
                     >
                       <Checkbox
                         checked={draftGrants.has(permissionKey)}
@@ -487,7 +487,7 @@ export function CompanyAccess() {
                       />
                       <span className="space-y-1">
                         <span className="block text-sm font-medium">{permissionLabels[permissionKey]}</span>
-                        <span className="block text-xs text-muted-foreground">{permissionKey}</span>
+                        <span className="block font-geek-mono text-xs text-muted-foreground">{permissionKey}</span>
                         {implicitGrantSet.has(permissionKey) ? (
                           <span className="block text-xs text-muted-foreground">
                             Included implicitly by the {draftRole ? HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS[draftRole] : "selected"} role. Add an explicit grant only if it should stay after the role changes.
@@ -537,7 +537,7 @@ export function CompanyAccess() {
           </DialogHeader>
           {removingMember && (
             <div className="space-y-5">
-              <div className="rounded-lg border border-border px-3 py-3">
+              <div className="rounded-md border border-border/60 bg-card/40 px-3 py-3">
                 <div className="text-sm font-medium">{memberDisplayName(removingMember)}</div>
                 <div className="text-sm text-muted-foreground">{removingMember.user?.email || removingMember.principalId}</div>
                 <div className="mt-2 text-sm text-muted-foreground">
@@ -551,7 +551,7 @@ export function CompanyAccess() {
                 <div className="space-y-2">
                   <div className="text-sm font-medium">Issue reassignment</div>
                   <select
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-border/60 bg-background px-3 py-2 text-sm transition-colors focus-visible:border-ring"
                     value={reassignmentTarget}
                     onChange={(event) => setReassignmentTarget(event.target.value)}
                   >
@@ -575,9 +575,9 @@ export function CompanyAccess() {
                       </optgroup>
                     ) : null}
                   </select>
-                  <div className="max-h-36 overflow-auto rounded-lg border border-border">
+                  <div className="max-h-36 overflow-auto rounded-md border border-border/60 bg-card/40">
                     {assignedIssues.slice(0, 6).map((issue) => (
-                      <div key={issue.id} className="border-b border-border px-3 py-2 text-sm last:border-b-0">
+                      <div key={issue.id} className="border-b border-border/60 px-3 py-2 text-sm last:border-b-0">
                         <div className="font-medium">{issue.identifier ?? issue.id.slice(0, 8)}</div>
                         <div className="truncate text-muted-foreground">{issue.title}</div>
                       </div>
@@ -653,7 +653,7 @@ function PendingJoinRequestCard({
   onReject: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-border px-4 py-4">
+    <div className="rounded-md border border-border/60 bg-card/40 px-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
           <div>

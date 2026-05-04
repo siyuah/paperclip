@@ -237,10 +237,15 @@ export function CompanySettings() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center gap-2">
-        <Settings className="h-5 w-5 text-muted-foreground" />
-        <h1 className="text-lg font-semibold">Company Settings</h1>
+    <div className="max-w-4xl space-y-7">
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <Settings className="h-5 w-5 text-muted-foreground" />
+          <h1 className="text-lg font-semibold tracking-tight">Company Settings</h1>
+        </div>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Configure company identity, hiring controls, invite prompts, and package transfer settings.
+        </p>
       </div>
 
       {/* General */}
@@ -248,10 +253,10 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           General
         </div>
-        <div className="space-y-3 rounded-md border border-border px-4 py-4">
+        <div className="space-y-3 rounded-md border border-border/60 bg-card/40 px-4 py-4">
           <Field label="Company name" hint="The display name for your company.">
             <input
-              className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+              className="w-full rounded-md border border-border/60 bg-background/70 px-2.5 py-1.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring"
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
@@ -262,7 +267,7 @@ export function CompanySettings() {
             hint="显示在公司资料中的可选描述。"
           >
             <input
-              className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+              className="w-full rounded-md border border-border/60 bg-background/70 px-2.5 py-1.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring"
               type="text"
               value={description}
               placeholder="可选公司描述"
@@ -277,14 +282,14 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Appearance
         </div>
-        <div className="space-y-3 rounded-md border border-border px-4 py-4">
-          <div className="flex items-start gap-4">
+        <div className="space-y-3 rounded-md border border-border/60 bg-card/40 px-4 py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="shrink-0">
               <CompanyPatternIcon
                 companyName={companyName || selectedCompany.name}
                 logoUrl={logoUrl || null}
                 brandColor={brandColor || null}
-                className="rounded-[14px]"
+                className="rounded-md"
               />
             </div>
             <div className="flex-1 space-y-3">
@@ -297,7 +302,7 @@ export function CompanySettings() {
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
                     onChange={handleLogoFileChange}
-                    className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs"
+                    className="w-full rounded-md border border-border/60 bg-background/70 px-2.5 py-1.5 text-sm outline-none transition-colors file:mr-4 file:rounded-md file:border-0 file:bg-muted/80 file:px-2.5 file:py-1 file:text-xs focus-visible:border-ring"
                   />
                   {logoUrl && (
                     <div className="flex items-center gap-2">
@@ -338,7 +343,7 @@ export function CompanySettings() {
                     type="color"
                     value={brandColor || "#6366f1"}
                     onChange={(e) => setBrandColor(e.target.value)}
-                    className="h-8 w-8 cursor-pointer rounded border border-border bg-transparent p-0"
+                    className="h-8 w-8 cursor-pointer rounded-md border border-border/60 bg-background/70 p-0"
                   />
                   <input
                     type="text"
@@ -350,7 +355,7 @@ export function CompanySettings() {
                       }
                     }}
                     placeholder="Auto"
-                    className="w-28 rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm font-mono outline-none"
+                    className="w-28 rounded-md border border-border/60 bg-background/70 px-2.5 py-1.5 font-geek-mono text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring"
                   />
                   {brandColor && (
                     <Button
@@ -377,7 +382,7 @@ export function CompanySettings() {
                       step={1}
                       value={attachmentMaxMiB}
                       onChange={(e) => setAttachmentMaxMiB(e.target.value)}
-                      className="w-28 rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                      className="w-28 rounded-md border border-border/60 bg-background/70 px-2.5 py-1.5 text-sm outline-none transition-colors focus-visible:border-ring"
                     />
                     <span className="text-xs text-muted-foreground">MiB</span>
                   </div>
@@ -421,7 +426,7 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Hiring
         </div>
-        <div className="rounded-md border border-border px-4 py-3">
+        <div className="rounded-md border border-border/60 bg-card/40 px-4 py-3">
           <ToggleField
             label="Require board approval for new hires"
             hint="New agent hires stay pending until approved by board."
@@ -437,7 +442,7 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Invites
         </div>
-        <div className="space-y-3 rounded-md border border-border px-4 py-4">
+        <div className="space-y-3 rounded-md border border-border/60 bg-card/40 px-4 py-4">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground">
               Generate an OpenClaw agent invite snippet.
@@ -461,7 +466,7 @@ export function CompanySettings() {
           )}
           {inviteSnippet && (
             <div
-              className="rounded-md border border-border bg-muted/30 p-2"
+              className="rounded-md border border-border/60 bg-background/60 p-3"
               data-testid="company-settings-invites-snippet"
             >
               <div className="flex items-center justify-between gap-2">
@@ -471,7 +476,7 @@ export function CompanySettings() {
                 {snippetCopied && (
                   <span
                     key={snippetCopyDelightId}
-                    className="flex items-center gap-1 text-xs text-green-600 animate-pulse"
+                    className="flex items-center gap-1 text-xs text-emerald-500"
                   >
                     <Check className="h-3 w-3" />
                     Copied
@@ -481,7 +486,7 @@ export function CompanySettings() {
               <div className="mt-1 space-y-1.5">
                 <textarea
                   data-testid="company-settings-invites-snippet-textarea"
-                  className="h-[28rem] w-full rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs outline-none"
+                  className="h-[28rem] w-full rounded-md border border-border/60 bg-background/80 px-2 py-1.5 font-geek-mono text-xs outline-none transition-colors focus-visible:border-ring"
                   value={inviteSnippet}
                   readOnly
                 />
@@ -515,7 +520,7 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Company Packages
         </div>
-        <div className="rounded-md border border-border px-4 py-4">
+        <div className="rounded-md border border-border/60 bg-card/40 px-4 py-4">
           <p className="text-sm text-muted-foreground">
             导入和导出已移至专用页面，可从{" "}
             <a href="/org" className="underline hover:text-foreground">组织图表</a>页头进入。
@@ -542,7 +547,7 @@ export function CompanySettings() {
         <div className="text-xs font-medium text-destructive uppercase tracking-wide">
           Danger Zone
         </div>
-        <div className="space-y-3 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-4">
+        <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-4">
           <p className="text-sm text-muted-foreground">
             Archive this company to hide it from the sidebar. This persists in
             the database.
