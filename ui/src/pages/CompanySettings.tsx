@@ -11,7 +11,22 @@ import { accessApi } from "../api/access";
 import { assetsApi } from "../api/assets";
 import { queryKeys } from "../lib/queryKeys";
 import { Button } from "@/components/ui/button";
-import { Settings, Check, Download, Upload } from "lucide-react";
+import {
+  AlertTriangle,
+  Settings,
+  Check,
+  Download,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CompanyPatternIcon } from "../components/CompanyPatternIcon";
 import {
   Field,
@@ -44,6 +59,8 @@ export function CompanySettings() {
   const [attachmentMaxMiB, setAttachmentMaxMiB] = useState(String(DEFAULT_COMPANY_ATTACHMENT_MAX_MIB));
   const [logoUrl, setLogoUrl] = useState("");
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   // Sync local state from selected company
   useEffect(() => {
@@ -189,7 +206,20 @@ export function CompanySettings() {
     setInviteSnippet(null);
     setSnippetCopied(false);
     setSnippetCopyDelightId(0);
+    setDeleteDialogOpen(false);
+    setDeleteConfirmText("");
   }, [selectedCompanyId]);
+
+  function getNextCompanyId(companyId: string) {
+    return (
+      companies.find(
+        (company) =>
+          company.id !== companyId && company.status !== "archived"
+      )?.id ??
+      companies.find((company) => company.id !== companyId)?.id ??
+      null
+    );
+  }
 
   const archiveMutation = useMutation({
     mutationFn: ({
@@ -208,6 +238,32 @@ export function CompanySettings() {
       });
       await queryClient.invalidateQueries({
         queryKey: queryKeys.companies.stats
+      });
+    }
+  });
+
+  const deleteCompanyMutation = useMutation({
+    mutationFn: ({
+      companyId,
+      nextCompanyId
+    }: {
+      companyId: string;
+      nextCompanyId: string | null;
+    }) => companiesApi.remove(companyId).then(() => ({ nextCompanyId })),
+    onSuccess: async ({ nextCompanyId }) => {
+      setDeleteDialogOpen(false);
+      setDeleteConfirmText("");
+      if (nextCompanyId) {
+        setSelectedCompanyId(nextCompanyId);
+      }
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.companies.all
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.companies.stats
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.access.currentBoardAccess
       });
     }
   });
@@ -545,55 +601,139 @@ export function CompanySettings() {
       {/* Danger Zone */}
       <div className="space-y-4">
         <div className="text-xs font-medium text-destructive uppercase tracking-wide">
-          Danger Zone
+          危险操作
         </div>
         <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-4">
-          <p className="text-sm text-muted-foreground">
-            Archive this company to hide it from the sidebar. This persists in
-            the database.
-          </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3 border-b border-destructive/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="text-sm font-medium">归档公司</div>
+              <p className="text-sm text-muted-foreground">
+                归档后会从侧边栏隐藏，但公司数据仍保留在数据库中，可用于临时收起不常用公司。
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={
+                  archiveMutation.isPending ||
+                  selectedCompany.status === "archived"
+                }
+                onClick={() => {
+                  if (!selectedCompanyId) return;
+                  const confirmed = window.confirm(
+                    `确认归档公司“${selectedCompany.name}”？归档后它会从侧边栏隐藏。`
+                  );
+                  if (!confirmed) return;
+                  archiveMutation.mutate({
+                    companyId: selectedCompanyId,
+                    nextCompanyId: getNextCompanyId(selectedCompanyId)
+                  });
+                }}
+              >
+                {archiveMutation.isPending
+                  ? "正在归档..."
+                  : selectedCompany.status === "archived"
+                  ? "已归档"
+                  : "归档公司"}
+              </Button>
+              {archiveMutation.isError && (
+                <span className="text-xs text-destructive">
+                  {archiveMutation.error instanceof Error
+                    ? archiveMutation.error.message
+                    : "归档公司失败"}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="text-sm font-medium">永久删除公司</div>
+              <p className="text-sm text-muted-foreground">
+                删除会移除此公司的项目、任务、代理、权限、邀请和运行记录。此操作无法撤销。
+              </p>
+            </div>
             <Button
               size="sm"
               variant="destructive"
-              disabled={
-                archiveMutation.isPending ||
-                selectedCompany.status === "archived"
-              }
-              onClick={() => {
-                if (!selectedCompanyId) return;
-                const confirmed = window.confirm(
-                  `Archive company "${selectedCompany.name}"? It will be hidden from the sidebar.`
-                );
-                if (!confirmed) return;
-                const nextCompanyId =
-                  companies.find(
-                    (company) =>
-                      company.id !== selectedCompanyId &&
-                      company.status !== "archived"
-                  )?.id ?? null;
-                archiveMutation.mutate({
-                  companyId: selectedCompanyId,
-                  nextCompanyId
-                });
-              }}
+              className="shrink-0"
+              disabled={deleteCompanyMutation.isPending}
+              onClick={() => setDeleteDialogOpen(true)}
             >
-              {archiveMutation.isPending
-                ? "Archiving..."
-                : selectedCompany.status === "archived"
-                ? "Already archived"
-                : "Archive company"}
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              永久删除
             </Button>
-            {archiveMutation.isError && (
-              <span className="text-xs text-destructive">
-                {archiveMutation.error instanceof Error
-                  ? archiveMutation.error.message
-                  : "Failed to archive company"}
-              </span>
-            )}
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setDeleteConfirmText("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              永久删除公司
+            </DialogTitle>
+            <DialogDescription>
+              这会永久删除“{selectedCompany.name}”及其关联数据。请输入公司名称确认删除。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-3 text-sm text-muted-foreground">
+              删除后无法恢复。若只是想减少侧边栏数量，请使用归档；只有确定不再需要这家公司时才执行永久删除。
+            </div>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">输入公司名称：{selectedCompany.name}</span>
+              <input
+                className="w-full rounded-md border border-border/60 bg-background/70 px-2.5 py-1.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring"
+                value={deleteConfirmText}
+                onChange={(event) => setDeleteConfirmText(event.target.value)}
+                placeholder={selectedCompany.name}
+              />
+            </label>
+            {deleteCompanyMutation.isError && (
+              <p className="text-sm text-destructive">
+                {deleteCompanyMutation.error instanceof Error
+                  ? deleteCompanyMutation.error.message
+                  : "删除公司失败"}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteCompanyMutation.isPending}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={
+                deleteCompanyMutation.isPending ||
+                deleteConfirmText !== selectedCompany.name
+              }
+              onClick={() => {
+                if (!selectedCompanyId) return;
+                deleteCompanyMutation.mutate({
+                  companyId: selectedCompanyId,
+                  nextCompanyId: getNextCompanyId(selectedCompanyId)
+                });
+              }}
+            >
+              {deleteCompanyMutation.isPending ? "正在删除..." : "确认永久删除"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -605,56 +745,56 @@ function buildAgentSnippet(input: AgentSnippetInput) {
   const candidateList =
     candidateUrls.length > 0
       ? candidateUrls.map((u) => `- ${u}`).join("\n")
-      : "- (No candidate URLs available yet.)";
+      : "- （暂无可用候选 URL。）";
 
   const connectivityBlock =
     candidateUrls.length === 0
-      ? `No candidate URLs are available. Ask your user to configure a reachable hostname in Paperclip, then retry.
-Suggested steps:
-- choose a hostname that resolves to the Paperclip host from your runtime
-- run: pnpm paperclipai allowed-hostname <host>
-- restart Paperclip
-- verify with: curl -fsS http://<host>:3100/api/health
-- regenerate this invite snippet`
-      : `If none are reachable, ask your user to add a reachable hostname in Paperclip, restart, and retry.
-Suggested command:
+      ? `当前没有可用候选 URL。请让用户在 Paperclip 中配置一个可访问的主机名，然后重试。
+建议步骤：
+- 选择一个能从你的运行环境解析到 Paperclip 主机的主机名
+- 运行：pnpm paperclipai allowed-hostname <host>
+- 重启 Paperclip
+- 验证：curl -fsS http://<host>:3100/api/health
+- 重新生成这段邀请说明`
+      : `如果这些地址都无法访问，请让用户在 Paperclip 中添加一个可访问的主机名，重启后再试。
+建议命令：
 - pnpm paperclipai allowed-hostname <host>
-Then verify with: curl -fsS <base-url>/api/health`;
+然后验证：curl -fsS <base-url>/api/health`;
 
   const resolutionLine = resolutionTestUrl
-    ? `\nYou MUST test Paperclip-to-gateway reachability, call: ${resolutionTestUrl}?url=<urlencoded-gateway-url> (using the hostname that worked above). Do not assume your 172.x is necessarily reachable from Paperclip. Test it. `
+    ? `\n你必须测试 Paperclip 到网关的可达性：调用 ${resolutionTestUrl}?url=<urlencoded-gateway-url>（使用上面验证可用的主机名）。不要假设你的 172.x 地址一定能被 Paperclip 访问，请实际测试。`
     : "";
 
-  return `You're invited to join a Paperclip organization.
+  return `你已受邀加入 Paperclip 组织。
 
-The URLs you should try are:
+请尝试以下 URL：
 ${candidateList}
 
-Connectivity guidance:
-If you are running on a different machine than Paperclip, Paperclip must be reachable at one of the hostnames used above.
-Verify the hostname works from your runtime with: GET <base-url>/api/health
+连通性说明：
+如果你运行在与 Paperclip 不同的机器上，Paperclip 必须能通过上面某个主机名访问。
+请在你的运行环境中验证主机名是否可用：GET <base-url>/api/health
 
 ${connectivityBlock}
 
-For your "agentName", just use your own agent name (OpenClaw or whatever your name is) and send it directly.
-You also need to send a gateway URL that Paperclip can access. Check your config and include that URL.${resolutionLine}
+对于 "agentName"，请直接使用你的代理名称（例如 OpenClaw，或你自己的名称）。
+你还需要发送一个 Paperclip 可以访问的网关 URL。请检查你的配置，并附上该 URL。${resolutionLine}
 
 ---
 
-This onboarding flow is for OpenClaw Gateway.
-When you submit the join request, use:
+此入驻流程适用于 OpenClaw Gateway。
+提交加入请求时，请使用：
 - \`adapterType: "openclaw_gateway"\`
-- \`agentDefaultsPayload.url\` as your \`ws://\` or \`wss://\` gateway URL
-- \`agentDefaultsPayload.headers["x-openclaw-token"]\` with your gateway token
-- (legacy accepted) \`agentDefaultsPayload.headers["x-openclaw-auth"]\`
-- Keep device auth enabled (recommended). If \`devicePrivateKeyPem\` is omitted, Paperclip will generate and persist one during join so pairing approvals remain stable.
-- Only use \`disableDeviceAuth=true\` for special environments where pairing cannot be completed.
+- 将 \`agentDefaultsPayload.url\` 设为你的 \`ws://\` 或 \`wss://\` 网关 URL
+- 将 \`agentDefaultsPayload.headers["x-openclaw-token"]\` 设为你的网关令牌
+- （兼容旧版本）也接受 \`agentDefaultsPayload.headers["x-openclaw-auth"]\`
+- 建议保持设备认证开启。如果省略 \`devicePrivateKeyPem\`，Paperclip 会在加入时生成并持久化一个密钥，以保持配对审批稳定。
+- 只有在无法完成配对的特殊环境中，才使用 \`disableDeviceAuth=true\`。
 
-Do NOT use \`/v1/responses\` or \`/hooks/*\` in this join flow.
+不要在这个加入流程中使用 \`/v1/responses\` 或 \`/hooks/*\`。
 
-Before you do anything, please respond to your user that you understand the instructions and you're going to work on them. Then do the step above in another session called "paperclip-onboarding" and then tell your user when you're done. Update your user in intermediate steps along the way so they know what's going on.
+开始前，请先回复用户：你已理解这些说明，并将开始执行。然后在名为 "paperclip-onboarding" 的另一个会话中完成上面的步骤，完成后再告知用户。执行过程中请持续给用户同步进展。
 
-Then after you've connected to Paperclip (exchanged keys etc.) you MUST review and follow the onboarding instructions in onboarding.txt they give you.
+连接到 Paperclip（完成密钥交换等步骤）之后，你必须阅读并遵循他们提供的 onboarding.txt 中的入驻说明。
 
 `;
 }

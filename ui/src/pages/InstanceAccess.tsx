@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Shield, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Shield, ShieldCheck, Trash2 } from "lucide-react";
 import { accessApi } from "@/api/access";
 import { ApiError } from "@/api/client";
+import { companiesApi } from "@/api/companies";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useBreadcrumbs } from "@/context/BreadcrumbContext";
 import { useCompany } from "@/context/CompanyContext";
 import { useToast } from "@/context/ToastContext";
@@ -37,13 +46,15 @@ function formatAccessStatus(status: string | null | undefined) {
 }
 
 export function InstanceAccess() {
-  const { companies } = useCompany();
+  const { companies, selectedCompanyId, setSelectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { pushToast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
+  const [deleteCompanyId, setDeleteCompanyId] = useState<string | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
     setBreadcrumbs([
@@ -60,6 +71,10 @@ export function InstanceAccess() {
   const selectedUser = useMemo(
     () => usersQuery.data?.find((user) => user.id === selectedUserId) ?? null,
     [selectedUserId, usersQuery.data],
+  );
+  const deleteCompany = useMemo(
+    () => companies.find((company) => company.id === deleteCompanyId) ?? null,
+    [companies, deleteCompanyId],
   );
 
   const userAccessQuery = useQuery({
@@ -106,6 +121,53 @@ export function InstanceAccess() {
         await queryClient.invalidateQueries({ queryKey: queryKeys.access.userCompanyAccess(selectedUserId) });
       }
       pushToast({ title: "实例角色已更新", tone: "success" });
+    },
+  });
+
+  function getNextCompanyId(companyId: string) {
+    return (
+      companies.find(
+        (company) =>
+          company.id !== companyId && company.status !== "archived"
+      )?.id ??
+      companies.find((company) => company.id !== companyId)?.id ??
+      null
+    );
+  }
+
+  const deleteCompanyMutation = useMutation({
+    mutationFn: ({
+      companyId,
+      nextCompanyId,
+    }: {
+      companyId: string;
+      nextCompanyId: string | null;
+    }) => companiesApi.remove(companyId).then(() => ({ companyId, nextCompanyId })),
+    onSuccess: async ({ companyId, nextCompanyId }) => {
+      setDeleteCompanyId(null);
+      setDeleteConfirmText("");
+      setSelectedCompanyIds((current) => {
+        const next = new Set(current);
+        next.delete(companyId);
+        return next;
+      });
+      if (selectedCompanyId === companyId && nextCompanyId) {
+        setSelectedCompanyId(nextCompanyId);
+      }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.companies.stats });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.access.currentBoardAccess });
+      if (selectedUserId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.access.userCompanyAccess(selectedUserId) });
+      }
+      pushToast({ title: "公司已永久删除", tone: "success" });
+    },
+    onError: (error) => {
+      pushToast({
+        title: "删除公司失败",
+        body: error instanceof Error ? error.message : "未知错误",
+        tone: "error",
+      });
     },
   });
 
@@ -213,26 +275,45 @@ export function InstanceAccess() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {companies.map((company) => (
-                    <label
+                    <div
                       key={company.id}
                       className="flex items-start gap-3 rounded-lg border border-border px-3 py-3"
                     >
-                      <Checkbox
-                        checked={selectedCompanyIds.has(company.id)}
-                        onCheckedChange={(checked) => {
-                          setSelectedCompanyIds((current) => {
-                            const next = new Set(current);
-                            if (checked) next.add(company.id);
-                            else next.delete(company.id);
-                            return next;
-                          });
+                      <label className="flex min-w-0 flex-1 items-start gap-3">
+                        <Checkbox
+                          checked={selectedCompanyIds.has(company.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedCompanyIds((current) => {
+                              const next = new Set(current);
+                              if (checked) next.add(company.id);
+                              else next.delete(company.id);
+                              return next;
+                            });
+                          }}
+                        />
+                        <span className="min-w-0 space-y-1">
+                          <span className="block truncate text-sm font-medium">{company.name}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{company.issuePrefix}</span>
+                          {company.status === "archived" ? (
+                            <span className="block text-xs text-muted-foreground">已归档</span>
+                          ) : null}
+                        </span>
+                      </label>
+                      <Button
+                        type="button"
+                        size="icon-xs"
+                        variant="ghost"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        title="永久删除公司"
+                        onClick={() => {
+                          setDeleteCompanyId(company.id);
+                          setDeleteConfirmText("");
                         }}
-                      />
-                      <span className="space-y-1">
-                        <span className="block text-sm font-medium">{company.name}</span>
-                        <span className="block text-xs text-muted-foreground">{company.issuePrefix}</span>
-                      </span>
-                    </label>
+                        disabled={deleteCompanyMutation.isPending}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
                 <div className="flex justify-end">
@@ -270,6 +351,73 @@ export function InstanceAccess() {
           )}
         </section>
       </div>
+
+      <Dialog
+        open={!!deleteCompany}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteCompanyId(null);
+            setDeleteConfirmText("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              永久删除公司
+            </DialogTitle>
+            <DialogDescription>
+              这会永久删除“{deleteCompany?.name}”及其关联数据。请输入公司名称确认删除。
+            </DialogDescription>
+          </DialogHeader>
+          {deleteCompany ? (
+            <div className="space-y-3">
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-3 text-sm text-muted-foreground">
+                删除会移除此公司的项目、任务、代理、权限、邀请和运行记录。此操作无法撤销。
+              </div>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">输入公司名称：{deleteCompany.name}</span>
+                <input
+                  className="w-full rounded-md border border-border bg-background px-3 py-2"
+                  value={deleteConfirmText}
+                  onChange={(event) => setDeleteConfirmText(event.target.value)}
+                  placeholder={deleteCompany.name}
+                />
+              </label>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteCompanyId(null);
+                setDeleteConfirmText("");
+              }}
+              disabled={deleteCompanyMutation.isPending}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={
+                !deleteCompany ||
+                deleteCompanyMutation.isPending ||
+                deleteConfirmText !== deleteCompany.name
+              }
+              onClick={() => {
+                if (!deleteCompany) return;
+                deleteCompanyMutation.mutate({
+                  companyId: deleteCompany.id,
+                  nextCompanyId: getNextCompanyId(deleteCompany.id),
+                });
+              }}
+            >
+              {deleteCompanyMutation.isPending ? "正在删除..." : "确认永久删除"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

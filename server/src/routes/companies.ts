@@ -400,7 +400,9 @@ export function companyRoutes(db: Db, storage?: StorageService) {
   router.delete("/:companyId", async (req, res) => {
     assertBoard(req);
     const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
+    if (!(req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)) {
+      assertCompanyAccess(req, companyId);
+    }
     const company = await svc.remove(companyId);
     if (!company) {
       res.status(404).json({ error: "Company not found" });
