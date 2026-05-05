@@ -12,6 +12,7 @@ import {
 } from "@paperclipai/db";
 import type { Config } from "../config.js";
 import { resolvePaperclipInstanceId } from "../home-paths.js";
+import { localizeEmailAuthErrorBody } from "./email-auth-errors.js";
 
 export type BetterAuthSessionUser = {
   id: string;
@@ -133,8 +134,52 @@ export function createBetterAuthInstance(db: Db, config: Config, trustedOrigins:
 export function createBetterAuthHandler(auth: BetterAuthInstance): RequestHandler {
   const handler = toNodeHandler(auth);
   return (req, res, next) => {
+    if (isEmailPasswordAuthRequest(req)) {
+      wrapEmailAuthErrorResponse(res);
+    }
     void Promise.resolve(handler(req, res)).catch(next);
   };
+}
+
+function isEmailPasswordAuthRequest(req: Request): boolean {
+  if (req.method !== "POST") return false;
+  const candidates = [req.path, req.originalUrl, req.url]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .map((value) => value.split("?")[0]);
+  return candidates.some((path) => path.endsWith("/sign-in/email") || path.endsWith("/sign-up/email"));
+}
+
+export function wrapEmailAuthErrorResponseForTests(res: Parameters<RequestHandler>[1]): void {
+  wrapEmailAuthErrorResponse(res);
+}
+
+function wrapEmailAuthErrorResponse(res: Parameters<RequestHandler>[1]): void {
+  const originalEnd = res.end.bind(res);
+  res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void), callback?: () => void) => {
+    const body = toBuffer(chunk);
+    if (body) {
+      const localized = localizeEmailAuthErrorBody(body, res.statusCode, res.getHeader("content-type"));
+      if (localized !== body) {
+        res.setHeader("content-length", Buffer.byteLength(localized));
+        if (typeof encoding === "function") {
+          return originalEnd(localized, encoding);
+        }
+        if (encoding) {
+          return originalEnd(localized, encoding, callback);
+        }
+        return originalEnd(localized, callback);
+      }
+    }
+    return originalEnd(chunk as never, encoding as never, callback);
+  }) as typeof res.end;
+}
+
+function toBuffer(chunk: unknown): Buffer | null {
+  if (chunk == null) return null;
+  if (Buffer.isBuffer(chunk)) return chunk;
+  if (typeof chunk === "string") return Buffer.from(chunk, "utf-8");
+  if (chunk instanceof Uint8Array) return Buffer.from(chunk);
+  return null;
 }
 
 export async function resolveBetterAuthSessionFromHeaders(

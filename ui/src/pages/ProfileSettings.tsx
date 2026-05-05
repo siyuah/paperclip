@@ -213,7 +213,7 @@ export function ProfileSettings() {
             <div className="min-w-0 flex-1 space-y-2 pb-1">
               <div>
                 <h2 className="truncate text-xl font-semibold tracking-tight text-foreground">{currentName}</h2>
-                <p className="truncate text-sm text-muted-foreground">{sessionQuery.data.user.email ?? "No email"}</p>
+                <p className="truncate text-sm text-muted-foreground">{sessionQuery.data.user.email ?? "暂无邮箱"}</p>
               </div>
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                 Click the avatar to upload a new image. {uploadHint}
@@ -244,7 +244,7 @@ export function ProfileSettings() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="profile-email">Email</Label>
+            <Label htmlFor="profile-email">邮箱</Label>
             <Input
               id="profile-email"
               value={sessionQuery.data.user.email ?? ""}
@@ -252,7 +252,7 @@ export function ProfileSettings() {
               disabled
             />
             <p className="text-xs text-muted-foreground">
-              Email is managed by your auth session and is read-only here.
+              邮箱由认证会话管理，此处只读。
             </p>
           </div>
 

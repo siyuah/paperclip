@@ -5,6 +5,7 @@ import {
   type CurrentUserProfile,
   type UpdateCurrentUserProfile,
 } from "@paperclipai/shared";
+import { translateAuthErrorMessage } from "../lib/auth-error-messages";
 
 type AuthErrorBody =
   | {
@@ -57,7 +58,12 @@ function extractAuthError(payload: AuthErrorBody, status: number) {
           ? payload.error
           : `Request failed: ${status}`;
 
-  return new AuthApiError(message, status, payload, code);
+  return new AuthApiError(
+    translateAuthErrorMessage({ code, message, status }),
+    status,
+    payload,
+    code,
+  );
 }
 
 async function authPost(path: string, body: Record<string, unknown>) {
@@ -120,7 +126,13 @@ export const authApi = {
     });
     const payload = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new Error((payload as { error?: string } | null)?.error ?? `Failed to load profile (${res.status})`);
+      throw new Error(
+        translateAuthErrorMessage({
+          message: (payload as { error?: string } | null)?.error,
+          status: res.status,
+          fallback: `个人资料加载失败（${res.status}）。`,
+        }),
+      );
     }
     return currentUserProfileSchema.parse(payload);
   },
