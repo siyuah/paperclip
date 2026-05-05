@@ -39,23 +39,23 @@ describe("buildInviteOnboardingTextDocument", () => {
       allowedHostnames: [],
     });
 
-    expect(text).toContain("Paperclip OpenClaw Gateway Onboarding");
+    expect(text).toContain("Paperclip OpenClaw Gateway 入驻说明");
     expect(text).toContain("/api/invites/token-123/accept");
     expect(text).toContain("/api/join-requests/{requestId}/claim-api-key");
     expect(text).toContain("/api/invites/token-123/onboarding.txt");
     expect(text).toContain("/api/invites/token-123/skills/paperclip");
-    expect(text).toContain("Suggested Paperclip base URLs to try");
+    expect(text).toContain("建议尝试的 Paperclip Base URL");
     expect(text).toContain("http://localhost:3100");
     expect(text).toContain("host.docker.internal");
     expect(text).toContain("paperclipApiUrl");
     expect(text).toContain("adapterType \"openclaw_gateway\"");
     expect(text).toContain("headers.x-openclaw-token");
-    expect(text).toContain("Do NOT use /v1/responses or /hooks/*");
-    expect(text).toContain("set the first reachable candidate as agentDefaultsPayload.paperclipApiUrl");
+    expect(text).toContain("不要在这个网关加入流程中使用 /v1/responses 或 /hooks/*");
+    expect(text).toContain("将第一个可访问的候选地址设为 agentDefaultsPayload.paperclipApiUrl");
     expect(text).toContain("~/.openclaw/workspace/paperclip-claimed-api-key.json");
     expect(text).toContain("PAPERCLIP_API_KEY");
-    expect(text).toContain("saved token field");
-    expect(text).toContain("Gateway token unexpectedly short");
+    expect(text).toContain("保存的 token 字段");
+    expect(text).toContain("网关令牌长度异常偏短");
   });
 
   it("includes loopback diagnostics for authenticated/private onboarding", () => {
@@ -82,9 +82,9 @@ describe("buildInviteOnboardingTextDocument", () => {
       allowedHostnames: [],
     });
 
-    expect(text).toContain("Connectivity diagnostics");
-    expect(text).toContain("loopback hostname");
-    expect(text).toContain("If none are reachable");
+    expect(text).toContain("连通性诊断");
+    expect(text).toContain("回环");
+    expect(text).toContain("如果都无法访问");
   });
 
   it("includes inviter message in the onboarding text when provided", () => {
@@ -113,7 +113,7 @@ describe("buildInviteOnboardingTextDocument", () => {
       allowedHostnames: [],
     });
 
-    expect(text).toContain("Message from inviter");
+    expect(text).toContain("邀请人留言");
     expect(text).toContain("prioritize flaky test triage first");
   });
 

@@ -1427,8 +1427,8 @@ function buildOnboardingDiscoveryDiagnostics(input: {
       code: "openclaw_onboarding_api_loopback",
       level: "warn",
       message:
-        "Onboarding URL resolves to loopback hostname. Remote OpenClaw agents cannot reach localhost on your Paperclip host.",
-      hint: "Use a reachable hostname/IP (for example Tailscale hostname, Docker host alias, or public domain)."
+        "入驻 URL 解析到了回环主机名。远程 OpenClaw 代理无法访问 Paperclip 主机上的 localhost。",
+      hint: "请使用可访问的主机名或 IP，例如 Tailscale 主机名、Docker 主机别名或公网域名。"
     });
   }
 
@@ -1440,8 +1440,8 @@ function buildOnboardingDiscoveryDiagnostics(input: {
     diagnostics.push({
       code: "openclaw_onboarding_private_loopback_bind",
       level: "warn",
-      message: "Paperclip is bound to loopback in authenticated/private mode.",
-      hint: "Use a reachable private bind mode such as `pnpm dev --bind lan` or `pnpm dev --bind tailnet` for private-network onboarding."
+      message: "Paperclip 在 authenticated/private 模式下绑定到了回环地址。",
+      hint: "请为私有网络入驻使用可访问的绑定模式，例如 `pnpm dev --bind lan` 或 `pnpm dev --bind tailnet`。"
     });
   }
 
@@ -1456,8 +1456,8 @@ function buildOnboardingDiscoveryDiagnostics(input: {
     diagnostics.push({
       code: "openclaw_onboarding_private_host_not_allowed",
       level: "warn",
-      message: `Onboarding host "${apiHost}" is not in allowed hostnames for authenticated/private mode.`,
-      hint: `Run pnpm paperclipai allowed-hostname ${apiHost}`
+      message: `入驻主机 "${apiHost}" 不在 authenticated/private 模式允许的主机名列表中。`,
+      hint: `请运行 pnpm paperclipai allowed-hostname ${apiHost}`
     });
   }
 
@@ -1554,16 +1554,16 @@ function buildInviteOnboardingManifest(
     ),
     onboarding: {
       instructions:
-        "Join as an OpenClaw Gateway agent, save your one-time claim secret, wait for board approval, then claim your API key. Save the claim response token to ~/.openclaw/workspace/paperclip-claimed-api-key.json and load PAPERCLIP_API_KEY from that file before starting heartbeat loops. You MUST submit adapterType='openclaw_gateway', set agentDefaultsPayload.url to your ws:// or wss:// OpenClaw gateway endpoint, and include agentDefaultsPayload.headers.x-openclaw-token (or legacy x-openclaw-auth).",
+        "以 OpenClaw Gateway 代理身份加入：保存一次性 claim secret，等待看板审批，然后认领 API Key。请将认领响应中的 token 保存到 ~/.openclaw/workspace/paperclip-claimed-api-key.json，并在启动 heartbeat 循环前从该文件加载 PAPERCLIP_API_KEY。必须提交 adapterType='openclaw_gateway'，将 agentDefaultsPayload.url 设为你的 ws:// 或 wss:// OpenClaw 网关端点，并携带 agentDefaultsPayload.headers.x-openclaw-token（或旧版 x-openclaw-auth）。",
       inviteMessage: extractInviteMessage(invite),
       recommendedAdapterType: "openclaw_gateway",
       requiredFields: {
         requestType: "agent",
-        agentName: "Display name for this agent",
-        adapterType: "Use 'openclaw_gateway' for OpenClaw Gateway agents",
-        capabilities: "Optional capability summary",
+        agentName: "此代理的显示名称",
+        adapterType: "OpenClaw Gateway 代理请使用 'openclaw_gateway'",
+        capabilities: "可选的能力摘要",
         agentDefaultsPayload:
-          "Adapter config for OpenClaw gateway. MUST include url (ws:// or wss://) and headers.x-openclaw-token (or legacy x-openclaw-auth). Optional fields: paperclipApiUrl, waitTimeoutMs, sessionKeyStrategy, sessionKey, role, scopes, disableDeviceAuth, devicePrivateKeyPem."
+          "OpenClaw 网关适配器配置。必须包含 url（ws:// 或 wss://）和 headers.x-openclaw-token（或旧版 x-openclaw-auth）。可选字段包括：paperclipApiUrl、waitTimeoutMs、sessionKeyStrategy、sessionKey、role、scopes、disableDeviceAuth、devicePrivateKeyPem。"
       },
       registrationEndpoint: {
         method: "POST",
@@ -1575,7 +1575,7 @@ function buildInviteOnboardingManifest(
         path: "/api/join-requests/{requestId}/claim-api-key",
         body: {
           claimSecret:
-            "one-time claim secret returned when the join request is created"
+            "创建加入请求时返回的一次性 claim secret"
         }
       },
       connectivity: {
@@ -1588,8 +1588,8 @@ function buildInviteOnboardingManifest(
         guidance:
           opts.deploymentMode === "authenticated" &&
           opts.deploymentExposure === "private"
-            ? "If OpenClaw runs on another machine, ensure the Paperclip hostname is reachable and allowed via `pnpm paperclipai allowed-hostname <host>`."
-            : "Ensure OpenClaw can reach this Paperclip API base URL for invite, claim, and skill bootstrap calls."
+            ? "如果 OpenClaw 运行在另一台机器上，请确保 Paperclip 主机名可访问，并已通过 `pnpm paperclipai allowed-hostname <host>` 加入允许列表。"
+            : "请确保 OpenClaw 可以访问此 Paperclip API Base URL，以便完成邀请、认领和技能引导调用。"
       },
       textInstructions: {
         path: onboardingTextPath,
@@ -1651,11 +1651,11 @@ export function buildInviteOnboardingTextDocument(
   };
 
   appendBlock(`
-    # Paperclip OpenClaw Gateway Onboarding
+    # Paperclip OpenClaw Gateway 入驻说明
 
-    This document is meant to be readable by both humans and agents.
+    本文档供人类用户和代理共同阅读。
 
-    ## Invite
+    ## 邀请
     - inviteType: ${invite.inviteType}
     - allowedJoinTypes: ${invite.allowedJoinTypes}
     - expiresAt: ${invite.expiresAt.toISOString()}
@@ -1667,28 +1667,28 @@ export function buildInviteOnboardingTextDocument(
 
   if (onboarding.inviteMessage) {
     appendBlock(`
-      ## Message from inviter
+      ## 邀请人留言
       ${onboarding.inviteMessage}
     `);
   }
 
   appendBlock(`
-    ## Step 0
+    ## 步骤 0
 
-    Get the OpenClaw gateway auth token (THIS MUST BE SENT)
-    Token lives in:
+    获取 OpenClaw 网关认证令牌（必须发送）
+    令牌位置：
 
     ~/.openclaw/openclaw.json -> gateway.auth.token
-    Extract:
+    提取命令：
 
     TOKEN="$(node -p 'require(process.env.HOME+\"/.openclaw/openclaw.json\").gateway.auth.token')"
-    test -n "$TOKEN" || (echo "Missing TOKEN" && exit 1)
-    test "\${#TOKEN}" -ge 16 || (echo "Gateway token unexpectedly short (\${#TOKEN})" && exit 1)
+    test -n "$TOKEN" || (echo "缺少 TOKEN" && exit 1)
+    test "\${#TOKEN}" -ge 16 || (echo "网关令牌长度异常偏短 (\${#TOKEN})" && exit 1)
 
-    3) IMPORTANT: Don't accidentally drop the token when generating JSON
-    If you build JSON with Node, pass the token explicitly (argv), don't rely on an un-exported env var.
+    重要：生成 JSON 时不要意外丢失令牌。
+    如果使用 Node 构造 JSON，请显式传入令牌（argv），不要依赖未导出的环境变量。
 
-    Safe payload build looks sort of like this (substitute where necessary):
+    安全的请求体构造方式大致如下（请按需替换字段）：
 
     BODY="$(node -e '
       const token = process.argv[1];
@@ -1711,21 +1711,21 @@ export function buildInviteOnboardingTextDocument(
       process.stdout.write(JSON.stringify(body));
     ' "$TOKEN")"
 
-    ## Step 1: Submit agent join request
+    ## 步骤 1：提交代理加入请求
     ${onboarding.registrationEndpoint.method} ${
     onboarding.registrationEndpoint.url
   }
 
-    IMPORTANT: You MUST include agentDefaultsPayload.headers.x-openclaw-token with your gateway token.
-    Legacy x-openclaw-auth is also accepted, but x-openclaw-token is preferred.
-    Use adapterType "openclaw_gateway" and a ws:// or wss:// gateway URL.
-    Pairing mode requirement:
-    - Keep device auth enabled (recommended). If devicePrivateKeyPem is omitted, Paperclip generates and persists one during join so pairing approvals are stable.
-    - You may set disableDeviceAuth=true only for special environments that cannot support pairing.
-    - First run may return "pairing required" once; approve the pending pairing request in OpenClaw, then retry.
-    Do NOT use /v1/responses or /hooks/* in this gateway join flow.
+    重要：必须在 agentDefaultsPayload.headers.x-openclaw-token 中携带你的网关令牌。
+    旧版 x-openclaw-auth 也兼容，但推荐使用 x-openclaw-token。
+    请使用 adapterType "openclaw_gateway"，并提供 ws:// 或 wss:// 网关 URL。
+    配对模式要求：
+    - 建议保持设备认证开启。如果省略 devicePrivateKeyPem，Paperclip 会在加入时生成并持久化一个密钥，以保持配对审批稳定。
+    - 只有在无法支持配对的特殊环境中，才设置 disableDeviceAuth=true。
+    - 第一次运行可能返回一次 "pairing required"；请在 OpenClaw 中批准待处理的配对请求，然后重试。
+    不要在这个网关加入流程中使用 /v1/responses 或 /hooks/*。
 
-    Body (JSON):
+    请求体（JSON）：
     {
       "requestType": "agent",
       "agentName": "My OpenClaw Agent",
@@ -1742,33 +1742,33 @@ export function buildInviteOnboardingTextDocument(
       }
     }
 
-    Expected response includes:
-    - request id
-    - one-time claimSecret
+    预期响应包括：
+    - 请求 id
+    - 一次性 claimSecret
     - claimApiKeyPath
 
-    ## Step 2: Wait for board approval
-    The board approves the join request in Paperclip before key claim is allowed.
+    ## 步骤 2：等待看板审批
+    看板需要先在 Paperclip 中批准加入请求，之后才允许认领密钥。
 
-    ## Step 3: Claim API key (one-time)
+    ## 步骤 3：认领 API Key（一次性）
     ${
       onboarding.claimEndpointTemplate.method
     } /api/join-requests/{requestId}/claim-api-key
 
-    Body (JSON):
+    请求体（JSON）：
     {
       "claimSecret": "<one-time-claim-secret>"
     }
 
-    On successful claim, save the full JSON response to:
+    认领成功后，请将完整 JSON 响应保存到：
 
     - ~/.openclaw/workspace/paperclip-claimed-api-key.json
     chmod 600 ~/.openclaw/workspace/paperclip-claimed-api-key.json
 
-    And set the PAPERCLIP_API_KEY and PAPERCLIP_API_URL in your environment variables as specified here:
+    并按照以下文档在环境变量中设置 PAPERCLIP_API_KEY 和 PAPERCLIP_API_URL：
     https://docs.openclaw.ai/help/environment
 
-    e.g. 
+    例如：
 
     {
       env: {
@@ -1777,26 +1777,26 @@ export function buildInviteOnboardingTextDocument(
       },
     }
 
-    Then set PAPERCLIP_API_KEY and PAPERCLIP_API_URL from the saved token field for every heartbeat run.
+    之后，每次 heartbeat 运行都应从保存的 token 字段设置 PAPERCLIP_API_KEY 和 PAPERCLIP_API_URL。
 
-    Important:
-    - claim secrets expire
-    - claim secrets are single-use
-    - claim fails before board approval
+    重要：
+    - claim secret 会过期
+    - claim secret 只能使用一次
+    - 看板审批前认领会失败
 
-    ## Step 4: Install Paperclip skill in OpenClaw
+    ## 步骤 4：在 OpenClaw 中安装 Paperclip 技能
     GET ${onboarding.skill.url}
-    Install path: ${onboarding.skill.installPath}
+    安装路径：${onboarding.skill.installPath}
 
-    Be sure to prepend your PAPERCLIP_API_URL to the top of your skill and note the path to your PAPERCLIP_API_URL
+    请务必将 PAPERCLIP_API_URL 写入技能文件顶部，并记录 PAPERCLIP_API_URL 的路径。
 
-    ## Text onboarding URL
+    ## 文本入驻说明 URL
     ${onboarding.textInstructions.url}
 
-    ## Connectivity guidance
+    ## 连通性说明
     ${
       onboarding.connectivity?.guidance ??
-      "Ensure Paperclip is reachable from your OpenClaw runtime."
+      "请确保你的 OpenClaw 运行环境可以访问 Paperclip。"
     }
   `);
 
@@ -1809,25 +1809,25 @@ export function buildInviteOnboardingTextDocument(
     : [];
 
   if (connectionCandidates.length > 0) {
-    lines.push("## Suggested Paperclip base URLs to try");
+    lines.push("## 建议尝试的 Paperclip Base URL");
     for (const candidate of connectionCandidates) {
       lines.push(`- ${candidate}`);
     }
     appendBlock(`
 
-      Test each candidate with:
+      请逐个测试候选地址：
       - GET <candidate>/api/health
-      - set the first reachable candidate as agentDefaultsPayload.paperclipApiUrl when submitting your join request
+      - 提交加入请求时，将第一个可访问的候选地址设为 agentDefaultsPayload.paperclipApiUrl
 
-      If none are reachable: ask your human operator for a reachable hostname/address and help them update network configuration.
-      For authenticated/private mode, they may need:
+      如果都无法访问：请向人类操作员索取一个可访问的主机名或地址，并协助他们更新网络配置。
+      对于 authenticated/private 模式，他们可能需要：
       - pnpm paperclipai allowed-hostname <host>
-      - then restart Paperclip and retry onboarding.
+      - 然后重启 Paperclip 并重试入驻流程。
     `);
   }
 
   if (diagnostics.length > 0) {
-    lines.push("## Connectivity diagnostics");
+    lines.push("## 连通性诊断");
     for (const diag of diagnostics) {
       lines.push(`- [${diag.level}] ${diag.message}`);
       if (diag.hint) lines.push(`  hint: ${diag.hint}`);
@@ -1836,7 +1836,7 @@ export function buildInviteOnboardingTextDocument(
 
   appendBlock(`
 
-    ## Helpful endpoints
+    ## 常用端点
     ${onboarding.registrationEndpoint.path}
     ${onboarding.claimEndpointTemplate.path}
     ${onboarding.skill.path}
@@ -2448,7 +2448,7 @@ export function accessRoutes(
     if (req.actor.type !== "board") throw unauthorized();
     if (isLocalImplicit(req)) return;
     const allowed = await access.isInstanceAdmin(req.actor.userId);
-    if (!allowed) throw forbidden("Instance admin required");
+    if (!allowed) throw forbidden("需要实例管理员权限");
   }
 
   router.get("/board-claim/:token", async (req, res) => {
@@ -2473,7 +2473,7 @@ export function accessRoutes(
       req.actor.source !== "session" ||
       !req.actor.userId
     ) {
-      throw unauthorized("Sign in before claiming board ownership");
+      throw unauthorized("请先登录，再认领看板所有权");
     }
 
     const claimed = await claimBoardOwnership(db, {
@@ -2526,9 +2526,9 @@ export function accessRoutes(
     const id = (req.params.id as string).trim();
     const token =
       typeof req.query.token === "string" ? req.query.token.trim() : "";
-    if (!id || !token) throw notFound("CLI auth challenge not found");
+    if (!id || !token) throw notFound("未找到 CLI 授权请求");
     const challenge = await boardAuth.describeCliAuthChallenge(id, token);
-    if (!challenge) throw notFound("CLI auth challenge not found");
+    if (!challenge) throw notFound("未找到 CLI 授权请求");
 
     const isSignedInBoardUser =
       req.actor.type === "board" &&
@@ -2557,7 +2557,7 @@ export function accessRoutes(
         req.actor.type !== "board" ||
         (!req.actor.userId && !isLocalImplicit(req))
       ) {
-        throw unauthorized("Sign in before approving CLI access");
+        throw unauthorized("请先登录，再批准 CLI 访问");
       }
 
       const userId = req.actor.userId ?? "local-board";

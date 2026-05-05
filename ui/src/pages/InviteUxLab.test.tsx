@@ -35,15 +35,15 @@ describe("InviteUxLab", () => {
       root.render(<InviteUxLab />);
     });
 
-    expect(container.textContent).toContain("Invite and signup UX review surface");
+    expect(container.textContent).toContain("邀请与注册 UX 预览面板");
     expect(container.textContent).toContain("/tests/ux/invites");
-    expect(container.textContent).toContain("Landing state coverage");
-    expect(container.textContent).toContain("Split-screen invite flows");
-    expect(container.textContent).toContain("Approval and completion screens");
-    expect(container.textContent).toContain("Auth page states");
-    expect(container.textContent).toContain("Company invite management");
-    expect(container.textContent).toContain("Create your account");
-    expect(container.textContent).toContain("Invite history");
+    expect(container.textContent).toContain("落地页状态覆盖");
+    expect(container.textContent).toContain("分屏邀请流程");
+    expect(container.textContent).toContain("审批与完成页面");
+    expect(container.textContent).toContain("认证页状态");
+    expect(container.textContent).toContain("公司邀请管理");
+    expect(container.textContent).toContain("创建账户");
+    expect(container.textContent).toContain("邀请历史");
 
     await act(async () => {
       root.unmount();

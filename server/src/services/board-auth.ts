@@ -267,7 +267,7 @@ export function boardAuthService(db: Db) {
         .where(eq(cliAuthChallenges.id, id))
         .then((rows) => rows[0] ?? null);
       if (!challenge || !tokenHashesMatch(challenge.secretHash, hashBearerToken(token))) {
-        throw notFound("CLI auth challenge not found");
+        throw notFound("未找到 CLI 授权请求");
       }
 
       const status = challengeStatusForRow(challenge);
@@ -275,7 +275,7 @@ export function boardAuthService(db: Db) {
       if (status === "cancelled") return { status, challenge };
 
       if (challenge.requestedAccess === "instance_admin_required" && !access.isInstanceAdmin) {
-        throw forbidden("Instance admin required");
+        throw forbidden("需要实例管理员权限");
       }
 
       let boardKeyId = challenge.boardApiKeyId;
@@ -312,7 +312,7 @@ export function boardAuthService(db: Db) {
 
   async function cancelCliAuthChallenge(id: string, token: string) {
     const challenge = await getCliAuthChallengeBySecret(id, token);
-    if (!challenge) throw notFound("CLI auth challenge not found");
+    if (!challenge) throw notFound("未找到 CLI 授权请求");
 
     const status = challengeStatusForRow(challenge);
     if (status === "approved") return { status, challenge };

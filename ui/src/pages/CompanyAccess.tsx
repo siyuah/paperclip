@@ -320,7 +320,7 @@ export function CompanyAccess() {
                     request.requesterUser?.email ||
                     request.requestEmailSnapshot ||
                     request.requestingUserId ||
-                    "No email available"
+                    "暂无邮箱信息"
                   }
                   context={
                     request.invite

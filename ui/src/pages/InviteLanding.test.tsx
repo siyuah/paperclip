@@ -146,11 +146,11 @@ describe("InviteLandingPage", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("You've been invited to join Paperclip");
-    expect(container.textContent).toContain("Join Acme Robotics");
-    expect(container.textContent).toContain("Create account");
-    expect(container.textContent).toContain("I already have an account");
-    expect(container.textContent).toContain("Message from inviter");
+    expect(container.textContent).toContain("你已受邀加入 Paperclip");
+    expect(container.textContent).toContain("加入 Acme Robotics");
+    expect(container.textContent).toContain("创建账户");
+    expect(container.textContent).toContain("我已有账户");
+    expect(container.textContent).toContain("邀请人留言");
     expect(container.querySelector('[data-testid="invite-inline-auth"]')).not.toBeNull();
     expect(localStorage.getItem("paperclip:pending-invite-token")).toBe("pcp_invite_test");
     const inviteLogo = container.querySelector('img[alt="Acme Robotics logo"]');
@@ -194,9 +194,9 @@ describe("InviteLandingPage", () => {
       email: "jane@example.com",
       password: "supersecret",
     });
-    expect(container.textContent).toContain("An account already exists for jane@example.com. Sign in below to continue with this invite.");
+    expect(container.textContent).toContain("jane@example.com 已有账号。请在下方登录，以继续处理此邀请。");
     expect(container.querySelector('input[name="name"]')).toBeNull();
-    expect(container.textContent).toContain("Sign in to continue");
+    expect(container.textContent).toContain("登录后继续");
     expect(localStorage.getItem("paperclip:pending-invite-token")).toBe("pcp_invite_test");
 
     await act(async () => {
@@ -235,7 +235,7 @@ describe("InviteLandingPage", () => {
     expect(inputValueSetter).toBeTypeOf("function");
 
     const existingAccountButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "I already have an account",
+      (button) => button.textContent === "我已有账户",
     );
     expect(existingAccountButton).not.toBeNull();
 
@@ -271,9 +271,7 @@ describe("InviteLandingPage", () => {
       email: "jane@example.com",
       password: "wrongpass",
     });
-    expect(container.textContent).toContain(
-      "That email and password did not match an existing Paperclip account. Check both fields, or create an account first if you are new here.",
-    );
+    expect(container.textContent).toContain("邮箱或密码不正确。请检查两项信息；如果你还没有账号，请先创建账号。");
 
     await act(async () => {
       root.unmount();
@@ -400,16 +398,16 @@ describe("InviteLandingPage", () => {
     await flushReact();
 
     expect(acceptInviteMock).toHaveBeenCalledWith("pcp_invite_test", { requestType: "human" });
-    expect(container.textContent).toContain("Request to join Acme Robotics");
-    expect(container.textContent).toContain("A company admin must approve your request to join.");
+    expect(container.textContent).toContain("申请加入 Acme Robotics");
+    expect(container.textContent).toContain("你的加入请求仍在等待审批。需要 公司管理员 批准后才能加入。");
     expect(container.textContent).toContain(
-      "Ask them to visit Company Settings → Access to approve your request.",
+      "请对方进入 公司设置 → 访问权限 审批你的请求。",
     );
     expect(container.querySelector('img[alt="Acme Robotics logo"]')).not.toBeNull();
     expect(container.textContent).not.toContain("http://localhost/company/settings/access");
 
     const approvalLinks = Array.from(container.querySelectorAll("a")).filter(
-      (link) => link.textContent === "Company Settings → Access",
+      (link) => link.textContent === "公司设置 → 访问权限",
     );
     expect(approvalLinks).toHaveLength(2);
     const expectedApprovalUrl = `${window.location.origin}/company/settings/access`;
@@ -469,9 +467,9 @@ describe("InviteLandingPage", () => {
 
     expect(acceptInviteMock).not.toHaveBeenCalled();
     expect(container.querySelector('[data-testid="invite-pending-approval"]')).not.toBeNull();
-    expect(container.textContent).toContain("Your request is still awaiting approval.");
+    expect(container.textContent).toContain("你的加入请求仍在等待审批。");
     expect(container.textContent).toContain(
-      "Ask them to visit Company Settings → Access to approve your request.",
+      "请对方进入 公司设置 → 访问权限 审批你的请求。",
     );
 
     await act(async () => {
@@ -515,7 +513,7 @@ describe("InviteLandingPage", () => {
     expect(inputValueSetter).toBeTypeOf("function");
 
     const existingAccountButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "I already have an account",
+      (button) => button.textContent === "我已有账户",
     );
     expect(existingAccountButton).not.toBeNull();
 
@@ -636,8 +634,8 @@ describe("InviteLandingPage", () => {
     });
     await flushReact();
 
-    expect(container.textContent).toContain("Checking your access...");
-    expect(container.textContent).not.toContain("Accept company invite");
+    expect(container.textContent).toContain("正在检查你的访问权限...");
+    expect(container.textContent).not.toContain("接受公司邀请");
     expect(acceptInviteMock).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -648,7 +646,7 @@ describe("InviteLandingPage", () => {
     await flushReact();
 
     expect(acceptInviteMock).toHaveBeenCalledWith("pcp_invite_test", { requestType: "human" });
-    expect(container.textContent).toContain("Request to join Acme Robotics");
+    expect(container.textContent).toContain("申请加入 Acme Robotics");
 
     await act(async () => {
       root.unmount();

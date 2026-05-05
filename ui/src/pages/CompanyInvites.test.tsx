@@ -133,14 +133,14 @@ describe("CompanyInvites", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("Company Invites");
-    expect(container.textContent).toContain("Create invite");
-    expect(container.textContent).toContain("Invite history");
+    expect(container.textContent).toContain("公司邀请");
+    expect(container.textContent).toContain("创建邀请");
+    expect(container.textContent).toContain("邀请历史");
     expect(container.textContent).toContain("Board User 25");
     expect(container.textContent).toContain("Board User 21");
     expect(container.textContent).not.toContain("Board User 20");
-    expect(container.textContent).toContain("Review request");
-    expect(container.textContent).toContain("View more");
+    expect(container.textContent).toContain("查看请求");
+    expect(container.textContent).toContain("查看更多");
     expect(container.textContent).not.toContain("Human or agent");
     expect(container.textContent).not.toContain("Invite message");
     expect(container.textContent).not.toContain("Latest generated invite");
@@ -149,14 +149,14 @@ describe("CompanyInvites", () => {
     expect(container.textContent).not.toContain("Expired invites");
     expect(container.textContent).not.toContain("OpenClaw shortcut");
 
-    expect(container.textContent).toContain("Choose a role");
-    expect(container.textContent).toContain("Each invite link is single-use.");
-    expect(container.textContent).toContain("Can create agents, invite users, assign tasks, and approve join requests.");
-    expect(container.textContent).toContain("Everything in Admin, plus managing members and permission grants.");
+    expect(container.textContent).toContain("选择角色");
+    expect(container.textContent).toContain("每个邀请链接只能使用一次。");
+    expect(container.textContent).toContain("可以创建代理、邀请用户、分配任务并审批加入请求。");
+    expect(container.textContent).toContain("包含管理员的全部权限，并可管理成员和权限授权。");
     expect(listInvitesMock).toHaveBeenCalledWith("company-1", { limit: 5, offset: 0 });
 
     const viewMoreButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "View more",
+      (button) => button.textContent === "查看更多",
     );
 
     await act(async () => {
@@ -168,7 +168,7 @@ describe("CompanyInvites", () => {
     expect(listInvitesMock).toHaveBeenCalledWith("company-1", { limit: 5, offset: 5 });
     expect(container.textContent).toContain("Board User 20");
     expect(container.textContent).toContain("Board User 16");
-    expect(container.textContent).toContain("View more");
+    expect(container.textContent).toContain("查看更多");
 
     await act(async () => {
       const viewerRadio = container.querySelector('input[type="radio"][value="viewer"]') as HTMLInputElement | null;
@@ -177,8 +177,8 @@ describe("CompanyInvites", () => {
     });
 
     const buttons = Array.from(container.querySelectorAll("button"));
-    const createButton = buttons.find((button) => button.textContent === "Create invite");
-    const revokeButton = buttons.find((button) => button.textContent === "Revoke");
+    const createButton = buttons.find((button) => button.textContent === "创建邀请");
+    const revokeButton = buttons.find((button) => button.textContent === "撤销");
 
     expect(createButton).toBeTruthy();
     expect(revokeButton).toBeTruthy();
@@ -195,13 +195,13 @@ describe("CompanyInvites", () => {
       agentMessage: null,
     });
     expect(clipboardWriteTextMock).toHaveBeenCalledWith("https://paperclip.local/invite/new-token");
-    expect(container.textContent).toContain("Latest invite link");
-    expect(container.textContent).toContain("This URL includes the current Paperclip domain returned by the server.");
+    expect(container.textContent).toContain("最新邀请链接");
+    expect(container.textContent).toContain("此 URL 包含服务器返回的当前 Paperclip 域名。");
     expect(container.textContent).toContain("https://paperclip.local/invite/new-token");
-    expect(container.textContent).toContain("Open invite");
+    expect(container.textContent).toContain("打开邀请");
     expect(pushToastMock).toHaveBeenCalledWith({
-      title: "Invite created",
-      body: "Invite ready below and copied to clipboard.",
+      title: "邀请已创建",
+      body: "邀请链接已生成，并已复制到剪贴板。",
       tone: "success",
     });
 
@@ -215,7 +215,7 @@ describe("CompanyInvites", () => {
     await flushReact();
 
     expect(clipboardWriteTextMock).toHaveBeenCalledTimes(2);
-    expect(container.textContent).toContain("Copied");
+    expect(container.textContent).toContain("已复制");
 
     await act(async () => {
       revokeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
