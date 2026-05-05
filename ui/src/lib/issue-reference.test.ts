@@ -51,6 +51,13 @@ describe("issue-reference", () => {
     });
   });
 
+  it("does not treat common technical identifiers as issue references", () => {
+    expect(parseIssueReferenceFromHref("UTF-8")).toBeNull();
+    expect(parseIssueReferenceFromHref("SHA-256")).toBeNull();
+    expect(parseIssueReferenceFromHref("TLS-13")).toBeNull();
+    expect(parseIssueReferenceFromHref("/issues/UTF-8")).toBeNull();
+  });
+
   it("preserves absolute Paperclip issue URLs so origin, port, and hash are not lost", () => {
     expect(parseIssueReferenceFromHref("http://localhost:3100/PAP/issues/PAP-1179")).toBeNull();
     expect(parseIssueReferenceFromHref("http://remote.example.test:3103/PAPA/issues/PAPA-115#comment-850083f3-24de-43e7-a8cd-bc01f7cc9f0d")).toBeNull();

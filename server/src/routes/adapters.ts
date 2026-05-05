@@ -47,6 +47,9 @@ import { assertBoardOrgAccess, assertInstanceAdmin } from "./authz.js";
 import { BUILTIN_ADAPTER_TYPES } from "../adapters/builtin-adapter-types.js";
 
 const execFileAsync = promisify(execFile);
+const EMPTY_CONFIG_SCHEMA: AdapterConfigSchema = {
+  fields: [],
+};
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -633,7 +636,8 @@ export function adapterRoutes() {
       return;
     }
     if (!adapter.getConfigSchema) {
-      res.status(404).json({ error: `Adapter "${type}" does not provide a config schema.` });
+      configSchemaCache.set(type, { adapter, schema: EMPTY_CONFIG_SCHEMA, fetchedAt: Date.now() });
+      res.json(EMPTY_CONFIG_SCHEMA);
       return;
     }
 

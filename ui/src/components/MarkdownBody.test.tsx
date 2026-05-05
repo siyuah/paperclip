@@ -223,6 +223,16 @@ describe("MarkdownBody", () => {
     expect(html).not.toContain('data-mention-kind="issue"');
   });
 
+  it("does not auto-link common technical identifiers that look like issue keys", () => {
+    const html = renderMarkdown("Read the file as UTF-8, verify SHA-256, and keep TLS-13 notes as plain text.");
+
+    expect(html).toContain("Read the file as UTF-8, verify SHA-256, and keep TLS-13 notes as plain text.");
+    expect(html).not.toContain('href="/issues/UTF-8"');
+    expect(html).not.toContain('href="/issues/SHA-256"');
+    expect(html).not.toContain('href="/issues/TLS-13"');
+    expect(html).not.toContain('data-mention-kind="issue"');
+  });
+
   it("rewrites issue scheme links to internal issue links", () => {
     const html = renderMarkdown("See issue://PAP-1310 and issue://:PAP-1311.", [
       { identifier: "PAP-1310", status: "done" },
@@ -371,7 +381,7 @@ describe("MarkdownBody", () => {
 
     expect(html).toContain("paperclip-markdown-codeblock");
     expect(html).toContain("paperclip-markdown-codeblock-copy");
-    expect(html).toContain('aria-label="Copy code"');
+    expect(html).toContain('aria-label="复制代码"');
     expect(html).toContain("lucide-copy");
   });
 

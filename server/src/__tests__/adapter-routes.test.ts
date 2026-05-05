@@ -255,6 +255,17 @@ describe("adapter routes", () => {
     );
   });
 
+  it("serves an empty schema for built-in adapters without declarative config fields", async () => {
+    const app = createApp();
+
+    const res = await request(app).get("/api/adapters/hermes_local/config-schema");
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body).toEqual({
+      fields: [],
+    });
+  });
+
   it("rejects signed-in users without org access", async () => {
     const app = createApp({
       userId: "outsider-1",

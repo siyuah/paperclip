@@ -6,8 +6,13 @@ type MarkdownNode = {
 };
 
 const BARE_ISSUE_IDENTIFIER_RE = /^[A-Z][A-Z0-9]+-\d+$/i;
+const NON_ISSUE_TECHNICAL_IDENTIFIER_RE = /^(?:UTF|ASCII|ISO|SHA|MD|CRC|AES|RSA|HTTP|HTTP2|HTTP3|TLS|SSL|IPV4|IPV6)-\d+$/i;
 const ISSUE_SCHEME_RE = /^issue:\/\/:?([^?#\s]+)(?:[?#].*)?$/i;
 const ISSUE_REFERENCE_TOKEN_RE = /issue:\/\/:?[^\s<>()]+|https?:\/\/[^\s<>()]+|\/(?:[^\s<>()/]+\/)*issues\/[A-Z][A-Z0-9]+-\d+(?=$|[\s<>)\],.;!?:])|\b[A-Z][A-Z0-9]+-\d+\b/gi;
+
+function isBareIssueIdentifier(value: string): boolean {
+  return BARE_ISSUE_IDENTIFIER_RE.test(value) && !NON_ISSUE_TECHNICAL_IDENTIFIER_RE.test(value);
+}
 
 export function parseIssuePathIdFromPath(pathOrUrl: string | null | undefined): string | null {
   if (!pathOrUrl) return null;
@@ -20,7 +25,10 @@ export function parseIssuePathIdFromPath(pathOrUrl: string | null | undefined): 
   if (issueIndex === -1 || issueIndex === segments.length - 1) return null;
   const issuePathId = decodeURIComponent(segments[issueIndex + 1] ?? "");
   if (!issuePathId || issuePathId.startsWith(":")) return null;
-  return BARE_ISSUE_IDENTIFIER_RE.test(issuePathId) ? issuePathId.toUpperCase() : issuePathId;
+  if (BARE_ISSUE_IDENTIFIER_RE.test(issuePathId)) {
+    return isBareIssueIdentifier(issuePathId) ? issuePathId.toUpperCase() : null;
+  }
+  return issuePathId;
 }
 
 export function parseIssueReferenceFromHref(href: string | null | undefined) {
@@ -43,7 +51,7 @@ export function parseIssueReferenceFromHref(href: string | null | undefined) {
     };
   }
 
-  if (!BARE_ISSUE_IDENTIFIER_RE.test(trimmed)) return null;
+  if (!isBareIssueIdentifier(trimmed)) return null;
   const normalized = trimmed.toUpperCase();
   return {
     issuePathId: normalized,
