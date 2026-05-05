@@ -23,6 +23,19 @@ import {
   extractModelName,
   extractProviderIdWithFallback
 } from "../lib/model-utils";
+import {
+  applyModelPoolSelectionToAdapterConfig,
+  applyModelPoolSelectionToConfig,
+  findModelPoolSelection,
+  isModelPoolOption,
+  isSelectedModelOption,
+  listEnabledModelPoolOptions,
+  mergeModelPoolOptions,
+  modelOptionKey,
+  modelPoolSelectionFromOption,
+  useModelPool,
+  type ModelOptionLike,
+} from "../lib/model-pool";
 import { getUIAdapter } from "../adapters";
 import { listUIAdapters } from "../adapters";
 import { isVisualAdapterChoice } from "../adapters/metadata";
@@ -62,11 +75,12 @@ import {
 type Step = 1 | 2 | 3 | 4;
 type AdapterType = string;
 
-const DEFAULT_TASK_DESCRIPTION = `你是 CEO，负责设定公司的方向。
+const DEFAULT_TASK_DESCRIPTION = `你是 CEO，负责先把公司的使命/目标变成可执行的任务计划。
 
-- 招聘一名创始工程师
-- 编写招聘计划
-- 将路线图拆成具体任务，并开始委派工作`;
+- 梳理公司目标、当前约束和最重要的用户问题
+- 产出第一版任务计划，包括 3-5 个里程碑和优先级
+- 判断是否需要创始工程师；如果需要，先定义岗位目标和候选任务
+- 将路线图拆成具体任务，再按模型能力委派给后续代理`;
 
 export function OnboardingWizard() {
   const { onboardingOpen, onboardingOptions, closeOnboarding } = useDialog();
@@ -111,6 +125,7 @@ export function OnboardingWizard() {
   const [agentName, setAgentName] = useState("CEO");
   const [adapterType, setAdapterType] = useState<AdapterType>("claude_local");
   const [model, setModel] = useState("");
+  const [modelPoolProviderId, setModelPoolProviderId] = useState("");
   const [command, setCommand] = useState("");
   const [args, setArgs] = useState("");
   const [url, setUrl] = useState("");
@@ -122,10 +137,11 @@ export function OnboardingWizard() {
     useState(false);
   const [unsetAnthropicLoading, setUnsetAnthropicLoading] = useState(false);
   const [showMoreAdapters, setShowMoreAdapters] = useState(false);
+  const [modelPool] = useModelPool();
 
   // Step 3
   const [taskTitle, setTaskTitle] = useState(
-    "招聘你的第一位工程师并制定招聘计划"
+    "制定公司任务计划并拆解第一批执行任务"
   );
   const [taskDescription, setTaskDescription] = useState(
     DEFAULT_TASK_DESCRIPTION
@@ -164,7 +180,8 @@ export function OnboardingWizard() {
   useEffect(() => {
     if (!effectiveOnboardingOpen) return;
     const cId = effectiveOnboardingOptions.companyId ?? null;
-    setStep(effectiveOnboardingOptions.initialStep ?? 1);
+    const requestedStep = effectiveOnboardingOptions.initialStep ?? 1;
+    setStep(cId || requestedStep === 1 ? requestedStep : 1);
     setCreatedCompanyId(cId);
     setCreatedCompanyPrefix(null);
     setCreatedCompanyGoalId(null);
@@ -240,7 +257,17 @@ export function OnboardingWizard() {
     setAdapterEnvError(null);
   }, [step, adapterType, model, command, args, url]);
 
-  const selectedModel = (adapterModels ?? []).find((m) => m.id === model);
+  const modelPoolOptions = useMemo(
+    () => listEnabledModelPoolOptions(modelPool),
+    [modelPool],
+  );
+  const allModelOptions = useMemo(
+    () => mergeModelPoolOptions(adapterModels ?? [], modelPoolOptions),
+    [adapterModels, modelPoolOptions],
+  );
+  const selectedModel = allModelOptions.find((m) =>
+    isSelectedModelOption(m, model, modelPoolProviderId),
+  );
   const hasAnthropicApiKeyOverrideCheck =
     adapterEnvResult?.checks.some(
       (check) =>
@@ -252,7 +279,7 @@ export function OnboardingWizard() {
     hasAnthropicApiKeyOverrideCheck;
   const filteredModels = useMemo(() => {
     const query = modelSearch.trim().toLowerCase();
-    return (adapterModels ?? []).filter((entry) => {
+    return allModelOptions.filter((entry) => {
       if (!query) return true;
       const provider = extractProviderIdWithFallback(entry.id, "");
       return (
@@ -261,17 +288,17 @@ export function OnboardingWizard() {
         provider.toLowerCase().includes(query)
       );
     });
-  }, [adapterModels, modelSearch]);
+  }, [allModelOptions, modelSearch]);
   const groupedModels = useMemo(() => {
     if (adapterType !== "opencode_local") {
       return [
         {
           provider: "models",
-          entries: [...filteredModels].sort((a, b) => a.id.localeCompare(b.id))
+          entries: [...filteredModels].sort((a, b) => modelOptionKey(a).localeCompare(modelOptionKey(b)))
         }
       ];
     }
-    const groups = new Map<string, Array<{ id: string; label: string }>>();
+    const groups = new Map<string, ModelOptionLike[]>();
     for (const entry of filteredModels) {
       const provider = extractProviderIdWithFallback(entry.id);
       const bucket = groups.get(provider) ?? [];
@@ -282,7 +309,7 @@ export function OnboardingWizard() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([provider, entries]) => ({
         provider,
-        entries: [...entries].sort((a, b) => a.id.localeCompare(b.id))
+        entries: [...entries].sort((a, b) => modelOptionKey(a).localeCompare(modelOptionKey(b)))
       }));
   }, [filteredModels, adapterType]);
 
@@ -295,6 +322,7 @@ export function OnboardingWizard() {
     setAgentName("CEO");
     setAdapterType("claude_local");
     setModel("");
+    setModelPoolProviderId("");
     setCommand("");
     setArgs("");
     setUrl("");
@@ -303,7 +331,7 @@ export function OnboardingWizard() {
     setAdapterEnvLoading(false);
     setForceUnsetAnthropicApiKey(false);
     setUnsetAnthropicLoading(false);
-    setTaskTitle("招聘你的第一位工程师并制定招聘计划");
+    setTaskTitle("制定公司任务计划并拆解第一批执行任务");
     setTaskDescription(DEFAULT_TASK_DESCRIPTION);
     setCreatedCompanyId(null);
     setCreatedCompanyPrefix(null);
@@ -320,6 +348,11 @@ export function OnboardingWizard() {
 
   function buildAdapterConfig(): Record<string, unknown> {
     const adapter = getUIAdapter(adapterType);
+    const modelPoolSelection = findModelPoolSelection(
+      modelPool,
+      model,
+      modelPoolProviderId || undefined,
+    );
     const config = adapter.buildAdapterConfig({
       ...defaultCreateValues,
       adapterType,
@@ -341,26 +374,67 @@ export function OnboardingWizard() {
           ? DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX
           : defaultCreateValues.dangerouslyBypassSandbox
     });
+    const nextConfig = applyModelPoolSelectionToAdapterConfig(config, modelPoolSelection);
     if (adapterType === "claude_local" && forceUnsetAnthropicApiKey) {
       const env =
-        typeof config.env === "object" &&
-        config.env !== null &&
-        !Array.isArray(config.env)
-          ? { ...(config.env as Record<string, unknown>) }
+        typeof nextConfig.env === "object" &&
+        nextConfig.env !== null &&
+        !Array.isArray(nextConfig.env)
+          ? { ...(nextConfig.env as Record<string, unknown>) }
           : {};
       env.ANTHROPIC_API_KEY = { type: "plain", value: "" };
-      config.env = env;
+      nextConfig.env = env;
     }
-    return config;
+    return nextConfig;
+  }
+
+  function applyModelSelection(nextModelId: string, option?: ModelOptionLike) {
+    const selection = option && isModelPoolOption(option)
+      ? modelPoolSelectionFromOption(option)
+      : null;
+    const nextConfig = applyModelPoolSelectionToConfig(
+      {
+        model: nextModelId,
+        envBindings: {},
+        modelPoolProviderId,
+      },
+      selection,
+    );
+
+    setModel(nextConfig.model || nextModelId);
+    setModelPoolProviderId(nextConfig.modelPoolProviderId || "");
+  }
+
+  function canOpenStep(target: Step): boolean {
+    if (target === 1) return true;
+    if (target === 2) return Boolean(createdCompanyId);
+    return Boolean(createdCompanyId && createdAgentId);
+  }
+
+  function goToStep(target: Step) {
+    if (canOpenStep(target)) {
+      setError(null);
+      setAdapterEnvError(null);
+      setStep(target);
+      return;
+    }
+
+    setAdapterEnvError(null);
+    if (!createdCompanyId) {
+      setStep(1);
+      setError("请先创建或选择公司。");
+      return;
+    }
+
+    setStep(2);
+    setError("请先创建 CEO 代理。");
   }
 
   async function runAdapterEnvironmentTest(
     adapterConfigOverride?: Record<string, unknown>
   ): Promise<AdapterEnvironmentTestResult | null> {
     if (!createdCompanyId) {
-      setAdapterEnvError(
-        "Create or select a company before testing adapter environment."
-      );
+      setAdapterEnvError("请先创建或选择公司，再测试适配器环境。");
       return null;
     }
     setAdapterEnvLoading(true);
@@ -661,22 +735,29 @@ export function OnboardingWizard() {
                     { step: 3 as Step, label: "任务", icon: ListTodo },
                     { step: 4 as Step, label: "启动", icon: Rocket }
                   ] as const
-                ).map(({ step: s, label, icon: Icon }) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setStep(s)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors cursor-pointer",
-                      s === step
-                        ? "border-foreground text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground/70 hover:border-border"
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {label}
-                  </button>
-                ))}
+                ).map(({ step: s, label, icon: Icon }) => {
+                  const enabled = canOpenStep(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={!enabled}
+                      onClick={() => goToStep(s)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors",
+                        enabled ? "cursor-pointer" : "cursor-not-allowed opacity-45",
+                        s === step
+                          ? "border-foreground text-foreground"
+                          : enabled
+                            ? "border-transparent text-muted-foreground hover:text-foreground/70 hover:border-border"
+                            : "border-transparent text-muted-foreground"
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Step content */}
@@ -777,6 +858,7 @@ export function OnboardingWizard() {
                           onClick={() => {
                             const nextType = opt.type;
                             setAdapterType(nextType);
+                            setModelPoolProviderId("");
                             if (nextType === "codex_local" && !model) {
                               setModel(DEFAULT_CODEX_LOCAL_MODEL);
                             }
@@ -815,21 +897,22 @@ export function OnboardingWizard() {
                     {showMoreAdapters && (
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         {moreAdapters.map((opt) => (
-                           <button
-                             key={opt.type}
-                             disabled={!!opt.comingSoon}
-                             className={cn(
-                               "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
-                               opt.comingSoon
-                                 ? "border-border opacity-40 cursor-not-allowed"
-                                 : adapterType === opt.type
-                                 ? "border-foreground bg-accent"
-                                 : "border-border hover:bg-accent/50"
-                             )}
-                             onClick={() => {
-                               if (opt.comingSoon) return;
-                               const nextType = opt.type;
+                          <button
+                            key={opt.type}
+                            disabled={!!opt.comingSoon}
+                            className={cn(
+                              "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
+                              opt.comingSoon
+                                ? "border-border opacity-40 cursor-not-allowed"
+                                : adapterType === opt.type
+                                  ? "border-foreground bg-accent"
+                                  : "border-border hover:bg-accent/50"
+                            )}
+                            onClick={() => {
+                              if (opt.comingSoon) return;
+                              const nextType = opt.type;
                               setAdapterType(nextType);
+                              setModelPoolProviderId("");
                               if (nextType === "gemini_local" && !model) {
                                 setModel(DEFAULT_GEMINI_LOCAL_MODEL);
                                 return;
@@ -910,6 +993,7 @@ export function OnboardingWizard() {
                                 )}
                                 onClick={() => {
                                   setModel("");
+                                  setModelPoolProviderId("");
                                   setModelOpen(false);
                                 }}
                               >
@@ -929,13 +1013,13 @@ export function OnboardingWizard() {
                                   )}
                                   {group.entries.map((m) => (
                                     <button
-                                      key={m.id}
+                                      key={modelOptionKey(m)}
                                       className={cn(
                                         "flex items-center w-full px-2 py-1.5 text-sm rounded hover:bg-accent/50",
-                                        m.id === model && "bg-accent"
+                                        isSelectedModelOption(m, model, modelPoolProviderId) && "bg-accent"
                                       )}
                                       onClick={() => {
-                                        setModel(m.id);
+                                        applyModelSelection(m.id, m);
                                         setModelOpen(false);
                                       }}
                                     >
@@ -978,12 +1062,18 @@ export function OnboardingWizard() {
                           size="sm"
                           variant="outline"
                           className="h-7 px-2.5 text-xs"
-                          disabled={adapterEnvLoading}
+                          disabled={!createdCompanyId || adapterEnvLoading}
                           onClick={() => void runAdapterEnvironmentTest()}
                         >
                           {adapterEnvLoading ? "正在测试..." : "立即测试"}
                         </Button>
                       </div>
+
+                      {!createdCompanyId && (
+                        <div className="rounded-md border border-border bg-muted/35 px-2.5 py-2 text-[11px] text-muted-foreground">
+                          请先完成公司步骤，再测试适配器环境。
+                        </div>
+                      )}
 
                       {adapterEnvError && (
                         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-[11px] text-destructive">
@@ -1234,7 +1324,10 @@ export function OnboardingWizard() {
                     <Button
                       size="sm"
                       disabled={
-                        !agentName.trim() || loading || adapterEnvLoading
+                        !createdCompanyId ||
+                        !agentName.trim() ||
+                        loading ||
+                        adapterEnvLoading
                       }
                       onClick={handleStep2Next}
                     >

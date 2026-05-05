@@ -273,6 +273,14 @@ export type {
   IssueGraphLivenessAutoRecoveryPreview,
   IssueGraphLivenessAutoRecoveryPreviewItem,
   BackupRetentionPolicy,
+  CeoModelConfig,
+  FetchModelsResult,
+  ModelCapability,
+  ModelCostTier,
+  ModelEntry,
+  ModelPoolState,
+  ModelProvider,
+  ProviderConnectionTestResult,
   Agent,
   AgentAccessState,
   AgentChainOfCommandEntry,
@@ -520,6 +528,11 @@ export type {
   ProviderQuotaResult,
 } from "./types/index.js";
 export {
+  EMPTY_MODEL_POOL,
+  MODEL_CAPABILITIES,
+  MODEL_COST_TIERS,
+} from "./types/model-pool.js";
+export {
   ISSUE_REFERENCE_IDENTIFIER_RE,
   buildIssueReferenceHref,
   extractIssueReferenceIdentifiers,
@@ -578,6 +591,19 @@ export {
   issueGraphLivenessAutoRecoveryRequestSchema,
   type PatchInstanceExperimentalSettings,
   type IssueGraphLivenessAutoRecoveryRequest,
+  ceoModelConfigSchema,
+  fetchProviderModelsRequestSchema,
+  modelCapabilitySchema,
+  modelCostTierSchema,
+  modelEntrySchema,
+  modelPoolStateSchema,
+  modelProviderSchema,
+  testProviderConnectionRequestSchema,
+  type ModelCapabilityInput,
+  type ModelEntryInput,
+  type ModelPoolStateInput,
+  type ModelProviderInput,
+  type TestProviderConnectionRequest,
 } from "./validators/index.js";
 
 export {

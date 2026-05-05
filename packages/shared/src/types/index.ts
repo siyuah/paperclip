@@ -31,6 +31,16 @@ export type {
   IssueGraphLivenessAutoRecoveryPreview,
   IssueGraphLivenessAutoRecoveryPreviewItem,
 } from "./instance.js";
+export type {
+  CeoModelConfig,
+  FetchModelsResult,
+  ModelCapability,
+  ModelCostTier,
+  ModelEntry,
+  ModelPoolState,
+  ModelProvider,
+  ProviderConnectionTestResult,
+} from "./model-pool.js";
 export {
   DAILY_RETENTION_PRESETS,
   WEEKLY_RETENTION_PRESETS,
@@ -40,6 +50,11 @@ export {
   MIN_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
   MAX_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
 } from "./instance.js";
+export {
+  EMPTY_MODEL_POOL,
+  MODEL_CAPABILITIES,
+  MODEL_COST_TIERS,
+} from "./model-pool.js";
 export type {
   CompanySkillSourceType,
   CompanySkillTrustLevel,

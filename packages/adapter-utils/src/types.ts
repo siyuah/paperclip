@@ -446,6 +446,10 @@ export interface CreateConfigValues {
   instructionsFilePath?: string;
   promptTemplate: string;
   model: string;
+  modelPoolProviderId?: string;
+  modelPoolProviderName?: string;
+  modelPoolBaseUrl?: string;
+  modelPoolModelId?: string;
   thinkingEffort: string;
   /**
    * Optional cheap model profile config for new agents on adapters that

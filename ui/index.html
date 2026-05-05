@@ -40,6 +40,35 @@
         }
       })();
     </script>
+    <script>
+      (() => {
+        const host = window.location.hostname;
+        const isDevHost = host === "localhost" || host === "127.0.0.1" || host === "::1";
+        if (!isDevHost) return;
+
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .getRegistrations()
+            .then((registrations) =>
+              Promise.all(registrations.map((registration) => registration.unregister())),
+            )
+            .catch(() => {});
+        }
+
+        if ("caches" in window) {
+          caches
+            .keys()
+            .then((keys) =>
+              Promise.all(
+                keys
+                  .filter((key) => key.startsWith("paperclip-"))
+                  .map((key) => caches.delete(key)),
+              ),
+            )
+            .catch(() => {});
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

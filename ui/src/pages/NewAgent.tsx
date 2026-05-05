@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { useCompany } from "../context/CompanyContext";
@@ -28,6 +28,13 @@ import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 import { isValidAdapterType } from "../adapters/metadata";
 import { ReportsToPicker } from "../components/ReportsToPicker";
 import { buildNewAgentHirePayload } from "../lib/new-agent-hire-payload";
+import {
+  applyModelPoolSelectionToAdapterConfig,
+  findModelPoolSelection,
+  listEnabledModelPoolOptions,
+  mergeModelPoolOptions,
+  useModelPool,
+} from "../lib/model-pool";
 import {
   DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
   DEFAULT_CODEX_LOCAL_MODEL,
@@ -79,6 +86,7 @@ export function NewAgent() {
     errorMessage: null,
     result: null,
   });
+  const [modelPool] = useModelPool();
 
   const { data: agents } = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId!),
@@ -98,6 +106,14 @@ export function NewAgent() {
     queryFn: () => agentsApi.adapterModels(selectedCompanyId!, configValues.adapterType),
     enabled: Boolean(selectedCompanyId),
   });
+  const modelPoolOptions = useMemo(
+    () => listEnabledModelPoolOptions(modelPool),
+    [modelPool],
+  );
+  const allAdapterModels = useMemo(
+    () => mergeModelPoolOptions(adapterModels ?? [], modelPoolOptions),
+    [adapterModels, modelPoolOptions],
+  );
 
   const { data: companySkills } = useQuery({
     queryKey: queryKeys.companySkills.list(selectedCompanyId ?? ""),
@@ -147,7 +163,15 @@ export function NewAgent() {
 
   function buildAdapterConfig() {
     const adapter = getUIAdapter(configValues.adapterType);
-    return adapter.buildAdapterConfig(configValues);
+    const config = adapter.buildAdapterConfig(configValues);
+    return applyModelPoolSelectionToAdapterConfig(
+      config,
+      findModelPoolSelection(
+        modelPool,
+        configValues.model,
+        configValues.modelPoolProviderId,
+      ),
+    );
   }
 
   function handleSubmit() {
@@ -171,7 +195,7 @@ export function NewAgent() {
         setFormError("OpenCode models are still loading. Please wait and try again.");
         return;
       }
-      const discovered = adapterModels ?? [];
+      const discovered = allAdapterModels;
       if (!discovered.some((entry) => entry.id === selectedModel)) {
         setFormError(
           discovered.length === 0
@@ -295,7 +319,7 @@ export function NewAgent() {
           mode="create"
           values={configValues}
           onChange={(patch) => setConfigValues((prev) => ({ ...prev, ...patch }))}
-          adapterModels={adapterModels}
+          adapterModels={allAdapterModels}
           onTestActionChange={handleTestAgentActionChange}
           onTestActionStateChange={handleTestAgentStateChange}
           onTestFeedbackChange={handleTestAgentFeedbackChange}

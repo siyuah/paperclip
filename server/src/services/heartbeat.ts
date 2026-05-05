@@ -56,6 +56,7 @@ import { getTelemetryClient } from "../telemetry.js";
 import { companySkillService } from "./company-skills.js";
 import { budgetService, type BudgetEnforcementScope } from "./budgets.js";
 import { secretService } from "./secrets.js";
+import { modelPoolService } from "./model-pool.js";
 import { resolveDefaultAgentWorkspaceDir, resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 import {
   buildHeartbeatRunIssueComment,
@@ -264,30 +265,38 @@ type RuntimeConfigSecretResolver = Pick<
   ReturnType<typeof secretService>,
   "resolveAdapterConfigForRuntime" | "resolveEnvBindings"
 >;
+type RuntimeConfigModelPoolResolver = Pick<
+  ReturnType<typeof modelPoolService>,
+  "materializeAdapterConfig"
+>;
 
 export async function resolveExecutionRunAdapterConfig(input: {
   companyId: string;
   executionRunConfig: Record<string, unknown>;
   projectEnv: unknown;
   secretsSvc: RuntimeConfigSecretResolver;
+  modelPoolSvc?: RuntimeConfigModelPoolResolver;
 }) {
   const { config: resolvedConfig, secretKeys } = await input.secretsSvc.resolveAdapterConfigForRuntime(
     input.companyId,
     input.executionRunConfig,
   );
+  const materializedConfig = input.modelPoolSvc
+    ? await input.modelPoolSvc.materializeAdapterConfig(resolvedConfig)
+    : resolvedConfig;
   const projectEnvResolution = input.projectEnv
     ? await input.secretsSvc.resolveEnvBindings(input.companyId, input.projectEnv)
     : { env: {}, secretKeys: new Set<string>() };
   if (Object.keys(projectEnvResolution.env).length > 0) {
-    resolvedConfig.env = {
-      ...parseObject(resolvedConfig.env),
+    materializedConfig.env = {
+      ...parseObject(materializedConfig.env),
       ...projectEnvResolution.env,
     };
     for (const key of projectEnvResolution.secretKeys) {
       secretKeys.add(key);
     }
   }
-  return { resolvedConfig, secretKeys };
+  return { resolvedConfig: materializedConfig, secretKeys };
 }
 
 export function extractMentionedSkillIdsFromSources(
@@ -2157,6 +2166,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
   const runLogStore = getRunLogStore();
   const secretsSvc = secretService(db);
+  const modelPoolSvc = modelPoolService(db);
   const companySkills = companySkillService(db);
   const issuesSvc = issueService(db);
   const treeControlSvc = issueTreeControlService(db);
@@ -5179,6 +5189,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       executionRunConfig,
       projectEnv: projectContext?.env ?? null,
       secretsSvc,
+      modelPoolSvc,
     });
     const runScopedMentionedSkillKeys = await resolveRunScopedMentionedSkillKeys({
       db,

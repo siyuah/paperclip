@@ -56,6 +56,19 @@ import { getAdapterDisplay, getAdapterLabel } from "../adapters/adapter-display-
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 import { buildAgentUpdatePatch, type AgentConfigOverlay } from "../lib/agent-config-patch";
 import { useAdapterCapabilities } from "../adapters/use-adapter-capabilities";
+import {
+  applyModelPoolSelectionToConfig,
+  applyModelPoolSelectionToAdapterConfig,
+  findModelPoolSelection,
+  isModelPoolOption,
+  isSelectedModelOption,
+  listEnabledModelPoolOptions,
+  mergeModelPoolOptions,
+  modelOptionKey,
+  modelPoolSelectionFromOption,
+  useModelPool,
+  type ModelOptionLike,
+} from "../lib/model-pool";
 
 /* ---- Create mode values ---- */
 
@@ -191,6 +204,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   const hideInstructionsFile = props.hideInstructionsFile ?? false;
   const { selectedCompanyId } = useCompany();
   const queryClient = useQueryClient();
+  const [modelPool] = useModelPool();
 
   // Sync disabled adapter types from server so dropdown filters them out
   const disabledTypes = useDisabledAdaptersSync();
@@ -333,7 +347,14 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   });
   const [refreshModelsError, setRefreshModelsError] = useState<string | null>(null);
   const [refreshingModels, setRefreshingModels] = useState(false);
-  const models = fetchedModels ?? externalModels ?? [];
+  const modelPoolOptions = useMemo(
+    () => listEnabledModelPoolOptions(modelPool),
+    [modelPool],
+  );
+  const models = useMemo(
+    () => mergeModelPoolOptions(fetchedModels ?? externalModels ?? [], modelPoolOptions),
+    [fetchedModels, externalModels, modelPoolOptions],
+  );
   const adapterCommandField =
     adapterType === "hermes_local" ? "hermesCommand" : "command";
   const {
@@ -410,22 +431,36 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
 
   function buildAdapterConfigForTest(): Record<string, unknown> {
     if (isCreate) {
-      return uiAdapter.buildAdapterConfig(val!);
+      const selection = findModelPoolSelection(
+        modelPool,
+        val!.model,
+        val!.modelPoolProviderId,
+      );
+      return applyModelPoolSelectionToAdapterConfig(
+        uiAdapter.buildAdapterConfig(val!),
+        selection,
+      );
     }
     const base = config as Record<string, unknown>;
     const next = { ...base, ...overlay.adapterConfig };
+    const selection = findModelPoolSelection(
+      modelPool,
+      typeof next.model === "string" ? next.model : "",
+      typeof next.modelPoolProviderId === "string" ? next.modelPoolProviderId : undefined,
+    );
+    const withModelPool = applyModelPoolSelectionToAdapterConfig(next, selection);
     if (adapterType === "hermes_local") {
       const hermesCommand =
-        typeof next.hermesCommand === "string" && next.hermesCommand.length > 0
-          ? next.hermesCommand
-          : typeof next.command === "string" && next.command.length > 0
-            ? next.command
+        typeof withModelPool.hermesCommand === "string" && withModelPool.hermesCommand.length > 0
+          ? withModelPool.hermesCommand
+          : typeof withModelPool.command === "string" && withModelPool.command.length > 0
+            ? withModelPool.command
             : undefined;
       if (hermesCommand) {
-        next.hermesCommand = hermesCommand;
+        withModelPool.hermesCommand = hermesCommand;
       }
     }
-    return next;
+    return withModelPool;
   }
 
   const testEnvironment = useMutation({
@@ -494,6 +529,49 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   const currentModelId = isCreate
     ? val!.model
     : eff("adapterConfig", "model", String(config.model ?? ""));
+  const selectedModelPoolProviderId = isCreate
+    ? val!.modelPoolProviderId
+    : eff("adapterConfig", "modelPoolProviderId", String(config.modelPoolProviderId ?? ""));
+  const currentModelPoolSelection = findModelPoolSelection(
+    modelPool,
+    currentModelId,
+    selectedModelPoolProviderId || undefined,
+  );
+
+  function applyModelSelection(nextModelId: string, option?: ModelOptionLike) {
+    const selection = option && isModelPoolOption(option)
+      ? modelPoolSelectionFromOption(option)
+      : null;
+    if (isCreate) {
+      set!(applyModelPoolSelectionToConfig({
+        ...val!,
+        model: nextModelId,
+      }, selection));
+      return;
+    }
+
+    const nextAdapterConfig = applyModelPoolSelectionToAdapterConfig(
+      {
+        ...(config as Record<string, unknown>),
+        ...overlay.adapterConfig,
+        model: nextModelId || undefined,
+      },
+      selection,
+    );
+
+    setOverlay((prev) => ({
+      ...prev,
+      adapterConfig: {
+        ...prev.adapterConfig,
+        model: nextModelId || undefined,
+        modelPoolProviderId: nextAdapterConfig.modelPoolProviderId,
+        modelPoolProviderName: nextAdapterConfig.modelPoolProviderName,
+        modelPoolBaseUrl: nextAdapterConfig.modelPoolBaseUrl,
+        modelPoolModelId: nextAdapterConfig.modelPoolModelId,
+        env: nextAdapterConfig.env,
+      },
+    }));
+  }
 
   async function handleRefreshModels() {
     if (!selectedCompanyId) return;
@@ -928,17 +1006,14 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               <ModelDropdown
                 models={models}
                 value={currentModelId}
-                onChange={(v) =>
-                  isCreate
-                    ? set!({ model: v })
-                    : mark("adapterConfig", "model", v || undefined)
-                }
+                onChange={applyModelSelection}
                 open={modelOpen}
                 onOpenChange={setModelOpen}
                 allowDefault={adapterType !== "opencode_local"}
                 required={adapterType === "opencode_local"}
-                groupByProvider={adapterType === "opencode_local"}
+                groupByProvider={adapterType === "opencode_local" || modelPoolOptions.length > 0}
                 creatable
+                selectedModelPoolProviderId={selectedModelPoolProviderId || currentModelPoolSelection?.providerId || ""}
                 detectedModel={detectedModel}
                 detectedModelCandidates={[]}
                 onDetectModel={async () => {
@@ -1320,10 +1395,11 @@ function ModelDropdown({
   detectModelLabel,
   emptyDetectHint,
   defaultLabel,
+  selectedModelPoolProviderId,
 }: {
   models: AdapterModel[];
   value: string;
-  onChange: (id: string) => void;
+  onChange: (id: string, option?: AdapterModel) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allowDefault: boolean;
@@ -1338,10 +1414,13 @@ function ModelDropdown({
   detectModelLabel?: string;
   emptyDetectHint?: string;
   defaultLabel?: string;
+  selectedModelPoolProviderId?: string;
 }) {
   const [modelSearch, setModelSearch] = useState("");
   const [detectingModel, setDetectingModel] = useState(false);
-  const selected = models.find((m) => m.id === value);
+  const selected = models.find((m) =>
+    isSelectedModelOption(m, value, selectedModelPoolProviderId),
+  );
   const manualModel = modelSearch.trim();
   const canCreateManualModel = Boolean(
     creatable &&
@@ -1382,7 +1461,9 @@ function ModelDropdown({
     }
     const map = new Map<string, AdapterModel[]>();
     for (const model of filteredModels) {
-      const provider = extractProviderId(model.id) ?? "other";
+      const provider = model.label.includes(" / ")
+        ? model.label.split(" / ")[0]!.trim()
+        : extractProviderId(model.id) ?? "other";
       const group = map.get(provider) ?? [];
       group.push(model);
       map.set(provider, group);
@@ -1588,19 +1669,25 @@ function ModelDropdown({
                 {group.entries.map((m) => (
                   <button
                     type="button"
-                    key={m.id}
+                    key={modelOptionKey(m)}
                     className={cn(
                       "flex items-center w-full px-2 py-1.5 text-sm rounded hover:bg-accent/50",
-                      m.id === value && "bg-accent",
+                      isSelectedModelOption(m, value, selectedModelPoolProviderId) && "bg-accent",
                     )}
                     onClick={() => {
-                      onChange(m.id);
+                      onChange(m.id, m);
                       onOpenChange(false);
                     }}
                   >
                     <span className="block w-full text-left truncate" title={m.id}>
                       {groupByProvider ? extractModelName(m.id) : m.label}
                     </span>
+                    {selectedModelPoolProviderId &&
+                    isSelectedModelOption(m, value, selectedModelPoolProviderId) ? (
+                      <span className="shrink-0 ml-2 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">
+                        模型池
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </div>

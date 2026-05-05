@@ -43,6 +43,7 @@ import {
   issueApprovalService,
   issueService,
   logActivity,
+  modelPoolService,
   syncInstructionsBundleConfigFromFilePath,
   workspaceOperationService,
 } from "../services/index.js";
@@ -168,7 +169,19 @@ export function agentRoutes(
   const companySkills = companySkillService(db);
   const workspaceOperations = workspaceOperationService(db);
   const instanceSettings = instanceSettingsService(db);
+  const modelPool = modelPoolService(db);
   const strictSecretsMode = process.env.PAPERCLIP_SECRETS_STRICT_MODE === "true";
+
+  async function resolveAdapterConfigForRuntimeWithModelPool(
+    companyId: string,
+    adapterConfig: Record<string, unknown>,
+  ) {
+    const resolved = await secretsSvc.resolveAdapterConfigForRuntime(companyId, adapterConfig);
+    return {
+      ...resolved,
+      config: await modelPool.materializeAdapterConfig(resolved.config),
+    };
+  }
 
   async function assertAgentEnvironmentSelection(
     companyId: string,
@@ -877,7 +890,7 @@ export function agentRoutes(
     adapterConfig: Record<string, unknown>,
   ) {
     if (adapterType !== "opencode_local") return;
-    const { config: runtimeConfig } = await secretsSvc.resolveAdapterConfigForRuntime(companyId, adapterConfig);
+    const { config: runtimeConfig } = await resolveAdapterConfigForRuntimeWithModelPool(companyId, adapterConfig);
     const runtimeEnv = asRecord(runtimeConfig.env) ?? {};
     try {
       await ensureOpenCodeModelConfiguredAndAvailable({
@@ -1238,7 +1251,7 @@ export function agentRoutes(
         inputAdapterConfig,
         { strictMode: strictSecretsMode },
       );
-      const { config: runtimeAdapterConfig } = await secretsSvc.resolveAdapterConfigForRuntime(
+      const { config: runtimeAdapterConfig } = await resolveAdapterConfigForRuntimeWithModelPool(
         companyId,
         normalizedAdapterConfig,
       );
@@ -1295,7 +1308,7 @@ export function agentRoutes(
       return;
     }
 
-    const { config: runtimeConfig } = await secretsSvc.resolveAdapterConfigForRuntime(
+    const { config: runtimeConfig } = await resolveAdapterConfigForRuntimeWithModelPool(
       agent.companyId,
       agent.adapterConfig,
     );
@@ -1361,7 +1374,7 @@ export function agentRoutes(
       }
 
       const adapter = findActiveServerAdapter(updated.adapterType);
-      const { config: runtimeConfig } = await secretsSvc.resolveAdapterConfigForRuntime(
+      const { config: runtimeConfig } = await resolveAdapterConfigForRuntimeWithModelPool(
         updated.companyId,
         updated.adapterConfig,
       );
@@ -2814,7 +2827,7 @@ export function agentRoutes(
     }
 
     const config = asRecord(agent.adapterConfig) ?? {};
-    const { config: runtimeConfig } = await secretsSvc.resolveAdapterConfigForRuntime(agent.companyId, config);
+    const { config: runtimeConfig } = await resolveAdapterConfigForRuntimeWithModelPool(agent.companyId, config);
     const result = await runClaudeLogin({
       runId: `claude-login-${randomUUID()}`,
       agent: {

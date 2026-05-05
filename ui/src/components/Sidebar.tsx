@@ -12,6 +12,7 @@ import {
   Repeat,
   GitBranch,
   Settings,
+  Bot,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { SidebarSection } from "./SidebarSection";
@@ -117,6 +118,7 @@ export function Sidebar() {
           <SidebarNavItem to="/org" label="Org" icon={Network} className="rounded-md" />
           <SidebarNavItem to="/skills" label="Skills" icon={Boxes} className="rounded-md" />
           <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} className="rounded-md" />
+          <SidebarNavItem to="/models" label="模型" icon={Bot} className="rounded-md" />
           <SidebarNavItem to="/activity" label="Activity" icon={History} className="rounded-md" />
           <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} className="rounded-md" />
         </SidebarSection>

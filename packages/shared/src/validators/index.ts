@@ -12,6 +12,22 @@ export {
 } from "./instance.js";
 
 export {
+  ceoModelConfigSchema,
+  fetchProviderModelsRequestSchema,
+  modelCapabilitySchema,
+  modelCostTierSchema,
+  modelEntrySchema,
+  modelPoolStateSchema,
+  modelProviderSchema,
+  testProviderConnectionRequestSchema,
+  type ModelCapabilityInput,
+  type ModelEntryInput,
+  type ModelPoolStateInput,
+  type ModelProviderInput,
+  type TestProviderConnectionRequest,
+} from "./model-pool.js";
+
+export {
   upsertBudgetPolicySchema,
   resolveBudgetIncidentSchema,
   type UpsertBudgetPolicy,

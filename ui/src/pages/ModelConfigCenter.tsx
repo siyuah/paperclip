@@ -112,6 +112,12 @@ function maskKey(apiKey: string) {
   return `${apiKey.slice(0, 5)}...${apiKey.slice(-4)}`;
 }
 
+function providerKeyLabel(provider: ModelProvider) {
+  if (provider.apiKeyMasked) return provider.apiKeyMasked;
+  if (provider.hasApiKey) return "saved";
+  return "missing";
+}
+
 export function ModelConfigCenter() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const [pool, setPool] = useModelPool();
@@ -127,7 +133,7 @@ export function ModelConfigCenter() {
   useEffect(() => {
     setBreadcrumbs([
       { label: "实例设置", href: "/instance/settings/general" },
-      { label: "模型配置中心" },
+      { label: "模型" },
     ]);
   }, [setBreadcrumbs]);
 
@@ -160,7 +166,11 @@ export function ModelConfigCenter() {
     const name = providerDraft.name.trim();
     const baseUrl = providerDraft.baseUrl.trim();
     const apiKey = providerDraft.apiKey.trim();
-    if (!name || !baseUrl || !apiKey) return;
+    const existingProvider = editingProviderId
+      ? pool.providers.find((provider) => provider.id === editingProviderId)
+      : null;
+    if (!name || !baseUrl) return;
+    if (!apiKey && !existingProvider?.hasApiKey) return;
 
     const timestamp = nowIso();
     setPool((current) => {
@@ -173,7 +183,7 @@ export function ModelConfigCenter() {
                   ...provider,
                   name,
                   baseUrl,
-                  apiKey,
+                  ...(apiKey ? { apiKey } : {}),
                   updatedAt: timestamp,
                 }
               : provider,
@@ -185,7 +195,9 @@ export function ModelConfigCenter() {
         id: uid(),
         name,
         baseUrl,
-        apiKey,
+        ...(apiKey ? { apiKey } : {}),
+        apiKeyMasked: apiKey ? maskKey(apiKey) : "",
+        hasApiKey: Boolean(apiKey),
         models: [],
         isActive: true,
         createdAt: timestamp,
@@ -208,7 +220,7 @@ export function ModelConfigCenter() {
     setProviderDraft({
       name: provider.name,
       baseUrl: provider.baseUrl,
-      apiKey: provider.apiKey,
+      apiKey: "",
     });
     setSelectedProviderId(provider.id);
   }
@@ -354,7 +366,7 @@ export function ModelConfigCenter() {
   async function fetchModels(provider: ModelProvider) {
     setFetchingProviderId(provider.id);
     setFetchStatus(null);
-    const result = await fetchModelsFromProvider(provider.baseUrl, provider.apiKey);
+    const result = await fetchModelsFromProvider(provider.id);
     setFetchingProviderId(null);
 
     if (result.error) {
@@ -400,7 +412,7 @@ export function ModelConfigCenter() {
     const key = modelKey(provider.id, model.modelId);
     setTestingModelKey(key);
     setTestStatus(null);
-    const result = await testProviderConnection(provider.baseUrl, provider.apiKey, model.modelId);
+    const result = await testProviderConnection(provider.id, model.modelId);
     setTestingModelKey(null);
     setTestStatus({
       modelKey: key,
@@ -414,7 +426,7 @@ export function ModelConfigCenter() {
       <header className="space-y-1.5">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold tracking-tight">模型配置中心</h1>
+          <h1 className="text-lg font-semibold tracking-tight">模型</h1>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
           统一管理中转站、可用模型和 CEO 固定模型。CEO 使用用户锁定的模型，其他代理从启用模型池中按任务自主调配。
@@ -456,14 +468,19 @@ export function ModelConfigCenter() {
                   type="password"
                   value={providerDraft.apiKey}
                   onChange={(event) => setProviderDraft((current) => ({ ...current, apiKey: event.target.value }))}
-                  placeholder="sk-..."
+                  placeholder={editingProviderId ? "Keep saved key if blank" : "sk-..."}
                 />
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   onClick={addOrUpdateProvider}
-                  disabled={!providerDraft.name.trim() || !providerDraft.baseUrl.trim() || !providerDraft.apiKey.trim()}
+                  disabled={
+                    !providerDraft.name.trim() ||
+                    !providerDraft.baseUrl.trim() ||
+                    (!providerDraft.apiKey.trim() &&
+                      !pool.providers.find((provider) => provider.id === editingProviderId)?.hasApiKey)
+                  }
                 >
                   {editingProviderId ? "保存 Provider" : "添加 Provider"}
                 </Button>
@@ -517,7 +534,7 @@ export function ModelConfigCenter() {
                         </p>
                         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                           <KeyRound className="h-3 w-3" />
-                          {maskKey(provider.apiKey)} · {provider.models.length} models
+                          {providerKeyLabel(provider)} · {provider.models.length} models
                         </p>
                       </div>
                     </div>
@@ -679,7 +696,7 @@ function ProviderModelsPanel({
           <div className="space-y-1.5">
             <Label>API Key</Label>
             <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
-              {maskKey(provider.apiKey)}
+              {providerKeyLabel(provider)}
             </div>
           </div>
         </div>
