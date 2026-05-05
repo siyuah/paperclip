@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, Cpu, FlaskConical, Puzzle, Settings, Shield, SlidersHorizontal, UserRoundPen } from "lucide-react";
+import { Bot, Clock3, Cpu, FlaskConical, Puzzle, Settings, Shield, SlidersHorizontal, UserRoundPen } from "lucide-react";
 import { NavLink } from "@/lib/router";
 import { pluginsApi } from "@/api/plugins";
 import { queryKeys } from "@/lib/queryKeys";
@@ -30,6 +30,7 @@ export function InstanceSidebar() {
           <SidebarNavItem to="/instance/settings/experimental" label="实验性" icon={FlaskConical} />
           <SidebarNavItem to="/instance/settings/plugins" label="插件" icon={Puzzle} />
           <SidebarNavItem to="/instance/settings/adapters" label="适配器" icon={Cpu} />
+          <SidebarNavItem to="/instance/settings/models" label="模型配置中心" icon={Bot} />
           {(plugins ?? []).length > 0 ? (
             <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-border/70 pl-3">
               {(plugins ?? []).map((plugin) => (

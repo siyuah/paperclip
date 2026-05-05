@@ -387,7 +387,7 @@ describe("server adapter registry", () => {
     expect(hermesExecuteMock).toHaveBeenCalledWith(ctx);
   });
 
-  it("preserves an explicit Hermes Paperclip API key and does not set promptTemplate when none was configured", async () => {
+  it("preserves an explicit Hermes Paperclip API key and injects the safe default prompt when none was configured", async () => {
     const adapter = requireServerAdapter("hermes_local");
 
     await adapter.execute({
@@ -420,10 +420,21 @@ describe("server adapter registry", () => {
     // No custom promptTemplate was set — Hermes must use its built-in default.
     // Setting promptTemplate here would replace the full default with just the auth guard text,
     // stripping assigned issue / workflow instructions.
-    expect(patchedCtx.agent.adapterConfig.promptTemplate).toBeUndefined();
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).toContain(
+      "Never pipe downloaded or network response content directly into an interpreter",
+    );
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).toContain(
+      'curl -sS -X PATCH "{{paperclipApiUrl}}/issues/{{taskId}}"',
+    );
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("curl | python");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| python3");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("curl | bash");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| bash");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| sh");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| node");
   });
 
-  it("does not set promptTemplate when no custom template is configured, preserving Hermes default", async () => {
+  it("sets a safe default prompt when no custom template is configured", async () => {
     const adapter = requireServerAdapter("hermes_local");
 
     await adapter.execute({
@@ -447,7 +458,16 @@ describe("server adapter registry", () => {
 
     const [patchedCtx] = hermesExecuteMock.mock.calls[0];
     // promptTemplate must remain unset so Hermes uses its built-in heartbeat/task prompt.
-    expect(patchedCtx.agent.adapterConfig.promptTemplate).toBeUndefined();
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).toContain(
+      "For local HTTP JSON APIs, first save the response to a temporary file",
+    );
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).toContain('tmp="$(mktemp)"');
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("curl | python");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| python3");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("curl | bash");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| bash");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| sh");
+    expect(patchedCtx.agent.adapterConfig.promptTemplate).not.toContain("| node");
     // Auth token is still injected.
     expect(patchedCtx.agent.adapterConfig.env.PAPERCLIP_API_KEY).toBe("agent-run-jwt");
   });

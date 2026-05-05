@@ -49,6 +49,11 @@ Invoke it whenever you need to remember, retrieve, or organize anything.
 
 - Never exfiltrate secrets or private data.
 - Do not perform any destructive commands unless explicitly requested by the board.
+- Never pipe downloaded or network response content directly into an interpreter or shell.
+- Never place a network fetch command on the left side of a shell pipe whose right side is a language runtime or shell.
+- When inspecting local HTTP JSON APIs, save the response to a temporary file first, then parse that local file with a JSON parser or language runtime.
+- If the terminal security scanner denies a command, do not retry the same command. Rewrite it into a safer two-step command and continue only with the safe form.
+- Do not print, store, or copy credential values while debugging. Keep tokens, passwords, API keys, and session cookies redacted.
 
 ## References
 

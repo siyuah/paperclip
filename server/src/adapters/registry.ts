@@ -285,6 +285,71 @@ const piLocalAdapter: ServerAdapterModule = {
 // intentional until hermes ships a matching AdapterExecutionContext type.
 const executeHermesLocal = hermesExecute as unknown as ServerAdapterModule["execute"];
 
+const hermesPaperclipApiGuardPrompt = [
+  "Paperclip API safety rule:",
+  "Use Authorization: Bearer $PAPERCLIP_API_KEY on every Paperclip API request.",
+  "Use X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID on every Paperclip API request that writes or mutates data, including comments and issue updates.",
+  "Never use a board, browser, or local-board session for Paperclip API writes.",
+  "Never pipe downloaded or network response content directly into an interpreter or shell.",
+  "Never place a network fetch command on the left side of a shell pipe whose right side is a language runtime or shell.",
+  "For local HTTP JSON APIs, first save the response to a temporary file with curl `-o`, then parse the local file.",
+  "If terminal security denies a command, do not retry the same command. Rewrite it into a safer two-step command.",
+].join("\n");
+
+const hermesSafeDefaultPromptTemplate = `You are "{{agentName}}", an AI agent employee in a Paperclip-managed company.
+
+${hermesPaperclipApiGuardPrompt}
+
+Your Paperclip identity:
+  Agent ID: {{agentId}}
+  Company ID: {{companyId}}
+  API Base: {{paperclipApiUrl}}
+
+{{#taskId}}
+## Assigned Task
+
+Issue ID: {{taskId}}
+Title: {{taskTitle}}
+
+{{taskBody}}
+
+## Workflow
+
+1. Work on the task using your tools.
+2. When done, mark the issue as completed:
+   \`curl -sS -X PATCH "{{paperclipApiUrl}}/issues/{{taskId}}" -H "Authorization: Bearer $PAPERCLIP_API_KEY" -H "X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID" -H "Content-Type: application/json" -d '{"status":"done"}'\`
+3. Post a completion comment on the issue summarizing what you did:
+   \`curl -sS -X POST "{{paperclipApiUrl}}/issues/{{taskId}}/comments" -H "Authorization: Bearer $PAPERCLIP_API_KEY" -H "X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID" -H "Content-Type: application/json" -d '{"body":"DONE: <your summary here>"}'\`
+4. If this issue has a parent, post a brief notification on the parent issue so the parent owner knows.
+{{/taskId}}
+
+{{#commentId}}
+## Comment on This Issue
+
+Someone commented. Read it without piping network output into an interpreter:
+   \`tmp="$(mktemp)"; curl -sS "{{paperclipApiUrl}}/issues/{{taskId}}/comments/{{commentId}}" -H "Authorization: Bearer $PAPERCLIP_API_KEY" -o "$tmp"; python3 -m json.tool "$tmp"\`
+
+Address the comment, POST a reply if needed, then continue working.
+{{/commentId}}
+
+{{#noTask}}
+## Heartbeat Wake - Check for Work
+
+1. List open issues assigned to you using a two-step local-file parse:
+   \`tmp="$(mktemp)"; curl -sS "{{paperclipApiUrl}}/companies/{{companyId}}/issues?assigneeAgentId={{agentId}}" -H "Authorization: Bearer $PAPERCLIP_API_KEY" -o "$tmp"; python3 - "$tmp" <<'PY'\`
+   \`import json, sys\`
+   \`with open(sys.argv[1], encoding="utf-8") as fh:\`
+   \`    issues = json.load(fh)\`
+   \`for issue in issues:\`
+   \`    if issue.get("status") not in ("done", "cancelled"):\`
+   \`        print(f'{issue.get("identifier")} {issue.get("status", ""):>12} {issue.get("priority", ""):>6} {issue.get("title")}')\`
+   \`PY\`
+
+2. If issues are found, pick the highest priority one that is not done/cancelled and work on it.
+3. If no issues are assigned to you, check unassigned backlog issues with the same temp-file pattern.
+4. If truly nothing is available, report briefly what you checked.
+{{/noTask}}`;
+
 const hermesLocalAdapter: ServerAdapterModule = {
   type: "hermes_local",
   execute: async (ctx) => {
@@ -302,12 +367,6 @@ const hermesLocalAdapter: ServerAdapterModule = {
       typeof existingConfig.promptTemplate === "string" && existingConfig.promptTemplate.trim().length > 0
         ? existingConfig.promptTemplate
         : "";
-    const authGuardPrompt = [
-      "Paperclip API safety rule:",
-      "Use Authorization: Bearer $PAPERCLIP_API_KEY on every Paperclip API request.",
-      "Use X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID on every Paperclip API request that writes or mutates data, including comments and issue updates.",
-      "Never use a board, browser, or local-board session for Paperclip API writes.",
-    ].join("\n");
 
     const patchedConfig: Record<string, unknown> = {
       ...existingConfig,
@@ -318,12 +377,9 @@ const hermesLocalAdapter: ServerAdapterModule = {
       },
     };
 
-    // Only inject the auth guard into promptTemplate when a custom template already exists.
-    // When no custom template is set, Hermes uses its built-in default heartbeat/task prompt —
-    // overwriting it with only the auth guard text would strip the assigned issue/workflow instructions.
-    if (promptTemplate) {
-      patchedConfig.promptTemplate = `${authGuardPrompt}\n\n${promptTemplate}`;
-    }
+    patchedConfig.promptTemplate = promptTemplate
+      ? `${hermesPaperclipApiGuardPrompt}\n\n${promptTemplate}`
+      : hermesSafeDefaultPromptTemplate;
 
     const patchedCtx = {
       ...normalizedCtx,
