@@ -1167,9 +1167,9 @@ function summarizeRunFailureForIssueComment(
       ? `${summarySource.slice(0, 237)}...`
       : summarySource;
 
-  if (errorCode && summary) return ` Latest retry failure: \`${errorCode}\` - ${summary}.`;
-  if (errorCode) return ` Latest retry failure: \`${errorCode}\`.`;
-  if (summary) return ` Latest retry failure: ${summary}.`;
+  if (errorCode && summary) return ` 最新重试失败：\`${errorCode}\` - ${summary}。`;
+  if (errorCode) return ` 最新重试失败：\`${errorCode}\`。`;
+  if (summary) return ` 最新重试失败：${summary}。`;
   return null;
 }
 
@@ -6179,16 +6179,16 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     const failureSummary = summarizeRunFailureForIssueComment(input.latestRun);
     if (input.status === "todo") {
       return (
-        "Paperclip automatically retried dispatch for this assigned `todo` issue during terminal run recovery, " +
-        `but it still has no live execution path.${failureSummary ?? ""} ` +
-        "Moving it to `blocked` so it is visible for intervention."
+        "Paperclip 在终端运行恢复期间，已经自动重试分发这个已分配的 `todo` 事项，" +
+        `但它仍然没有可继续执行的路径。${failureSummary ?? ""} ` +
+        "现在将其移入 `blocked`，方便人工介入。"
       );
     }
 
     return (
-      "Paperclip automatically retried continuation for this assigned `in_progress` issue during terminal run " +
-      `recovery, but it still has no live execution path.${failureSummary ?? ""} ` +
-      "Moving it to `blocked` so it is visible for intervention."
+      "Paperclip 在终端运行恢复期间，已经自动重试继续这个已分配的 `in_progress` 事项，" +
+      `但它仍然没有可继续执行的路径。${failureSummary ?? ""} ` +
+      "现在将其移入 `blocked`，方便人工介入。"
     );
   }
 

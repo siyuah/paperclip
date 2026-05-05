@@ -192,15 +192,15 @@ describe("IssueRunLedger", () => {
       ),
     });
 
-    expect(container.textContent).toContain("Advanced");
-    expect(container.textContent).toContain("Plan only");
-    expect(container.textContent).toContain("Empty response");
-    expect(container.textContent).toContain("Blocked");
-    expect(container.textContent).toContain("Failed");
-    expect(container.textContent).toContain("Completed");
-    expect(container.textContent).toContain("Needs follow-up");
-    expect(container.textContent).toContain("Exhausted");
-    expect(container.textContent).toContain("Continuation attempt 3");
+    expect(container.textContent).toContain("有进展");
+    expect(container.textContent).toContain("仅计划");
+    expect(container.textContent).toContain("空响应");
+    expect(container.textContent).toContain("已阻塞");
+    expect(container.textContent).toContain("失败");
+    expect(container.textContent).toContain("已完成");
+    expect(container.textContent).toContain("需跟进");
+    expect(container.textContent).toContain("已用尽");
+    expect(container.textContent).toContain("第 3 次继续尝试");
   });
 
   it("renders historical runs without liveness metadata as unavailable", () => {
@@ -217,9 +217,9 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.textContent).toContain("No liveness data");
-    expect(container.textContent).toContain("Stop Unavailable");
-    expect(container.textContent).toContain("Last useful action Unavailable");
+    expect(container.textContent).toContain("无活性数据");
+    expect(container.textContent).toContain("停止原因 不可用");
+    expect(container.textContent).toContain("最近有效动作 不可用");
   });
 
   it("interleaves run rows and activity rows by timestamp", () => {
@@ -274,10 +274,10 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.textContent).toContain("Running now by CodexCoder");
-    expect(container.textContent).toContain("Checks after finish");
-    expect(container.textContent).toContain("Last useful action No action recorded yet");
-    expect(container.textContent).toContain("Stop Still running");
+    expect(container.textContent).toContain("CodexCoder 正在运行");
+    expect(container.textContent).toContain("完成后检查");
+    expect(container.textContent).toContain("最近有效动作 尚未记录动作");
+    expect(container.textContent).toContain("停止原因 仍在运行");
     expect(container.textContent).not.toContain("Liveness pending");
     expect(container.textContent).not.toContain("initial attempt");
   });
@@ -308,13 +308,13 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.textContent).toContain("Retry scheduled");
-    expect(container.textContent).toContain("Attempt 2");
-    expect(container.textContent).toContain("Transient failure");
-    expect(container.textContent).toContain("Next retry");
-    expect(container.textContent).toContain("Retry exhausted");
+    expect(container.textContent).toContain("已安排重试");
+    expect(container.textContent).toContain("第 2 次尝试");
+    expect(container.textContent).toContain("临时失败");
+    expect(container.textContent).toContain("下次重试时间");
+    expect(container.textContent).toContain("重试已用尽");
     expect(container.textContent).toContain("no further automatic retry will be queued");
-    expect(container.textContent).toContain("Manual intervention required");
+    expect(container.textContent).toContain("需要人工介入");
   });
 
   it("shows timeout, cancel, and budget stop reasons without raw logs", () => {
@@ -342,10 +342,10 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.textContent).toContain("timeout (30s timeout)");
-    expect(container.textContent).toContain("cancelled");
-    expect(container.textContent).toContain("budget paused");
-    expect(container.textContent).toContain("paused by board");
+    expect(container.textContent).toContain("超时（30 秒超时）");
+    expect(container.textContent).toContain("已取消");
+    expect(container.textContent).toContain("预算暂停");
+    expect(container.textContent).toContain("看板暂停");
   });
 
   it("surfaces active and completed child issue summaries", () => {
@@ -357,8 +357,8 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.textContent).toContain("Child work");
-    expect(container.textContent).toContain("1 active, 1 done, 1 cancelled");
+    expect(container.textContent).toContain("子工作");
+    expect(container.textContent).toContain("1 个活跃，1 个完成，1 个取消");
     expect(container.textContent).toContain("PAP-2");
     expect(container.textContent).toContain("Implement worker handoff");
 
@@ -369,7 +369,7 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.textContent).toContain("all 2 terminal (1 done, 1 cancelled)");
+    expect(container.textContent).toContain("全部 2 个已结束（1 个完成，1 个取消）");
   });
 
   it("uses wrapping-friendly markup for long next action text", () => {
@@ -384,7 +384,7 @@ describe("IssueRunLedger", () => {
     const nextAction = [...container.querySelectorAll("span")]
       .find((node) => node.textContent?.includes("intentionally-long-next-action-token"));
     expect(nextAction?.className).toContain("break-words");
-    expect(container.textContent).toContain("Next action:");
+    expect(container.textContent).toContain("下一步动作：");
   });
 
   it("shows when older runs are clipped from the ledger", () => {
@@ -397,7 +397,7 @@ describe("IssueRunLedger", () => {
       ),
     });
 
-    expect(container.textContent).toContain("2 older items not shown");
+    expect(container.textContent).toContain("还有 2 条较早记录未显示");
   });
 
   it("renders stale-run banner, watchdog actions, and silence badge for live runs", () => {
@@ -408,17 +408,17 @@ describe("IssueRunLedger", () => {
       onWatchdogDecision,
     });
 
-    expect(container.textContent).toContain("Stale-run watchdog alert");
+    expect(container.textContent).toContain("运行卡住看门狗告警");
     expect(container.textContent).toContain("PAP-404");
-    expect(container.textContent).toContain("Stale run");
+    expect(container.textContent).toContain("运行疑似卡住");
     const watchdogBanner = Array.from(container.querySelectorAll("p"))
-      .find((node) => node.textContent?.includes("Stale-run watchdog alert"))
+      .find((node) => node.textContent?.includes("运行卡住看门狗告警"))
       ?.closest("div");
     expect(watchdogBanner?.className).toContain("border-red-500/30");
     expect(watchdogBanner?.className).toContain("bg-red-500/10");
 
     const continueButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.includes("Continue monitoring"),
+      (button) => button.textContent?.includes("继续观察"),
     );
     expect(continueButton).not.toBeUndefined();
     act(() => {
@@ -460,9 +460,9 @@ describe("IssueRunLedger", () => {
       ],
     });
 
-    expect(container.textContent).toContain("Profile: cheap");
-    expect(container.textContent).toContain("Profile: cheap (unavailable)");
-    expect(container.textContent).toContain("Cheap profile fell back to primary");
+    expect(container.textContent).toContain("配置档：cheap");
+    expect(container.textContent).toContain("配置档：cheap（不可用）");
+    expect(container.textContent).toContain("低价配置档已回退到主配置");
     expect(container.textContent).toContain("agent_runtime_profile_disabled");
   });
 
@@ -475,11 +475,11 @@ describe("IssueRunLedger", () => {
       onWatchdogDecision,
     });
 
-    expect(container.textContent).toContain("Stale-run watchdog alert");
+    expect(container.textContent).toContain("运行卡住看门狗告警");
     expect(container.textContent).toContain("PAP-404");
-    expect(container.textContent).not.toContain("Continue monitoring");
-    expect(container.textContent).not.toContain("Snooze 1h");
-    expect(container.textContent).not.toContain("Mark false positive");
+    expect(container.textContent).not.toContain("继续观察");
+    expect(container.textContent).not.toContain("暂缓 1 小时");
+    expect(container.textContent).not.toContain("标记为误报");
     expect(container.querySelectorAll("button")).toHaveLength(0);
     expect(onWatchdogDecision).not.toHaveBeenCalled();
   });

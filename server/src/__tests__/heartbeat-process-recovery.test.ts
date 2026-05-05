@@ -710,10 +710,10 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       originRunId: input.runId,
       priority: "medium",
     });
-    expect(recovery.title).toContain("Recover stalled issue");
-    expect(recovery.description).toContain(`Previous source status: \`${input.previousStatus}\``);
-    expect(recovery.description).toContain(`Retry reason: \`${input.retryReason}\``);
-    expect(recovery.description).toContain("Fix the runtime/adapter problem");
+    expect(recovery.title).toContain("恢复卡住的事项");
+    expect(recovery.description).toContain(`之前的来源状态：\`${input.previousStatus}\``);
+    expect(recovery.description).toContain(`重试原因：\`${input.retryReason}\``);
+    expect(recovery.description).toContain("修复运行时或适配器问题");
 
     const relation = await db
       .select()
@@ -1068,8 +1068,8 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       return rows.length > 0 ? rows : null;
     });
     expect(comments).toHaveLength(1);
-    expect(comments[0]?.body).toContain("retried continuation");
-    expect(comments[0]?.body).toContain(`Recovery issue: [${recovery.identifier}]`);
+    expect(comments[0]?.body).toContain("自动重试继续");
+    expect(comments[0]?.body).toContain(`恢复事项：[${recovery.identifier}]`);
   });
 
   it("blocks failed recovery work in place during immediate terminal-run cleanup", async () => {
@@ -1140,9 +1140,9 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       return rows.length > 0 ? rows : null;
     });
     expect(comments).toHaveLength(1);
-    expect(comments[0]?.body).toContain("stopped automatic stranded-work recovery");
-    expect(comments[0]?.body).toContain("recovery issues do not create nested `stranded_issue_recovery` issues");
-    expect(comments[0]?.body).toContain("Latest retry failure details were withheld from the issue thread");
+    expect(comments[0]?.body).toContain("已停止对这条恢复任务继续自动套娃恢复");
+    expect(comments[0]?.body).toContain("恢复任务不会再创建嵌套的 `stranded_issue_recovery` 事项");
+    expect(comments[0]?.body).toContain("最新重试失败");
     expect(comments[0]?.body).not.toContain("sk-test-recovery-secret");
     await expect(sourceBlockerIssueIds(companyId, sourceIssueId)).resolves.toEqual([issueId]);
   });
@@ -1610,9 +1610,9 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(1);
-    expect(comments[0]?.body).toContain("retried dispatch");
-    expect(comments[0]?.body).toContain("Latest retry failure details were withheld from the issue thread");
-    expect(comments[0]?.body).toContain(`Recovery issue: [${recovery.identifier}]`);
+    expect(comments[0]?.body).toContain("自动重试分发");
+    expect(comments[0]?.body).toContain("最新重试失败详情已从事项评论中隐藏");
+    expect(comments[0]?.body).toContain(`恢复事项：[${recovery.identifier}]`);
   });
 
   it("assigns open unassigned blockers back to their creator agent", async () => {
@@ -1696,7 +1696,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
     expect(blocker?.assigneeAgentId).toBe(creatorAgentId);
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, blockerIssueId));
-    expect(comments[0]?.body).toContain("Assigned Orphan Blocker");
+    expect(comments[0]?.body).toContain("已分配孤立阻塞事项");
     expect(comments[0]?.body).toContain(`[${issuePrefix}-2](/${issuePrefix}/issues/${issuePrefix}-2)`);
 
     const wakeups = await db.select().from(agentWakeupRequests).where(eq(agentWakeupRequests.agentId, creatorAgentId));
@@ -1925,9 +1925,9 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(1);
-    expect(comments[0]?.body).toContain("retried continuation");
-    expect(comments[0]?.body).toContain("Latest retry failure details were withheld from the issue thread");
-    expect(comments[0]?.body).toContain(`Recovery issue: [${recovery.identifier}]`);
+    expect(comments[0]?.body).toContain("自动重试继续");
+    expect(comments[0]?.body).toContain("最新重试失败详情已从事项评论中隐藏");
+    expect(comments[0]?.body).toContain(`恢复事项：[${recovery.identifier}]`);
   });
 
   it("redacts error-code-only stranded recovery failures in issue copy", async () => {
@@ -1951,13 +1951,13 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
       previousStatus: "in_progress",
       retryReason: "issue_continuation_needed",
     });
-    expect(recovery.description).toContain("Latest retry failure details were withheld from the issue thread");
-    expect(recovery.description).not.toContain("- Failure: none recorded");
+    expect(recovery.description).toContain("最新重试失败详情已从事项评论中隐藏");
+    expect(recovery.description).not.toContain("- 失败摘要：无记录");
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(1);
-    expect(comments[0]?.body).toContain("Latest retry failure details were withheld from the issue thread");
-    expect(comments[0]?.body).not.toContain("- Failure: none recorded");
+    expect(comments[0]?.body).toContain("最新重试失败详情已从事项评论中隐藏");
+    expect(comments[0]?.body).not.toContain("- 失败摘要：无记录");
   });
 
   it("reuses the raced stranded recovery issue when duplicate active recovery creation conflicts", async () => {
@@ -2041,9 +2041,9 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(1);
-    expect(comments[0]?.body).toContain("stopped automatic stranded-work recovery");
-    expect(comments[0]?.body).toContain("Latest retry failure details were withheld from the issue thread");
-    expect(comments[0]?.body).toContain("recovery issues do not create nested `stranded_issue_recovery` issues");
+    expect(comments[0]?.body).toContain("已停止对这条恢复任务继续自动套娃恢复");
+    expect(comments[0]?.body).toContain("最新重试失败详情已从事项评论中隐藏");
+    expect(comments[0]?.body).toContain("恢复任务不会再创建嵌套的 `stranded_issue_recovery` 事项");
     await expect(sourceBlockerIssueIds(companyId, sourceIssueId)).resolves.toEqual([issueId]);
   });
 
@@ -2134,7 +2134,7 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(2);
-    expect(comments[1]?.body).toContain("Latest retry failure details were withheld from the issue thread");
+    expect(comments[1]?.body).toContain("最新重试失败详情已从事项评论中隐藏");
   });
 
   it("does not escalate paused-tree recovery when the automatic continuation retry was cancelled by the hold", async () => {
@@ -2250,9 +2250,9 @@ describeEmbeddedPostgres("heartbeat orphaned process recovery", () => {
 
     const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, issueId));
     expect(comments).toHaveLength(1);
-    expect(comments[0]?.body).toContain("automatically retried continuation");
-    expect(comments[0]?.body).toContain("still has no live execution path");
-    expect(comments[0]?.body).toContain(`Recovery issue: [${recovery.identifier}]`);
+    expect(comments[0]?.body).toContain("自动重试继续");
+    expect(comments[0]?.body).toContain("没有可继续执行的路径");
+    expect(comments[0]?.body).toContain(`恢复事项：[${recovery.identifier}]`);
   });
 
   it("allows one productive-terminal recovery after regular continuation recovery made progress", async () => {

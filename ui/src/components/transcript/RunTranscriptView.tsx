@@ -1259,19 +1259,24 @@ function TranscriptStderrGroup({
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}
       >
         <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]")}>
-          {block.lines.length} log {block.lines.length === 1 ? "line" : "lines"}
+          {block.lines.length} 行原始错误日志
         </span>
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </div>
       {open && (
-        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-amber-700/80 dark:text-amber-300/80 pl-5">
-          {block.lines.map((line, i) => (
-            <span key={`${line.ts}-${i}`}>
-              <span className="select-none text-amber-500/50 dark:text-amber-400/40">{i > 0 ? "\n" : ""}</span>
-              {line.text}
-            </span>
-          ))}
-        </pre>
+        <>
+          <p className="mt-2 pl-5 text-[11px] text-amber-700/80 dark:text-amber-300/80">
+            以下为代理进程的原始 stderr，保留英文堆栈用于排查。
+          </p>
+          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] text-amber-700/80 dark:text-amber-300/80 pl-5">
+            {block.lines.map((line, i) => (
+              <span key={`${line.ts}-${i}`}>
+                <span className="select-none text-amber-500/50 dark:text-amber-400/40">{i > 0 ? "\n" : ""}</span>
+                {line.text}
+              </span>
+            ))}
+          </pre>
+        </>
       )}
     </div>
   );

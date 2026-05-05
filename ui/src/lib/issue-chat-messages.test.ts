@@ -473,7 +473,7 @@ describe("buildIssueChatMessages", () => {
         custom: {
           kind: "historical-run",
           runId: "run-history-1",
-          chainOfThoughtLabel: "Worked for 2 minutes",
+          chainOfThoughtLabel: "工作了 2 分钟",
         },
       },
     });
@@ -631,7 +631,7 @@ describe("buildIssueChatMessages", () => {
 
     expect(messages).toHaveLength(1);
     expect(messages[0]?.metadata.custom).toMatchObject({
-      chainOfThoughtLabel: "Paused by board after 1 minute",
+      chainOfThoughtLabel: "1 分钟 后由看板暂停",
       runStatus: "cancelled",
     });
   });

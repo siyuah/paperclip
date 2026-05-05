@@ -71,58 +71,58 @@ type LivenessCopy = {
 
 const LIVENESS_COPY: Record<RunLivenessState, LivenessCopy> = {
   completed: {
-    label: "Completed",
+    label: "已完成",
     tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    description: "Issue reached a terminal state.",
+    description: "事项已到达终态。",
   },
   advanced: {
-    label: "Advanced",
+    label: "有进展",
     tone: "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
-    description: "Run produced concrete evidence of progress.",
+    description: "运行产生了明确的进展证据。",
   },
   plan_only: {
-    label: "Plan only",
+    label: "仅计划",
     tone: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    description: "Run described future work without concrete action evidence.",
+    description: "运行只描述了后续工作，没有明确动作证据。",
   },
   empty_response: {
-    label: "Empty response",
+    label: "空响应",
     tone: "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300",
-    description: "Run finished without useful output.",
+    description: "运行结束但没有有用输出。",
   },
   blocked: {
-    label: "Blocked",
+    label: "已阻塞",
     tone: "border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
-    description: "Run or issue declared a blocker.",
+    description: "运行或事项声明了阻塞。",
   },
   failed: {
-    label: "Failed",
+    label: "失败",
     tone: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
-    description: "Run ended unsuccessfully.",
+    description: "运行未成功结束。",
   },
   needs_followup: {
-    label: "Needs follow-up",
+    label: "需跟进",
     tone: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-    description: "Run produced useful output but did not prove concrete progress.",
+    description: "运行产生了有用输出，但尚未证明有明确进展。",
   },
 };
 
 const PENDING_LIVENESS_COPY: LivenessCopy = {
-  label: "Checks after finish",
+  label: "完成后检查",
   tone: "border-border bg-background text-muted-foreground",
-  description: "Liveness is evaluated after the run finishes.",
+  description: "活性状态会在运行结束后评估。",
 };
 
 const RETRY_PENDING_LIVENESS_COPY: LivenessCopy = {
-  label: "Retry pending",
+  label: "等待重试",
   tone: "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
-  description: "Paperclip queued an automatic retry that has not started yet.",
+  description: "Paperclip 已排队自动重试，但尚未开始。",
 };
 
 const MISSING_LIVENESS_COPY: LivenessCopy = {
-  label: "No liveness data",
+  label: "无活性数据",
   tone: "border-border bg-background text-muted-foreground",
-  description: "This run has no persisted liveness classification.",
+  description: "该运行没有持久化的活性分类。",
 };
 
 const TERMINAL_CHILD_STATUSES = new Set<Issue["status"]>(["done", "cancelled"]);
@@ -137,15 +137,15 @@ type RunOutputSilenceCopy = {
 
 const RUN_OUTPUT_SILENCE_COPY: Partial<Record<RunOutputSilenceLevel, RunOutputSilenceCopy>> = {
   suspicious: {
-    label: "Silence watch",
+    label: "静默观察",
     tone: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   },
   critical: {
-    label: "Stale run",
+    label: "运行疑似卡住",
     tone: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
   },
   snoozed: {
-    label: "Silence snoozed",
+    label: "静默已暂缓",
     tone: "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
   },
 };
@@ -191,10 +191,10 @@ function modelProfileBadgeTone(summary: ModelProfileSummary) {
 }
 
 function modelProfileTitle(summary: ModelProfileSummary) {
-  const lines = [`Requested: ${summary.requested}`];
-  if (summary.applied) lines.push(`Applied: ${summary.applied}`);
-  if (summary.configSource) lines.push(`Source: ${summary.configSource}`);
-  if (summary.fallbackReason) lines.push(`Fallback: ${summary.fallbackReason}`);
+  const lines = [`请求配置档：${summary.requested}`];
+  if (summary.applied) lines.push(`实际使用：${summary.applied}`);
+  if (summary.configSource) lines.push(`来源：${summary.configSource}`);
+  if (summary.fallbackReason) lines.push(`回退原因：${summary.fallbackReason}`);
   return lines.join("\n");
 }
 
@@ -279,7 +279,23 @@ function mergeRuns(
 }
 
 function statusLabel(status: string) {
-  return status.replace(/_/g, " ");
+  const labels: Record<string, string> = {
+    queued: "排队中",
+    running: "运行中",
+    scheduled_retry: "等待重试",
+    succeeded: "已成功",
+    failed: "失败",
+    error: "错误",
+    timed_out: "已超时",
+    cancelled: "已取消",
+    done: "已完成",
+    blocked: "已阻塞",
+    in_progress: "进行中",
+    todo: "待办",
+    backlog: "待整理",
+    in_review: "评审中",
+  };
+  return labels[status] ?? status.replace(/_/g, " ");
 }
 
 function isActiveRun(run: Pick<LedgerRun, "status" | "isLive">) {
@@ -288,10 +304,10 @@ function isActiveRun(run: Pick<LedgerRun, "status" | "isLive">) {
 
 function runSummary(run: LedgerRun, agentMap: ReadonlyMap<string, Pick<Agent, "name">>) {
   const agentName = compactAgentName(run, agentMap);
-  if (run.status === "running") return `Running now by ${agentName}`;
-  if (run.status === "queued") return `Queued for ${agentName}`;
-  if (run.status === "scheduled_retry") return `Automatic retry scheduled for ${agentName}`;
-  return `${statusLabel(run.status)} by ${agentName}`;
+  if (run.status === "running") return `${agentName} 正在运行`;
+  if (run.status === "queued") return `${agentName} 正在排队`;
+  if (run.status === "scheduled_retry") return `${agentName} 已安排自动重试`;
+  return `${agentName} ${statusLabel(run.status)}`;
 }
 
 function livenessCopyForRun(run: LedgerRun) {
@@ -306,44 +322,44 @@ function stopReasonLabel(run: RunForIssue) {
   const timeoutFired = result?.timeoutFired === true;
   const effectiveTimeoutSec = readNumber(result?.effectiveTimeoutSec);
   const timeoutText =
-    effectiveTimeoutSec && effectiveTimeoutSec > 0 ? `${effectiveTimeoutSec}s timeout` : null;
+    effectiveTimeoutSec && effectiveTimeoutSec > 0 ? `${effectiveTimeoutSec} 秒超时` : null;
 
   if (timeoutFired || stopReason === "timeout") {
-    return timeoutText ? `timeout (${timeoutText})` : "timeout";
+    return timeoutText ? `超时（${timeoutText}）` : "超时";
   }
-  if (stopReason === "budget_paused") return "budget paused";
-  if (stopReason === "cancelled") return "cancelled";
-  if (stopReason === "paused") return "paused by board";
-  if (stopReason === "process_lost") return "process lost";
-  if (stopReason === "adapter_failed") return "adapter failed";
-  if (stopReason === "completed") return timeoutText ? `completed (${timeoutText})` : "completed";
+  if (stopReason === "budget_paused") return "预算暂停";
+  if (stopReason === "cancelled") return "已取消";
+  if (stopReason === "paused") return "看板暂停";
+  if (stopReason === "process_lost") return "进程丢失";
+  if (stopReason === "adapter_failed") return "适配器失败";
+  if (stopReason === "completed") return timeoutText ? `已完成（${timeoutText}）` : "已完成";
   return timeoutText;
 }
 
 function stopStatusLabel(run: LedgerRun, stopReason: string | null) {
   if (stopReason) return stopReason;
-  if (run.status === "scheduled_retry") return "Retry pending";
-  if (run.status === "queued") return "Waiting to start";
-  if (run.status === "running") return "Still running";
-  if (!run.livenessState) return "Unavailable";
-  return "No stop reason";
+  if (run.status === "scheduled_retry") return "等待重试";
+  if (run.status === "queued") return "等待开始";
+  if (run.status === "running") return "仍在运行";
+  if (!run.livenessState) return "不可用";
+  return "无停止原因";
 }
 
 function lastUsefulActionLabel(run: LedgerRun) {
-  if (run.status === "scheduled_retry") return "Waiting for next attempt";
+  if (run.status === "scheduled_retry") return "等待下一次尝试";
   if (run.lastUsefulActionAt) return relativeTime(run.lastUsefulActionAt);
-  if (isActiveRun(run)) return "No action recorded yet";
+  if (isActiveRun(run)) return "尚未记录动作";
   if (run.livenessState === "plan_only" || run.livenessState === "needs_followup") {
-    return "No concrete action";
+    return "没有明确动作";
   }
-  if (run.livenessState === "empty_response") return "No useful output";
-  if (!run.livenessState) return "Unavailable";
-  return "None recorded";
+  if (run.livenessState === "empty_response") return "没有有用输出";
+  if (!run.livenessState) return "不可用";
+  return "无记录";
 }
 
 function continuationLabel(run: LedgerRun) {
   if (!run.continuationAttempt || run.continuationAttempt <= 0) return null;
-  return `Continuation attempt ${run.continuationAttempt}`;
+  return `第 ${run.continuationAttempt} 次继续尝试`;
 }
 
 function hasExhaustedContinuation(run: RunForIssue) {
@@ -364,12 +380,12 @@ function compactAgentName(run: LedgerRun, agentMap: ReadonlyMap<string, Pick<Age
 function formatSilenceAge(ms: number | null | undefined) {
   if (!ms || ms <= 0) return null;
   const totalMinutes = Math.floor(ms / 60_000);
-  if (totalMinutes < 1) return "under 1 minute";
-  if (totalMinutes < 60) return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+  if (totalMinutes < 1) return "不到 1 分钟";
+  if (totalMinutes < 60) return `${totalMinutes} 分钟`;
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  if (minutes === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  return `${hours}h ${minutes}m`;
+  if (minutes === 0) return `${hours} 小时`;
+  return `${hours} 小时 ${minutes} 分钟`;
 }
 
 function canBoardRecordWatchdogDecision(
@@ -388,11 +404,11 @@ function canBoardRecordWatchdogDecision(
 
 function watchdogDecisionErrorMessage(error: unknown) {
   if (error instanceof ApiError && error.status === 403) {
-    return "Only the board or the assigned recovery owner can record watchdog decisions";
+    return "只有看板或指定的恢复负责人可以记录看门狗决策";
   }
   return error instanceof Error && error.message.trim().length > 0
     ? error.message
-    : "Paperclip could not record the watchdog decision.";
+    : "Paperclip 无法记录看门狗决策。";
 }
 
 export function IssueRunLedger({
@@ -448,7 +464,7 @@ export function IssueRunLedger({
       const dedupeSuffix = error instanceof ApiError ? String(error.status) : "error";
       setWatchdogDecisionError(message);
       pushToast({
-        title: "Watchdog decision not recorded",
+        title: "看门狗决策未记录",
         body: message,
         tone: "error",
         dedupeKey: `watchdog-decision:${issueId}:${dedupeSuffix}`,
@@ -532,16 +548,16 @@ export function IssueRunLedgerContent({
   }, [activityEvents, canRenderActivityEvents, ledgerRuns]);
 
   return (
-    <section className="space-y-3" aria-label="Issue run ledger">
+    <section className="space-y-3" aria-label="事项运行账本">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-medium text-muted-foreground">Run ledger</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">运行账本</h3>
           <p className="text-xs text-muted-foreground">
             {latestRun
               ? runSummary(latestRun, agentMap)
               : issueStatus === "in_progress"
-                ? "Waiting for the first run record."
-                : "No runs linked yet."}
+                ? "正在等待第一条运行记录。"
+                : "尚未关联运行。"}
           </p>
         </div>
         {latestRun ? (
@@ -549,7 +565,7 @@ export function IssueRunLedgerContent({
             to={`/agents/${latestRun.agentId}/runs/${latestRun.runId}`}
             className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            Latest run
+            最近运行
           </Link>
         ) : null}
       </div>
@@ -557,11 +573,11 @@ export function IssueRunLedgerContent({
       {children.total > 0 ? (
         <div className="rounded-md border border-border/70 px-3 py-2">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-medium text-foreground">Child work</span>
+            <span className="font-medium text-foreground">子工作</span>
             <span className="text-muted-foreground">
               {children.active.length > 0
-                ? `${children.active.length} active, ${children.done} done, ${children.cancelled} cancelled`
-                : `all ${children.total} terminal (${children.done} done, ${children.cancelled} cancelled)`}
+                ? `${children.active.length} 个活跃，${children.done} 个完成，${children.cancelled} 个取消`
+                : `全部 ${children.total} 个已结束（${children.done} 个完成，${children.cancelled} 个取消）`}
             </span>
           </div>
           {children.active.length > 0 ? (
@@ -579,7 +595,7 @@ export function IssueRunLedgerContent({
               ))}
               {children.active.length > 4 ? (
                 <span className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground">
-                  +{children.active.length - 4} more
+                  另有 {children.active.length - 4} 个
                 </span>
               ) : null}
             </div>
@@ -598,23 +614,23 @@ export function IssueRunLedgerContent({
         >
           <p className="font-medium">
             {latestSilentRun.outputSilence.level === "critical"
-              ? "Stale-run watchdog alert"
-              : "Output silence watchdog warning"}
+              ? "运行卡住看门狗告警"
+              : "输出静默看门狗警告"}
           </p>
           <p className="mt-1">
-            Latest active run has been silent for{" "}
-            {formatSilenceAge(latestSilentRun.outputSilence.silenceAgeMs) ?? "an extended period"}.
+            最近的活跃运行已经静默{" "}
+            {formatSilenceAge(latestSilentRun.outputSilence.silenceAgeMs) ?? "较长时间"}。
             {latestSilentRun.outputSilence.evaluationIssueIdentifier ? (
               <>
                 {" "}
-                Review{" "}
+                请查看{" "}
                 <Link
                   to={`/issues/${latestSilentRun.outputSilence.evaluationIssueIdentifier}`}
                   className="font-medium underline underline-offset-2"
                 >
                   {latestSilentRun.outputSilence.evaluationIssueIdentifier}
                 </Link>
-                {" "}for recovery context.
+                {" "}获取恢复上下文。
               </>
             ) : null}
           </p>
@@ -631,7 +647,7 @@ export function IssueRunLedgerContent({
                   })}
                 disabled={pendingWatchdogDecision != null}
               >
-                Continue monitoring
+                继续观察
               </button>
               <button
                 type="button"
@@ -642,11 +658,11 @@ export function IssueRunLedgerContent({
                     decision: "snooze",
                     evaluationIssueId: latestSilentRun.outputSilence?.evaluationIssueId ?? null,
                     snoozedUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-                    reason: "Snoozed from issue run ledger",
+                    reason: "从事项运行账本暂缓",
                   })}
                 disabled={pendingWatchdogDecision != null}
               >
-                Snooze 1h
+                暂缓 1 小时
               </button>
               <button
                 type="button"
@@ -656,11 +672,11 @@ export function IssueRunLedgerContent({
                     runId: latestSilentRun.runId,
                     decision: "dismissed_false_positive",
                     evaluationIssueId: latestSilentRun.outputSilence?.evaluationIssueId ?? null,
-                    reason: "Dismissed from issue run ledger",
+                    reason: "从事项运行账本标记为误报",
                   })}
                 disabled={pendingWatchdogDecision != null}
               >
-                Mark false positive
+                标记为误报
               </button>
             </div>
           ) : null}
@@ -675,8 +691,8 @@ export function IssueRunLedgerContent({
       {feedItems.length === 0 ? (
         <div className="rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
           {renderActivityEvent
-            ? "Runs and activity will appear here once this issue has history."
-            : "Historical runs without liveness metadata will appear here once linked to this issue."}
+            ? "该事项产生历史后，运行和活动会显示在这里。"
+            : "没有活性元数据的历史运行在关联到该事项后会显示在这里。"}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -698,21 +714,21 @@ export function IssueRunLedgerContent({
                 className="space-y-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground"
               >
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-medium text-foreground">Run</span>
+                  <span className="font-medium text-foreground">运行</span>
                   <Link
                     to={`/agents/${run.agentId}/runs/${run.runId}`}
                     className="min-w-0 max-w-full truncate font-mono text-foreground hover:underline"
                   >
                     {run.runId.slice(0, 8)}
                   </Link>
-                  <span>by {agentName}</span>
+                  <span>由 {agentName}</span>
                   <span className="rounded-md border border-border px-1.5 py-0.5 text-[11px] capitalize text-muted-foreground">
                     {statusLabel(run.status)}
                   </span>
                   {run.isLive ? (
                     <span className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[11px] text-cyan-700 dark:text-cyan-300">
                       <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                      live
+                      实时
                     </span>
                   ) : null}
                   <span
@@ -726,7 +742,7 @@ export function IssueRunLedgerContent({
                   </span>
                   {exhausted ? (
                     <span className="rounded-md border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300">
-                      Exhausted
+                      已用尽
                     </span>
                   ) : null}
                   {continuation ? (
@@ -756,10 +772,10 @@ export function IssueRunLedgerContent({
                     const profile = modelProfileForRun(run);
                     if (!profile) return null;
                     const label = profile.applied === profile.requested
-                      ? `Profile: ${profile.requested}`
+                      ? `配置档：${profile.requested}`
                       : profile.applied
-                        ? `Profile: ${profile.requested} → ${profile.applied}`
-                        : `Profile: ${profile.requested} (unavailable)`;
+                        ? `配置档：${profile.requested} → ${profile.applied}`
+                        : `配置档：${profile.requested}（不可用）`;
                     return (
                       <span
                         className={cn(
@@ -777,15 +793,15 @@ export function IssueRunLedgerContent({
 
                 <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
                   <div className="min-w-0">
-                    <span className="text-foreground">Elapsed</span>{" "}
-                    {duration ?? "unknown"}
+                    <span className="text-foreground">用时</span>{" "}
+                    {duration ?? "未知"}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-foreground">Last useful action</span>{" "}
+                    <span className="text-foreground">最近有效动作</span>{" "}
                     {lastUsefulActionLabel(run)}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-foreground">Stop</span>{" "}
+                    <span className="text-foreground">停止原因</span>{" "}
                     {stopStatusLabel(run, stopReason)}
                   </div>
                 </div>
@@ -796,7 +812,7 @@ export function IssueRunLedgerContent({
                     {retryState.secondary ? <p>{retryState.secondary}</p> : null}
                     {retryState.retryOfRunId ? (
                       <p>
-                        Retry of{" "}
+                        重试自{" "}
                         <Link
                           to={`/agents/${run.agentId}/runs/${retryState.retryOfRunId}`}
                           className="font-mono text-foreground hover:underline"
@@ -814,8 +830,8 @@ export function IssueRunLedgerContent({
                   return (
                     <p className="min-w-0 break-words text-[11px] leading-5 text-amber-700 dark:text-amber-300">
                       {profile.requested === "cheap"
-                        ? "Cheap profile fell back to primary"
-                        : `${profile.requested} profile unavailable`}
+                        ? "低价配置档已回退到主配置"
+                        : `${profile.requested} 配置档不可用`}
                       {": "}
                       <span className="font-mono">{profile.fallbackReason}</span>
                     </p>
@@ -830,7 +846,7 @@ export function IssueRunLedgerContent({
 
                 {run.nextAction ? (
                   <div className="min-w-0 rounded-md bg-accent/40 px-2 py-1.5 text-xs leading-5">
-                    <span className="font-medium text-foreground">Next action: </span>
+                    <span className="font-medium text-foreground">下一步动作：</span>
                     <span className="break-words text-muted-foreground">{run.nextAction}</span>
                   </div>
                 ) : null}
@@ -839,7 +855,7 @@ export function IssueRunLedgerContent({
           })}
           {feedItems.length > 20 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground">
-              {feedItems.length - 20} older items not shown
+              还有 {feedItems.length - 20} 条较早记录未显示
             </div>
           ) : null}
         </div>
