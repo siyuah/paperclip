@@ -581,7 +581,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       const refreshed = await agentsApi.adapterModels(selectedCompanyId, adapterType, { refresh: true });
       queryClient.setQueryData(modelQueryKey, refreshed);
     } catch (error) {
-      setRefreshModelsError(error instanceof Error ? error.message : "Failed to refresh adapter models.");
+      setRefreshModelsError(error instanceof Error ? error.message : "刷新适配器模型失败。");
     } finally {
       setRefreshingModels(false);
     }
@@ -1022,15 +1022,15 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 }}
                 onRefreshModels={adapterType === "codex_local" ? handleRefreshModels : undefined}
                 refreshingModels={refreshingModels}
-                detectModelLabel="Detect model"
-                emptyDetectHint="No model detected. Select or enter one manually."
+                detectModelLabel="检测模型"
+                emptyDetectHint="未检测到模型。请选择或手动输入一个模型。"
               />
               {(refreshModelsError || fetchedModelsError) && (
                 <p className="text-xs text-destructive">
                   {refreshModelsError
                     ?? (fetchedModelsError instanceof Error
                       ? fetchedModelsError.message
-                      : "Failed to load adapter models.")}
+                      : "加载适配器模型失败。")}
                 </p>
               )}
 
@@ -1233,7 +1233,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 )}
                 onChange={(v) => mark("heartbeat", "wakeOnDemand", v)}
               />
-              <Field label="Cooldown (sec)" hint={help.cooldownSec}>
+              <Field label="冷却时间（秒）" hint={help.cooldownSec}>
                 <DraftNumberInput
                   value={eff(
                     "heartbeat",
@@ -1245,7 +1245,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   className={inputClass}
                 />
               </Field>
-              <Field label="Max concurrent runs" hint={help.maxConcurrentRuns}>
+              <Field label="最大并发运行数" hint={help.maxConcurrentRuns}>
                 <DraftNumberInput
                   value={eff(
                     "heartbeat",
@@ -1269,7 +1269,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
 
 export function AdapterEnvironmentResult({ result }: { result: AdapterEnvironmentTestResult }) {
   const statusLabel =
-    result.status === "pass" ? "Passed" : result.status === "warn" ? "Warnings" : "Failed";
+    result.status === "pass" ? "已通过" : result.status === "warn" ? "有警告" : "失败";
   const statusClass =
     result.status === "pass"
       ? "text-green-700 dark:text-green-300 border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10"
@@ -1294,7 +1294,7 @@ export function AdapterEnvironmentResult({ result }: { result: AdapterEnvironmen
             <span className="mx-1 opacity-60">·</span>
             <span>{check.message}</span>
             {check.detail && <span className="block opacity-75 break-all">({check.detail})</span>}
-            {check.hint && <span className="block opacity-90 break-words">Hint: {check.hint}</span>}
+            {check.hint && <span className="block opacity-90 break-words">提示：{check.hint}</span>}
           </div>
         ))}
       </div>
@@ -1492,7 +1492,7 @@ function ModelDropdown({
   }
 
   return (
-    <Field label="Model" hint={help.model}>
+    <Field label="模型" hint={help.model}>
       <Popover
         open={open}
         onOpenChange={(nextOpen) => {
@@ -1546,7 +1546,7 @@ function ModelDropdown({
                 <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              {detectingModel ? "Detecting..." : detectedModel ? (detectModelLabel?.replace(/^Detect\b/, "Re-detect") ?? "Re-detect from config") : (detectModelLabel ?? "Detect from config")}
+              {detectingModel ? "正在检测..." : detectedModel ? "从配置重新检测" : (detectModelLabel ?? "从配置检测")}
             </button>
           )}
           {onRefreshModels && !modelSearch.trim() && (
@@ -1564,7 +1564,7 @@ function ModelDropdown({
                 <path d="M21 12a9 9 0 0 1-15.28 6.36L3 16" />
                 <path d="M8 16H3v5" />
               </svg>
-              {refreshingModels ? "Refreshing..." : "Refresh models"}
+              {refreshingModels ? "正在刷新..." : "刷新模型"}
             </button>
           )}
           {value && (!models.some((m) => m.id === value) || promotedModelIds.has(value)) && (
@@ -1581,7 +1581,7 @@ function ModelDropdown({
                 {models.find((m) => m.id === value)?.label ?? value}
               </span>
               <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20">
-                current
+                当前
               </span>
             </button>
           )}
@@ -1600,7 +1600,7 @@ function ModelDropdown({
                 {models.find((m) => m.id === detectedModel)?.label ?? detectedModel}
               </span>
               <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">
-                detected
+                已检测
               </span>
             </button>
           )}
@@ -1624,7 +1624,7 @@ function ModelDropdown({
                     {entry?.label ?? candidate}
                   </span>
                   <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/20">
-                    config
+                    配置
                   </span>
                 </button>
               );
@@ -1655,7 +1655,7 @@ function ModelDropdown({
                   setModelSearch("");
                 }}
               >
-                <span>Use manual model</span>
+                <span>使用手动模型</span>
                 <span className="text-xs font-mono text-muted-foreground">{manualModel}</span>
               </button>
             )}
@@ -1696,8 +1696,8 @@ function ModelDropdown({
               <div className="px-2 py-2 space-y-2">
                 <p className="text-xs text-muted-foreground">
                   {onDetectModel
-                    ? (emptyDetectHint ?? "No model detected yet. Enter a provider/model manually.")
-                    : "No models found."}
+                    ? (emptyDetectHint ?? "尚未检测到模型。请手动输入 provider/model。")
+                    : "未找到模型。"}
                 </p>
               </div>
             )}

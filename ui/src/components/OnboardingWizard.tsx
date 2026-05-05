@@ -246,6 +246,7 @@ export function OnboardingWizard() {
     pi_local: "pi",
     cursor: "agent",
     opencode_local: "opencode",
+    hermes_local: "hermes",
   };
   const effectiveAdapterCommand =
     command.trim() ||
@@ -1043,6 +1044,20 @@ export function OnboardingWizard() {
                             )}
                           </PopoverContent>
                         </Popover>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">
+                          命令
+                        </label>
+                        <input
+                          className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
+                          placeholder={
+                            COMMAND_PLACEHOLDERS[adapterType] ??
+                            adapterType.replace(/_local$/, "")
+                          }
+                          value={command}
+                          onChange={(e) => setCommand(e.target.value)}
+                        />
                       </div>
                     </div>
                   )}

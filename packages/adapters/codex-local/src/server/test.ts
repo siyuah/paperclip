@@ -138,8 +138,10 @@ export async function testEnvironment(
       checks.push({
         code: "codex_native_auth_present",
         level: "info",
-        message: "Codex is authenticated via its own auth configuration.",
-        detail: codexAuth.email ? `Logged in as ${codexAuth.email}.` : `Credentials found in ${path.join(codexHome ?? codexHomeDir(), "auth.json")}.`,
+        message: "Codex 已通过自身认证配置完成认证。",
+        detail: codexAuth.email
+          ? `已登录邮箱：${codexAuth.email}。`
+          : `已在 ${path.join(codexHome ?? codexHomeDir(), "auth.json")} 找到认证信息。`,
       });
     } else {
       checks.push({

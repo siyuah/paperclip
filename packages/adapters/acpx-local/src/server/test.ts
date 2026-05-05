@@ -131,7 +131,7 @@ async function buildCredentialHintChecks(
         code: "acpx_claude_subscription_auth_detected",
         level: "info",
         message: "Claude credential hint: local Claude subscription credentials were found.",
-        detail: `Credentials found in ${claudeConfigDir}.`,
+        detail: `已在 ${claudeConfigDir} 找到认证信息。`,
       }];
     }
 
@@ -163,7 +163,7 @@ async function buildCredentialHintChecks(
         code: "acpx_codex_native_auth_detected",
         level: "info",
         message: "Codex credential hint: local Codex auth configuration was found.",
-        detail: `Credentials found in ${path.join(codexHome, "auth.json")}.`,
+        detail: `已在 ${path.join(codexHome, "auth.json")} 找到认证信息。`,
       }];
     }
 

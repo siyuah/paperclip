@@ -181,10 +181,10 @@ export async function testEnvironment(
       checks.push({
         code: "cursor_native_auth_present",
         level: "info",
-        message: "Cursor is authenticated via `agent login`.",
+        message: "Cursor 已通过 `agent login` 完成认证。",
         detail: cursorAuth.email
-          ? `Logged in as ${cursorAuth.email}.`
-          : `Credentials found in ${cursorConfigPath(cursorHome)}.`,
+          ? `已登录邮箱：${cursorAuth.email}。`
+          : `已在 ${cursorConfigPath(cursorHome)} 找到认证信息。`,
       });
     } else {
       checks.push({
